@@ -5,7 +5,7 @@ XBINDIR:=$(XDIR)/bin
 CC:=$(XBINDIR)/$(TRIPLE)-gcc
 OBJCOPY:=$(XBINDIR)/$(TRIPLE)-objcopy
 OBJDUMP:=$(XBINDIR)/$(TRIPLE)-objdump
-INC:=-Iinclude
+INC:=-Iinclude -Itest
 
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable
