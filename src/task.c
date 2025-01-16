@@ -11,8 +11,7 @@ task_t task_new(priority_t priority, uint64_t sp, func_t entry_point)
     return task;
 }
 
-void task_run(task_t task)
+void task_run(task_t *kernel_task, task_t *task)
 {
-    int i = myinc(3);
-    uart_printf(CONSOLE, "%d", i);
+    entertask((uint64_t) kernel_task, (uint64_t) task);
 }

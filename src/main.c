@@ -5,7 +5,7 @@
 
 void foo()
 {
-    uart_puts(CONSOLE, "Hello world!\r\n");
+    uart_puts(CONSOLE, "Hello from foo!\r\n");
 }
 
 int kmain()
@@ -17,8 +17,9 @@ int kmain()
     tests();
 
     char stack[NUM_TASKS * STACK_SIZE];
+    task_t kernel_task;
     task_t task = task_new(priority_0, (uint64_t)stack, &foo);
-    task_run(task);
+    task_run(&kernel_task, &task);
 
     for (;;) {
     }
