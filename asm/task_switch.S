@@ -1,6 +1,6 @@
-.global entertask
+.global enter_task
 
-entertask:
+enter_task:
     str x1, [sp]
 
     stp x0, x1, [x0], #16
@@ -46,7 +46,7 @@ entertask:
     ldr x1, [sp]
     add x1, x1, #8
     ldr x1, [x1]
-    
+
     eret
 
 
