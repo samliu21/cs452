@@ -9,4 +9,8 @@ typedef struct priority_queue {
     int size;
 } priority_queue;
 
+priority_queue pq_new();
+void pq_add(priority_queue* pq, task_t* task);
+task_t* pq_pop(priority_queue* pq);
+
 #endif

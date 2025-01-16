@@ -6,7 +6,8 @@
 typedef enum priority_t {
     undefined = -1,
     priority_0 = 0,
-    priority_1 = 1
+    priority_1 = 1,
+    priority_2 = 2,
 } priority_t;
 
 typedef struct task_t {
@@ -19,7 +20,7 @@ typedef struct task_t {
     uint64_t tid;
     uint64_t parent_tid;
     struct task_t* next_task;
-	struct task_t* next_slab;
+    struct task_t* next_slab;
 } task_t;
 
 extern int myinc(int i);
