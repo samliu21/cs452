@@ -18,8 +18,11 @@ typedef struct task_t {
     priority_t priority;
     uint64_t tid;
     uint64_t parent_tid;
-    struct task_t *next_task;
+    struct task_t* next_task;
+	struct task_t* next_slab;
 } task_t;
+
+extern int myinc(int i);
 
 task_t task_new(priority_t priority, uint64_t sp, func_t entry_point);
 void task_run(task_t task);
