@@ -1,4 +1,5 @@
 .global enter_task
+.global leave_task
 
 enter_task:
     str x1, [sp]
@@ -49,4 +50,5 @@ enter_task:
 
     eret
 
-
+leave_task:
+    svc #0

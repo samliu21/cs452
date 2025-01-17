@@ -3,7 +3,7 @@
 
 #include "common.h"
 
-extern void init_vbar(uint64_t exception_handler, uint64_t dummy_handler);
+extern void init_vbar();
 
 void dummy_handler();
 

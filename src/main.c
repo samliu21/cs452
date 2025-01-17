@@ -4,10 +4,12 @@
 #include "task.h"
 #include "test.h"
 
+extern void Yield();
+
 void foo()
 {
     uart_puts(CONSOLE, "Hello from foo!\r\n");
-    __asm__("svc 5");
+    leave_task();
 }
 
 int kmain()
@@ -17,8 +19,7 @@ int kmain()
     uart_puts(CONSOLE, "\r\nHello world!\r\n");
 
     tests();
-    //char vbar[4 * 4 * 128];
-    init_vbar(0, (uint64_t)&dummy_handler);
+    init_vbar();
     char stack[NUM_TASKS * STACK_SIZE];
     task_t kernel_task;
     task_t task = task_new(priority_0, (uint64_t)stack, &foo);

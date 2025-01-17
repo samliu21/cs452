@@ -1,42 +1,39 @@
 .global init_vbar
 
 init_vbar:
-    adr x2, dummy_handler
-    mrs x3, vbar_el1
-    ldr x2, [x2]
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
-    str x2, [x3]
-    add x3, x3, #16
+    ldr x0, =vbar
+    msr vbar_el1, x0
     ret
 
-dummy_handler:
-    br x1
+vbar:
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
