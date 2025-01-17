@@ -5,7 +5,16 @@ init_vbar:
     msr vbar_el1, x0
     ret
 
+.balign 0x800
 vbar:
+    b dummy_handler // SP0
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80
+    b dummy_handler
+    .balign 0x80 // current EL
     b dummy_handler
     .balign 0x80
     b dummy_handler
@@ -13,23 +22,15 @@ vbar:
     b dummy_handler
     .balign 0x80
     b dummy_handler
+    .balign 0x80 // lower EL (64-bit)
+    b restore_kernel
     .balign 0x80
     b dummy_handler
     .balign 0x80
     b dummy_handler
     .balign 0x80
     b dummy_handler
-    .balign 0x80
-    b dummy_handler
-    .balign 0x80
-    b dummy_handler
-    .balign 0x80
-    b dummy_handler
-    .balign 0x80
-    b dummy_handler
-    .balign 0x80
-    b dummy_handler
-    .balign 0x80
+    .balign 0x80 // lower EL (32-bit)
     b dummy_handler
     .balign 0x80
     b dummy_handler

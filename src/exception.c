@@ -3,7 +3,7 @@
 
 void dummy_handler()
 {
-    uart_puts(CONSOLE, "Syscall went to the dummy handler 2 :(");
+    uart_puts(CONSOLE, "Syscall went to the dummy handler 3 :(");
     for (;;) {}
 }
 

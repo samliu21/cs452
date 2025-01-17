@@ -2,6 +2,7 @@
 #define _common_h_
 
 typedef unsigned long long uint64_t;
+typedef long long int64_t;
 
 typedef void (*func_t)();
 
