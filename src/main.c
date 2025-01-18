@@ -11,8 +11,8 @@ extern void default_registers_test();
 void foo()
 {
     uart_puts(CONSOLE, "Hello from foo!\r\n");
-    leave_task();
-    // uart_printf(CONSOLE, "tid: %u\r\n", tid);
+    uint64_t tid = my_tid();
+    uart_printf(CONSOLE, "tid: %u\r\n", tid);
     for (;;) {}
 }
 
@@ -34,8 +34,8 @@ int kmain()
         uint64_t syndrome = esr & SYNDROME_MASK;
         uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
 
-        // if (syndrome == SYSCALL_MYTID) {
-        //     task.registers[0] = task.tid;
-        // }
+        if (syndrome == SYSCALL_MYTID) {
+            task.registers[0] = task.tid;
+        }
     }
 }

@@ -15,7 +15,7 @@ vbar:
     .balign 0x80
     b dummy_handler
     .balign 0x80 // current EL
-    b dummy_handler
+    b exception_handler
     .balign 0x80
     b dummy_handler
     .balign 0x80
@@ -25,11 +25,11 @@ vbar:
     .balign 0x80 // lower EL (64-bit)
     b restore_kernel
     .balign 0x80
-    b dummy_handler
+    b exception_handler
     .balign 0x80
-    b dummy_handler
+    b exception_handler
     .balign 0x80
-    b dummy_handler
+    b exception_handler
     .balign 0x80 // lower EL (32-bit)
     b dummy_handler
     .balign 0x80

@@ -10,4 +10,5 @@ void dummy_handler()
 void exception_handler()
 {
     uart_puts(CONSOLE, "Syscall went to the exception handler :)");
+    for (;;) {}
 }

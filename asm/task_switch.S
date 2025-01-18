@@ -1,5 +1,5 @@
 .global enter_task
-.global leave_task
+.global my_tid
 .global restore_kernel
 .global default_registers_test
 .global dump_registers
@@ -55,8 +55,9 @@ enter_task:
 
     eret
 
-leave_task:
+my_tid:
     svc #1
+    mov x0, #100
     ret
 
 restore_kernel:
@@ -84,6 +85,10 @@ restore_kernel:
     ldr x1, [sp, #8]
     mrs x2, elr_el1
     str x2, [x1, #248]
+    mrs x2, sp_el0
+    str x2, [x1, #256]
+    mrs x2, spsr_el1
+    str x2, [x1, #264]
 
     ldr x1, [sp], #8 // x1 is the user's x1 register
     ldr x0, [sp], #8 // x0 is the user's task descriptor
