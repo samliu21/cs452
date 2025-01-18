@@ -23,8 +23,9 @@ typedef struct task_t {
     struct task_t* next_slab;
 } task_t;
 
+// TODO: for all our asm interfaces, can we pass in pointer and have asm auto-cast to uint64_t address?
 extern uint64_t enter_task(uint64_t kernel_task, uint64_t task);
 
-task_t task_new(priority_t priority, uint64_t sp, func_t entry_point);
+void task_new(task_t* task, priority_t priority, uint64_t sp, func_t entry_point);
 
 #endif /* task.h */

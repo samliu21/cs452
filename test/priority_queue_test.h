@@ -3,11 +3,12 @@
 
 int test_pq_add()
 {
-    task_t t1 = task_new(priority_0, 0, 0);
-    task_t t2 = task_new(priority_2, 0, 0);
-    task_t t3 = task_new(priority_1, 0, 0);
+    task_t t1, t2, t3;
+    task_new(&t1, priority_0, 0, 0);
+    task_new(&t2, priority_2, 0, 0);
+    task_new(&t3, priority_1, 0, 0);
 
-    priority_queue pq = pq_new();
+    priority_queue_t pq = pq_new();
     TEST_ASSERT(pq.size == 0);
     TEST_ASSERT(pq.head == NULL);
     TEST_ASSERT(pq.tail == NULL);
@@ -35,11 +36,12 @@ int test_pq_add()
 
 int test_pq_pop()
 {
-    task_t t1 = task_new(priority_0, 0, 0);
-    task_t t2 = task_new(priority_2, 0, 0);
-    task_t t3 = task_new(priority_1, 0, 0);
+    task_t t1, t2, t3;
+    task_new(&t1, priority_0, 0, 0);
+    task_new(&t2, priority_2, 0, 0);
+    task_new(&t3, priority_1, 0, 0);
 
-    priority_queue pq = pq_new();
+    priority_queue_t pq = pq_new();
     pq_add(&pq, &t1);
     pq_add(&pq, &t2);
     pq_add(&pq, &t3);

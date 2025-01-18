@@ -1,5 +1,6 @@
 #include "asm.include"
 .global enter_task
+.global create
 .global my_tid
 .global restore_kernel
 
@@ -57,6 +58,10 @@ enter_task:
     ldr x1, [x1]
 
     eret
+
+create:
+	svc #0
+	ret
 
 my_tid:
     svc #1
