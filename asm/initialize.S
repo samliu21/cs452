@@ -15,7 +15,8 @@ vbar:
     .balign 0x80
     b dummy_handler
     .balign 0x80 // current EL
-    b exception_handler
+    mrs x0, esr_el1
+    b synchronous_kernel_error
     .balign 0x80
     b dummy_handler
     .balign 0x80
