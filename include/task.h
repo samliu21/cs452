@@ -24,7 +24,6 @@ typedef struct task_t {
 } task_t;
 
 extern uint64_t enter_task(uint64_t kernel_task, uint64_t task);
-extern uint64_t leave_task();
 
 task_t task_new(priority_t priority, uint64_t sp, func_t entry_point);
 

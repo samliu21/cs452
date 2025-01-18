@@ -1,0 +1,100 @@
+.global default_registers_test
+.global dump_registers
+
+.local save_print_register
+
+.macro debug_register, register
+    str x30, [sp, #-8]!
+    str x0, [sp, #-8]!
+    mov x0, \register
+    bl save_print_register
+    ldr x0, [sp], #8
+    ldr x30, [sp], #8
+.endm
+save_print_register:
+    stp x1, x0,   [sp, #-16]!
+    stp x3, x2,   [sp, #-16]!
+    stp x5, x4,   [sp, #-16]!
+    stp x7, x6,   [sp, #-16]!
+    stp x9, x8,   [sp, #-16]!
+    stp x11, x10, [sp, #-16]!
+    stp x13, x12, [sp, #-16]!
+    stp x15, x14, [sp, #-16]!
+    stp x17, x16, [sp, #-16]!
+    stp x19, x18, [sp, #-16]!
+    stp x21, x20, [sp, #-16]!
+    stp x23, x22, [sp, #-16]!
+    stp x25, x24, [sp, #-16]!
+    stp x27, x26, [sp, #-16]!
+    stp x29, x28, [sp, #-16]!
+    str x30, [sp, #-8]!
+    bl print_register
+    ldp x30, x29, [sp], #16
+    ldp x28, x27, [sp], #16
+    ldp x26, x25, [sp], #16
+    ldp x24, x23, [sp], #16
+    ldp x22, x21, [sp], #16
+    ldp x20, x19, [sp], #16
+    ldp x18, x17, [sp], #16
+    ldp x16, x15, [sp], #16
+    ldp x14, x13, [sp], #16
+    ldp x12, x11, [sp], #16
+    ldp x10, x9, [sp], #16
+    ldp x8, x7, [sp], #16
+    ldp x6, x5, [sp], #16
+    ldp x4, x3, [sp], #16
+    ldp x2, x1, [sp], #16
+    ldr x0, [sp], #8
+    br x30
+
+default_registers_test:
+    mov x0, #100
+    mov x1, #101
+    mov x2, #102
+    mov x3, #103
+    mov x4, #104
+    mov x5, #105
+    mov x6, #106
+    mov x7, #107
+    mov x8, #108
+    mov x9, #109
+    mov x10, #110
+    mov x11, #111
+    mov x12, #112
+    mov x13, #113
+    mov x14, #114
+    mov x15, #115
+    mov x16, #116
+    mov x17, #117
+    mov x18, #118
+    mov x19, #119
+    mov x20, #120
+    mov x21, #121
+    mov x22, #122
+    mov x23, #123
+    mov x24, #124
+    mov x25, #125
+    mov x26, #126
+    mov x27, #127
+    mov x28, #128
+    mov x29, #129
+    ret
+
+dump_registers:
+    stp x0, x1, [x0]
+    add x0, x0, #16
+    stp x2, x3, [x0], #16
+    stp x4, x5, [x0], #16
+    stp x6, x7, [x0], #16
+    stp x8, x9, [x0], #16
+    stp x10, x11, [x0], #16
+    stp x12, x13, [x0], #16
+    stp x14, x15, [x0], #16
+    stp x16, x17, [x0], #16
+    stp x18, x19, [x0], #16
+    stp x20, x21, [x0], #16
+    stp x22, x23, [x0], #16
+    stp x24, x25, [x0], #16
+    stp x26, x27, [x0], #16
+    stp x28, x29, [x0], #16
+    ret

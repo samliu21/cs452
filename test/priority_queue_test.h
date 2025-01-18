@@ -56,6 +56,7 @@ int test_pq_pop()
     t = pq_pop(&pq);
     TEST_ASSERT(t == &t1);
     TEST_ASSERT(pq.size == 0);
+    return 1;
 }
 
 void pq_tests()
