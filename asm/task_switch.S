@@ -6,7 +6,7 @@
 enter_task:
     stp x1, x0, [sp, #-16]!
 
-    debug_register x30
+    // debug_register x30
 
     stp x0, x1, [x0]
     add x0, x0, #16
@@ -26,7 +26,7 @@ enter_task:
     stp x28, x29, [x0], #16
     str x30, [x0]
 
-    debug_register x30
+    // debug_register x30
 
     ldr x0, [x1, #248]
     msr elr_el1, x0
@@ -60,7 +60,6 @@ enter_task:
 
 my_tid:
     svc #1
-    mov x0, #100
     ret
 
 restore_kernel:
@@ -97,7 +96,7 @@ restore_kernel:
     ldr x0, [sp], #8 // x0 is the user's task descriptor
     str x1, [x0, #8]
 
-    debug_register x30
+    // debug_register x30
 
     ldr x0, [sp], #8
     add x0, x0, #8
@@ -117,7 +116,7 @@ restore_kernel:
     ldp x27, x28, [x0], #16
     ldp x29, x30, [x0], #16
 
-    debug_register x30
+    // debug_register x30
     
     mrs x0, esr_el1
     ret
