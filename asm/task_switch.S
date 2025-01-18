@@ -7,7 +7,8 @@
 enter_task:
     stp x1, x0, [sp, #-16]!
 
-    stp x0, x1, [x0], #16
+    stp x0, x1, [x0]
+    add x0, x0, #16
     stp x2, x3, [x0], #16
     stp x4, x5, [x0], #16
     stp x6, x7, [x0], #16
@@ -56,6 +57,7 @@ enter_task:
 
 leave_task:
     svc #1
+    ret
 
 restore_kernel:
     str x1, [sp, #-8]!
@@ -80,14 +82,12 @@ restore_kernel:
     stp x29, x30, [x1], #16
 
     ldr x1, [sp, #8]
-    ldr x1, [x1, #248]
-    msr elr_el1, x1
+    mrs x2, elr_el1
+    str x2, [x1, #248]
 
     ldr x1, [sp], #8 // x1 is the user's x1 register
     ldr x0, [sp], #8 // x0 is the user's task descriptor
     str x1, [x0, #8]
-    
-    
 
     ldr x0, [sp], #8
     add x0, x0, #8
@@ -145,7 +145,8 @@ default_registers_test:
     ret
 
 dump_registers:
-    stp x0, x1, [x0], #16
+    stp x0, x1, [x0]
+    add x0, x0, #16
     stp x2, x3, [x0], #16
     stp x4, x5, [x0], #16
     stp x6, x7, [x0], #16
