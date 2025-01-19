@@ -1,7 +1,7 @@
-#include "slab.h"
+#include "allocator.h"
 #include "testutils.h"
 
-int test_allocator()
+int _test_allocator()
 {
     task_t nodes[4];
     allocator_t a = allocator_new(nodes, 2);
@@ -19,7 +19,7 @@ int test_allocator()
     return 1;
 }
 
-void slab_tests()
+void run_allocator_tests()
 {
-    TEST_RUN(test_allocator);
+    TEST_RUN(_test_allocator);
 }

@@ -1,5 +1,5 @@
-.global default_registers_test
-.global dump_registers
+.global debug_set_registers
+.global debug_dump_registers
 
 .local save_print_register
 
@@ -47,7 +47,7 @@ save_print_register:
     ldr x0, [sp], #8
     br x30
 
-default_registers_test:
+debug_set_registers:
     mov x0, #100
     mov x1, #101
     mov x2, #102
@@ -80,7 +80,7 @@ default_registers_test:
     mov x29, #129
     ret
 
-dump_registers:
+debug_dump_registers:
     stp x0, x1, [x0]
     add x0, x0, #16
     stp x2, x3, [x0], #16

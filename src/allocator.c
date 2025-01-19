@@ -1,4 +1,4 @@
-#include "slab.h"
+#include "allocator.h"
 #include "rpi.h"
 #include <stdlib.h>
 
@@ -58,4 +58,13 @@ void allocator_free(allocator_t* allocator, task_t* task)
         t = t->next_slab;
     }
     ASSERT(0, "attempted to free a task that was not allocated");
+}
+
+task_t* allocator_new_task(allocator_t* allocator, char* stack, uint64_t tid, uint64_t priority, func_t entry_point, task_t* parent_task)
+{
+    task_t* task = allocator_alloc(allocator);
+    int offset = (task - allocator->slabs) / sizeof(task_t);
+    uint64_t sp = (uint64_t)(stack + (offset + 1) * STACK_SIZE);
+    task_new(task, tid, priority, sp, entry_point, parent_task);
+    return task;
 }

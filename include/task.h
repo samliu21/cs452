@@ -2,6 +2,7 @@
 #define _task_h_ 1
 
 #include "common.h"
+#include "stack.h"
 
 typedef enum priority_t {
     undefined = -1,
@@ -26,6 +27,6 @@ typedef struct task_t {
 // TODO: for all our asm interfaces, can we pass in pointer and have asm auto-cast to uint64_t address?
 extern uint64_t enter_task(uint64_t kernel_task, uint64_t task);
 
-void task_new(task_t* task, priority_t priority, uint64_t sp, func_t entry_point);
+void task_new(task_t* task, uint64_t tid, priority_t priority, uint64_t sp, func_t entry_point, task_t* parent_task);
 
 #endif /* task.h */
