@@ -1,7 +1,7 @@
 #include "priority_queue.h"
 #include "testutils.h"
 
-int test_pq_add()
+int _test_pq_add()
 {
     task_t t1, t2, t3;
     task_new(&t1, priority_0, 0, 0);
@@ -34,7 +34,7 @@ int test_pq_add()
     return 1;
 }
 
-int test_pq_pop()
+int _test_pq_pop()
 {
     task_t t1, t2, t3;
     task_new(&t1, priority_0, 0, 0);
@@ -61,7 +61,8 @@ int test_pq_pop()
     return 1;
 }
 
-void pq_tests()
+void run_pq_tests()
 {
-    TEST_RUN(test_pq_add);
+    TEST_RUN(_test_pq_add);
+    TEST_RUN(_test_pq_pop);
 }

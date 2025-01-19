@@ -26,11 +26,11 @@ vbar:
     .balign 0x80 // lower EL (64-bit)
     b restore_kernel
     .balign 0x80
-    b exception_handler
+    b dummy_handler
     .balign 0x80
-    b exception_handler
+    b dummy_handler
     .balign 0x80
-    b exception_handler
+    b dummy_handler
     .balign 0x80 // lower EL (32-bit)
     b dummy_handler
     .balign 0x80

@@ -1,4 +1,4 @@
-#include "slab.h"
+#include "allocator.h"
 #include "rpi.h"
 #include <stdlib.h>
 

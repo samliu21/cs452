@@ -1,14 +1,12 @@
 #include "asm.include"
 .global enter_task
-.global create
-.global my_tid
 .global restore_kernel
 
 enter_task:
+	// store user task, kernel task on kernel stack
     stp x1, x0, [sp, #-16]!
 
-    // debug_register x30
-
+	# store kernel registers
     stp x0, x1, [x0]
     add x0, x0, #16
     stp x2, x3, [x0], #16
@@ -27,8 +25,7 @@ enter_task:
     stp x28, x29, [x0], #16
     str x30, [x0]
 
-    // debug_register x30
-
+	# load user's ELR, SP, SPSR from user
     ldr x0, [x1, #248]
     msr elr_el1, x0
     ldr x0, [x1, #256]
@@ -36,7 +33,8 @@ enter_task:
     ldr x0, [x1, #264]
     msr spsr_el1, x0
 
-    ldr x0, [x1], #16 // jumps over x1
+	// load user registers (except x1)
+    ldr x0, [x1], #16
     ldr x2, [x1], #8
     ldp x3, x4, [x1], #16
     ldp x5, x6, [x1], #16
@@ -53,26 +51,21 @@ enter_task:
     ldp x27, x28, [x1], #16
     ldp x29, x30, [x1], #16
 
+	// load x1
     ldr x1, [sp]
     add x1, x1, #8
     ldr x1, [x1]
 
     eret
 
-create:
-	svc #0
-	ret
-
-my_tid:
-    svc #1
-    ret
 
 restore_kernel:
+	// store the current user x1 register
     str x1, [sp, #-8]!
     ldr x1, [sp, #8]
 
-    // save user registers
-    str x0, [x1], #16 // jumps over x1
+    // save user registers (except x1)
+    str x0, [x1], #16
     str x2, [x1], #8
     stp x3, x4, [x1], #16
     stp x5, x6, [x1], #16
@@ -89,6 +82,7 @@ restore_kernel:
     stp x27, x28, [x1], #16
     stp x29, x30, [x1], #16
 
+	// store ELR, SP, SPSR
     ldr x1, [sp, #8]
     mrs x2, elr_el1
     str x2, [x1, #248]
@@ -97,12 +91,12 @@ restore_kernel:
     mrs x2, spsr_el1
     str x2, [x1, #264]
 
-    ldr x1, [sp], #8 // x1 is the user's x1 register
+	// store x1
+	ldr x1, [sp], #8 // x1 is the user's x1 register
     ldr x0, [sp], #8 // x0 is the user's task descriptor
     str x1, [x0, #8]
 
-    // debug_register x30
-
+	// load kernel registers
     ldr x0, [sp], #8
     add x0, x0, #8
     ldp x1, x2, [x0], #16
@@ -121,7 +115,6 @@ restore_kernel:
     ldp x27, x28, [x0], #16
     ldp x29, x30, [x0], #16
 
-    // debug_register x30
-    
+	// we return ESR to kernel so it can get syscall number
     mrs x0, esr_el1
     ret

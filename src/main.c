@@ -42,9 +42,6 @@ int kmain()
     init_vbar();
     char stack[NUM_TASKS * STACK_SIZE];
     task_t kernel_task;
-    // task_t task;
-    // task_new(&task, priority_0, (uint64_t)(stack + STACK_SIZE), &foo);
-    // uint64_t registers[32];
 
     task_t tasks[NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, NUM_TASKS);
@@ -56,9 +53,9 @@ int kmain()
     for (;;) {
         task_t* task = pq_peek(&scheduler);
 
-        // default_registers_test();
+        // debug_set_registers();
         uint64_t esr = enter_task((uint64_t)&kernel_task, (uint64_t)task);
-        // dump_registers((uint64_t)registers);
+        // debug_dump_registers((uint64_t)registers);
         // for (int i = 0; i < 32; ++i) {
         //     uart_printf(CONSOLE, "register %d: %u\r\n", i, registers[i]);
         // }
