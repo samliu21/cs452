@@ -3,9 +3,10 @@
 
 #include "common.h"
 
-#define SYNDROME_MASK 0xFFFF
+// syscall numbers
 #define SYSCALL_CREATE 0
 #define SYSCALL_MYTID 1
+#define SYSCALL_MYPARENTTID 2
 
 // syscall asm functions
 extern void create(uint64_t priority, uint64_t entry_point);

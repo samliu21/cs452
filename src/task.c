@@ -1,11 +1,12 @@
 #include "task.h"
 #include "rpi.h"
 
-void task_new(task_t* task, priority_t priority, uint64_t sp, func_t entry_point)
+void task_new(task_t* task, uint64_t tid, priority_t priority, uint64_t sp, func_t entry_point, task_t* parent_task)
 {
-    task->tid = 5;
-    task->elr = (uint64_t)entry_point;
+    task->tid = tid;
     task->priority = priority;
-    task->spsr = 0;
     task->sp = sp;
+    task->elr = (uint64_t)entry_point;
+    task->parent_tid = parent_task->tid;
+    task->spsr = 0;
 }
