@@ -1,5 +1,5 @@
 .global debug_set_registers
-.global debug_dump_registers
+.global _debug_dump_registers
 
 .local save_print_register
 
@@ -80,7 +80,7 @@ debug_set_registers:
     mov x29, #129
     ret
 
-debug_dump_registers:
+_debug_dump_registers:
     stp x0, x1, [x0]
     add x0, x0, #16
     stp x2, x3, [x0], #16

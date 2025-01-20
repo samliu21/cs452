@@ -212,5 +212,6 @@ void ASSERT(int condition, const char* message)
         uart_puts(CONSOLE, "ASSERTION FAILED: ");
         uart_puts(CONSOLE, message);
         uart_puts(CONSOLE, "\r\n");
+        for (;;) { }
     }
 }

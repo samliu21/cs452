@@ -17,8 +17,17 @@ extern uint64_t my_parent_tid();
 extern void yield();
 extern void exit();
 
-// helper functions to test context switching
 extern void debug_set_registers();
-extern void debug_dump_registers(uint64_t registers);
+extern void _debug_dump_registers(uint64_t registers);
+
+// helper functions to test context switching
+void debug_dump_registers()
+{
+    uint64_t registers[32];
+    _debug_dump_registers((uint64_t)registers);
+    for (int i = 0; i < 32; i++) {
+        uart_printf(CONSOLE, "x%d: %u\r\n", i, registers[i]);
+    }
+}
 
 #endif

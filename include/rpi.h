@@ -1,5 +1,5 @@
 #ifndef _rpi_h_
-#define _rpi_h_ 1
+#define _rpi_h_
 
 #include <stddef.h>
 

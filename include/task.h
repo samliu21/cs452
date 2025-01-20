@@ -1,9 +1,10 @@
 #ifndef _task_h_
-#define _task_h_ 1
+#define _task_h_
 
 #include "common.h"
 #include "stack.h"
 
+// TODO: turn this into a uint64_t
 typedef enum priority_t {
     undefined = -1,
     priority_0 = 0,
