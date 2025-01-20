@@ -11,7 +11,7 @@
 #define SYSCALL_EXIT 4
 
 // syscall asm functions
-extern void create(uint64_t priority, uint64_t entry_point);
+extern int64_t create(uint64_t priority, uint64_t entry_point);
 extern uint64_t my_tid();
 extern uint64_t my_parent_tid();
 extern void yield();

@@ -58,3 +58,16 @@ task_t* pq_peek(priority_queue_t* pq)
     ASSERT(pq->size > 0, "peek from empty priority queue");
     return pq->head;
 }
+
+int pq_empty(priority_queue_t* pq)
+{
+    return pq->size == 0;
+}
+
+void pq_debug(priority_queue_t* pq)
+{
+    task_t* t = pq->head;
+    while (t) {
+        t = t->next_task;
+    }
+}
