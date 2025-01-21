@@ -15,8 +15,8 @@ int kmain()
     uart_puts(CONSOLE, "\r\nconsole loaded!\r\n");
 
     // run tests and initialize exception vector
-    tests();
     init_vbar();
+    tests();
 
     // create kernel task
     task_t kernel_task;

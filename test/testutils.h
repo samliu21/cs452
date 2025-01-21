@@ -3,6 +3,8 @@
 
 #include "rpi.h"
 
+#define TEST_STACK_SIZE 1024
+
 #define TEST_ASSERT(x)                                   \
     if (!(x)) {                                          \
         uart_puts(CONSOLE, "assert failed: " #x "\r\n"); \

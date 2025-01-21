@@ -1,9 +1,11 @@
+#ifndef _syscall_test_h_
+#define _syscall_test_h_
+
 #include "allocator.h"
 #include "syscall.h"
 #include "testutils.h"
 
-#define TEST_NUM_TASKS 2
-#define TEST_STACK_SIZE 1024
+#define SYSCALL_TEST_NUM_TASKS 2
 
 void task2func()
 {
@@ -31,9 +33,9 @@ int _test_syscall()
     task_t kernel_task;
     kernel_task.tid = 0;
 
-    task_t tasks[TEST_NUM_TASKS];
-    allocator_t allocator = allocator_new(tasks, NUM_TASKS);
-    char stack[TEST_NUM_TASKS * TEST_STACK_SIZE];
+    task_t tasks[SYSCALL_TEST_NUM_TASKS];
+    allocator_t allocator = allocator_new(tasks, SYSCALL_TEST_NUM_TASKS);
+    char stack[SYSCALL_TEST_NUM_TASKS * TEST_STACK_SIZE];
 
     task_t* task1 = allocator_new_task(&allocator, stack, 500, 1, &task1func, &kernel_task);
 
@@ -52,6 +54,7 @@ int _test_syscall()
     TEST_ASSERT(task1->registers[0] == 2);
     TEST_ASSERT(task1->registers[1] == (uint64_t)&task2func);
     task_t* task2 = allocator_new_task(&allocator, stack, 1000, 2, &task2func, task1);
+    task1->registers[0] = task2->tid;
 
     syndrome = enter_task(&kernel_task, task1) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
@@ -68,3 +71,5 @@ void run_syscall_tests()
 {
     TEST_RUN(_test_syscall);
 }
+
+#endif /* syscall_test.h */

@@ -1,8 +1,11 @@
+#ifndef _context_switch_test_h_
+#define _context_switch_test_h_
+
 #include "allocator.h"
 #include "syscall.h"
 #include "testutils.h"
 
-#define TEST_STACK_SIZE 1000
+#define CONTEXT_SWITCH_TEST_NUM_TASKS 1
 
 void taskfunc()
 {
@@ -10,7 +13,7 @@ void taskfunc()
     debug_set_registers(200);
     yield();
     debug_dump_registers(registers);
-    for (uint64_t i = 1; i < 29; ++i) {
+    for (uint64_t i = 2; i < 29; ++i) { // user registers are 2xx
         TEST_TASK_ASSERT(registers[i] == 200 + i);
     }
     yield();
@@ -22,8 +25,8 @@ int _test_context_switch()
     kernel_task.tid = 0;
 
     task_t tasks[1];
-    allocator_t allocator = allocator_new(tasks, NUM_TASKS);
-    char stack[TEST_STACK_SIZE];
+    allocator_t allocator = allocator_new(tasks, CONTEXT_SWITCH_TEST_NUM_TASKS);
+    char stack[CONTEXT_SWITCH_TEST_NUM_TASKS * TEST_STACK_SIZE];
     task_t* task = allocator_new_task(&allocator, stack, 1, 1, &taskfunc, &kernel_task);
     uint64_t syndrome;
     uint64_t registers[31];
@@ -32,7 +35,7 @@ int _test_context_switch()
     enter_task(&kernel_task, task);
 
     debug_dump_registers(registers);
-    for (uint64_t i = 1; i < 29; ++i) {
+    for (uint64_t i = 2; i < 29; ++i) { // kernel registers are 1xx
         TEST_ASSERT(registers[i] == 100 + i);
     }
 
@@ -48,3 +51,5 @@ void run_context_switch_tests()
 {
     TEST_RUN(_test_context_switch);
 }
+
+#endif
