@@ -15,14 +15,15 @@ void spawned_task()
 void initial_user_task()
 {
     int64_t tid;
-    tid = create((uint64_t)priority_0, (uint64_t)&spawned_task);
+    tid = create(0, &spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create((uint64_t)priority_0, (uint64_t)&spawned_task);
+    tid = create(0, &spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create((uint64_t)priority_2, (uint64_t)&spawned_task);
+    tid = create(2, &spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create((uint64_t)priority_2, (uint64_t)&spawned_task);
+    tid = create(2, &spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
+    uart_printf(CONSOLE, "FirstUserTask: exiting\r\n");
     exit();
 }
 

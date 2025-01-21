@@ -5,9 +5,9 @@ int _test_pq_add()
 {
     task_t kernel, t1, t2, t3;
     kernel.tid = 0;
-    task_new(&t1, 1, priority_0, 0, 0, &kernel);
-    task_new(&t2, 2, priority_2, 0, 0, &t1);
-    task_new(&t3, 3, priority_1, 0, 0, &t2);
+    task_new(&t1, 1, 0, 0, 0, &kernel);
+    task_new(&t2, 2, 2, 0, 0, &t1);
+    task_new(&t3, 3, 1, 0, 0, &t2);
 
     priority_queue_t pq = pq_new();
     TEST_ASSERT(pq.size == 0);
@@ -42,9 +42,9 @@ int _test_pq_pop()
 {
     task_t kernel, t1, t2, t3;
     kernel.tid = 0;
-    task_new(&t1, 1, priority_0, 0, 0, &kernel);
-    task_new(&t2, 2, priority_2, 0, 0, &t1);
-    task_new(&t3, 3, priority_1, 0, 0, &t2);
+    task_new(&t1, 1, 0, 0, 0, &kernel);
+    task_new(&t2, 2, 2, 0, 0, &t1);
+    task_new(&t3, 3, 1, 0, 0, &t2);
 
     priority_queue_t pq = pq_new();
     pq_add(&pq, &t1);

@@ -11,20 +11,20 @@
 #define SYSCALL_EXIT 4
 
 // syscall asm functions
-extern int64_t create(uint64_t priority, uint64_t entry_point);
+extern int64_t create(uint64_t priority, func_t entry_point);
 extern uint64_t my_tid();
 extern uint64_t my_parent_tid();
 extern void yield();
 extern void exit();
 
-extern void debug_set_registers();
-extern void _debug_dump_registers(uint64_t registers);
+extern void debug_set_registers(uint64_t i);
+extern void debug_dump_registers(uint64_t* registers);
 
 // helper functions to test context switching
-void debug_dump_registers()
+void debug_print_registers()
 {
     uint64_t registers[32];
-    _debug_dump_registers((uint64_t)registers);
+    debug_dump_registers(registers);
     for (int i = 0; i < 32; i++) {
         uart_printf(CONSOLE, "x%d: %u\r\n", i, registers[i]);
     }
