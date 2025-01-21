@@ -1,7 +1,7 @@
 #include "task.h"
 #include "rpi.h"
 
-void task_new(task_t* task, uint64_t tid, priority_t priority, uint64_t sp, func_t entry_point, task_t* parent_task)
+void task_new(task_t* task, uint64_t tid, uint64_t priority, uint64_t sp, func_t entry_point, task_t* parent_task)
 {
     task->tid = tid;
     task->priority = priority;
