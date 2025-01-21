@@ -42,13 +42,12 @@ int kmain()
         uint64_t esr = enter_task(&kernel_task, active_task);
 
         uint64_t syndrome = esr & 0xFFFF;
-        // uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
             uint64_t priority = (uint64_t)active_task->registers[0];
             func_t entry_point = (func_t)active_task->registers[1];
-            if (n_tasks < NUM_TASKS) {
+            if (allocator.n_free > 0) {
                 task_t* new_task = allocator_new_task(&allocator, stack, n_tasks++, priority, entry_point, active_task);
                 pq_add(&scheduler, new_task);
                 active_task->registers[0] = new_task->tid;
@@ -73,7 +72,7 @@ int kmain()
             break;
         }
         default: {
-            uart_puts(CONSOLE, "unrecognized syscall\r\n");
+            ASSERT(0, "unrecognized syscall\r\n");
             for (;;) { }
         }
         }
@@ -81,7 +80,6 @@ int kmain()
         if (syndrome != SYSCALL_EXIT) {
             pq_add(&scheduler, active_task);
         }
-        // pq_debug(&scheduler);
     }
 
     uart_puts(CONSOLE, "No tasks to run\r\n");

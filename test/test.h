@@ -8,7 +8,6 @@
 
 void tests()
 {
-    // TODO: add more tests where applicable
     uart_puts(CONSOLE, "\r\n\r\n-------------------------\r\nRunning tests...\r\n");
     run_allocator_tests();
     run_pq_tests();
