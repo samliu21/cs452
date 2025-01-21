@@ -10,7 +10,7 @@ void taskfunc()
     debug_set_registers(200);
     yield();
     debug_dump_registers(registers);
-    for (int i = 1; i < 29; ++i) {
+    for (uint64_t i = 1; i < 29; ++i) {
         TEST_TASK_ASSERT(registers[i] == 200 + i);
     }
     yield();
@@ -32,7 +32,7 @@ int _test_context_switch()
     enter_task(&kernel_task, task);
 
     debug_dump_registers(registers);
-    for (int i = 1; i < 29; ++i) {
+    for (uint64_t i = 1; i < 29; ++i) {
         TEST_ASSERT(registers[i] == 100 + i);
     }
 
@@ -41,6 +41,7 @@ int _test_context_switch()
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
 
     task->registers[0] = task->parent_tid;
+    return 1;
 }
 
 void run_context_switch_tests()

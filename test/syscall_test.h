@@ -3,11 +3,11 @@
 #include "testutils.h"
 
 #define TEST_NUM_TASKS 2
-#define TEST_STACK_SIZE 1000
+#define TEST_STACK_SIZE 1024
 
 void task2func()
 {
-    return;
+    exit();
 }
 
 void task1func()
@@ -51,13 +51,17 @@ int _test_syscall()
     TEST_ASSERT(syndrome == SYSCALL_CREATE);
     TEST_ASSERT(task1->registers[0] == 2);
     TEST_ASSERT(task1->registers[1] == (uint64_t)&task2func);
-    task_t* new_task = allocator_new_task(&allocator, stack, 1000, 2, &task2func, task1);
+    task_t* task2 = allocator_new_task(&allocator, stack, 1000, 2, &task2func, task1);
 
     syndrome = enter_task(&kernel_task, task1) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
 
     syndrome = enter_task(&kernel_task, task1) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_EXIT);
+
+    syndrome = enter_task(&kernel_task, task2) & 0xFFFF;
+    TEST_ASSERT(syndrome == SYSCALL_EXIT);
+    return 1;
 }
 
 void run_syscall_tests()
