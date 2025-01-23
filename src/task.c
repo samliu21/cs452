@@ -21,6 +21,5 @@ task_t *get_task(task_t *task_list, uint64_t tid) {
     while (curr_task && curr_task->tid != tid) {
         curr_task = curr_task->next_task;
     }
-    ASSERTF(curr_task != NULL, "Task %d does not exist.", tid);
     return curr_task;
 }

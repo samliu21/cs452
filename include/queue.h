@@ -12,6 +12,7 @@ typedef struct queue_t {
 queue_t queue_new();
 void queue_add(queue_t* q, task_t* task);
 task_t* queue_pop(queue_t* q);
+void queue_delete(queue_t* q, task_t* task);
 task_t* queue_peek(queue_t* q);
 int queue_empty(queue_t* q);
 

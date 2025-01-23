@@ -38,6 +38,24 @@ task_t* queue_pop(queue_t* q)
     return t;
 }
 
+void queue_delete(queue_t* q, task_t *task)
+{
+    task_t* t = q->head;
+    if (t == task) {
+        queue_pop(q);
+        return;
+    }
+    while (t->next_task && t->next_task != task) {
+        t = t->next_task;
+    }
+    if (t->next_task) {
+        if (!task->next_task) {
+            q->tail = t;
+        }
+        t->next_task = task->next_task;
+    }
+}
+
 task_t* queue_peek(queue_t* q)
 {
     ASSERT(q->size > 0, "peek from empty queue");

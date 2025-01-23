@@ -35,6 +35,8 @@ int kmain()
     priority_queue_t scheduler = pq_new();
     pq_add(&scheduler, initial_task);
 
+    queue_t blocked = queue_new();
+
     task_t* active_task;
     while (!pq_empty(&scheduler)) {
         active_task = pq_pop(&scheduler);
@@ -72,13 +74,17 @@ int kmain()
             break;
         }
         case SYSCALL_SEND: {
-            task_t *receiver = get_task(active_task->next_task, active_task->registers[0]);
-            if (receiver->state == RECEIVEWAIT) {
-                uint64_t n = (receiver->registers[2] < active_task->registers[2]) ? 
-                    receiver->registers[2] : active_task->registers[2];
-                memcpy((void *)receiver->registers[1], (void *)active_task->registers[1], n);
+            task_t* receiver = get_task(blocked.head, active_task->registers[0]);
+            if (receiver && receiver->state == RECEIVEWAIT) {
+                uint64_t n = (receiver->registers[2] < active_task->registers[2]) ? receiver->registers[2] : active_task->registers[2];
+                memcpy((void*)receiver->registers[1], (void*)active_task->registers[1], n);
                 receiver->registers[0] = n;
+                queue_delete(&blocked, receiver);
+                pq_add(&scheduler, receiver);
             } else {
+                if (!receiver) {
+                    receiver = get_task(active_task->next_task, active_task->registers[0]);
+                }
                 queue_add(&(receiver->senders_queue), active_task);
             }
             break;
