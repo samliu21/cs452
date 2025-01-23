@@ -2,6 +2,7 @@
 #define _syscall_h_
 
 #include "common.h"
+#include "rpi.h"
 #include "util.h"
 
 // syscall numbers
@@ -20,7 +21,7 @@ extern uint64_t my_tid();
 extern uint64_t my_parent_tid();
 extern void yield();
 extern void exit();
-extern int64_t send(uint64_t tid, const char* msg, uint64_t msglen, char* reply, uint64_t rplen);
+extern int64_t send(uint64_t tid, const char* msg, uint64_t msglen, char* rp, uint64_t rplen);
 extern int64_t receive(uint64_t* tid, char* msg, uint64_t msglen);
 extern int64_t reply(uint64_t tid, const char* rp, uint64_t rplen);
 
@@ -29,6 +30,11 @@ int64_t reply_uint(uint64_t tid, uint64_t rp)
     char buf[32];
     ui2a(rp, 10, buf);
     return reply(tid, buf, strlen(buf));
+}
+
+int64_t reply_null(uint64_t tid)
+{
+    return reply(tid, NULL, 0);
 }
 
 extern void debug_set_registers(uint64_t i);

@@ -2,7 +2,9 @@
 #define _user_tasks_
 
 #include "common.h"
+#include "name_server.h"
 #include "stringmap.h"
+#include "syscall.h"
 #include "util.h"
 
 // K1
@@ -33,21 +35,21 @@ void k1_initial_user_task()
 }
 
 // K2
-#define WHO_IS 'W'
-#define REGISTER_AS 'R'
 
-void k2_initial_user_task() { }
+void k2_initial_user_task()
+{
+}
 
 void k2_name_server()
 {
     stringmap_t names;
-    uint64_t tid, mapped_tid;
+    uint64_t caller_tid, mapped_tid;
     const int bufsize = 128;
     char namebuf[bufsize + 1];
     char argv[3][MAX_KEY_SIZE];
 
     for (;;) {
-        int64_t sz = receive(&tid, namebuf, bufsize);
+        int64_t sz = receive(&caller_tid, namebuf, bufsize);
         namebuf[sz] = 0;
         int argc = split(namebuf, (char**)argv);
 
@@ -55,13 +57,14 @@ void k2_name_server()
         case WHO_IS:
             ASSERT(argc == 2, "'who_is' takes 1 argument");
             mapped_tid = stringmap_get(&names, argv[1]);
-            reply_uint(tid, mapped_tid);
+            char buf[4];
+            ui2a(mapped_tid, 10, buf);
+            reply(caller_tid, buf, 4);
             break;
         case REGISTER_AS:
-            ASSERT(argc == 3, "'register_as' takes 2 arguments");
-            mapped_tid = a2ui(argv[2], 10);
-            stringmap_set(&names, argv[1], mapped_tid);
-            reply_uint(tid, 0);
+            ASSERT(argc == 2, "'register_as' takes 1 argument");
+            stringmap_set(&names, argv[1], caller_tid);
+            reply_null(caller_tid);
             break;
         default:
             ASSERT(0, "invalid command");

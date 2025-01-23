@@ -1,6 +1,6 @@
 #include "common.h"
 
-void memcpy(void* dest, void* src, int n)
+void memcpy(void* dest, const void* src, int n)
 {
     char* csrc = (char*)src;
     char* cdest = (char*)dest;
@@ -11,8 +11,7 @@ void memcpy(void* dest, void* src, int n)
 
 void strcpy(char* dest, const char* src)
 {
-    char* temp = dest;
-    while (*dest++ = *src++)
+    while ((*(dest++) = *src++))
         ;
 }
 
