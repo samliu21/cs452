@@ -38,8 +38,9 @@ task_t* queue_pop(queue_t* q)
     return t;
 }
 
-void queue_delete(queue_t* q, task_t *task)
+void queue_delete(queue_t* q, task_t* task)
 {
+    q->size--;
     task_t* t = q->head;
     if (t == task) {
         queue_pop(q);
@@ -48,6 +49,7 @@ void queue_delete(queue_t* q, task_t *task)
     while (t->next_task && t->next_task != task) {
         t = t->next_task;
     }
+    ASSERT(t->next_task != NULL, "task not found in queue");
     if (t->next_task) {
         if (!task->next_task) {
             q->tail = t;

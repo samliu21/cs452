@@ -5,6 +5,7 @@
 #include "context_switch_test.h"
 #include "priority_queue_test.h"
 #include "queue_test.h"
+#include "stringmap_test.h"
 #include "syscall_test.h"
 
 void tests()
@@ -13,6 +14,7 @@ void tests()
     run_allocator_tests();
     run_pq_tests();
     run_queue_tests();
+    run_stringmap_tests();
     run_context_switch_tests();
     run_syscall_tests();
     uart_puts(CONSOLE, "Tests complete.\r\n-------------------------\r\n\r\n");

@@ -1,0 +1,8 @@
+{
+	"files.associations": {
+		"*.blade.php": "html",
+		"stringmap.h": "c",
+		"util.h": "c",
+		"compare": "c"
+	}
+}

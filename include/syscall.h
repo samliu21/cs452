@@ -2,6 +2,7 @@
 #define _syscall_h_
 
 #include "common.h"
+#include "util.h"
 
 // syscall numbers
 #define SYSCALL_CREATE 0
@@ -19,9 +20,16 @@ extern uint64_t my_tid();
 extern uint64_t my_parent_tid();
 extern void yield();
 extern void exit();
-extern int64_t send(uint64_t tid, const char *msg, uint64_t msglen, char *reply, uint64_t rplen);
-extern int64_t receive(uint64_t *tid, char *msg, uint64_t msglen);
-extern int64_t reply(uint64_t tid, const char *reply, uint64_t rplen);
+extern int64_t send(uint64_t tid, const char* msg, uint64_t msglen, char* reply, uint64_t rplen);
+extern int64_t receive(uint64_t* tid, char* msg, uint64_t msglen);
+extern int64_t reply(uint64_t tid, const char* rp, uint64_t rplen);
+
+int64_t reply_uint(uint64_t tid, uint64_t rp)
+{
+    char buf[32];
+    ui2a(rp, 10, buf);
+    return reply(tid, buf, strlen(buf));
+}
 
 extern void debug_set_registers(uint64_t i);
 extern void debug_dump_registers(uint64_t* registers);

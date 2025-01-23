@@ -2,7 +2,7 @@
 #define _util_h_
 
 int a2d(char ch);
-char a2i(char ch, char** src, int base, int* nump);
+unsigned int a2ui(char* s, unsigned int base);
 void ui2a(unsigned int num, unsigned int base, char* bf);
 void i2a(int num, char* bf);
 
