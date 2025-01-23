@@ -168,12 +168,10 @@ void uart_puts(size_t line, const char* buf)
     }
 }
 
-void uart_printf(size_t line, const char* fmt, ...)
+void va_uart_printf(size_t line, const char* fmt, va_list va)
 {
-    va_list va;
     char ch, buf[12];
 
-    va_start(va, fmt);
     while ((ch = *(fmt++))) {
         if (ch != '%')
             uart_putc(line, ch);
@@ -203,6 +201,13 @@ void uart_printf(size_t line, const char* fmt, ...)
             }
         }
     }
+}
+
+void uart_printf(size_t line, const char* fmt, ...)
+{
+    va_list va;
+    va_start(va, fmt);
+    va_uart_printf(line, fmt, va);
     va_end(va);
 }
 
@@ -211,6 +216,19 @@ void ASSERT(int condition, const char* message)
     if (!condition) {
         uart_puts(CONSOLE, "ASSERTION FAILED: ");
         uart_puts(CONSOLE, message);
+        uart_puts(CONSOLE, "\r\n");
+        for (;;) { }
+    }
+}
+
+void ASSERTF(int condition, const char* message, ...)
+{
+    if (!condition) {
+        uart_puts(CONSOLE, "ASSERTION FAILED: ");
+        va_list va;
+        va_start(va, message);
+        va_uart_printf(CONSOLE, message, va);
+        va_end(va);
         uart_puts(CONSOLE, "\r\n");
         for (;;) { }
     }

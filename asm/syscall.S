@@ -3,7 +3,9 @@
 .global my_parent_tid
 .global yield
 .global exit
-
+.global send
+.global receive
+.global reply
 create:
 	svc #0
 	ret
@@ -19,3 +21,15 @@ yield:
 exit:
 	svc #4
 	ret
+
+send:
+    svc #5
+    ret
+
+receive:
+    svc #6
+    ret
+
+reply:
+    svc #7
+    ret

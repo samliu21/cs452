@@ -71,6 +71,24 @@ int kmain()
             allocator_free(&allocator, active_task);
             break;
         }
+        case SYSCALL_SEND: {
+            task_t *receiver = get_task(active_task->next_task, active_task->registers[0]);
+            if (receiver->state == RECEIVEWAIT) {
+                uint64_t n = (receiver->registers[2] < active_task->registers[2]) ? 
+                    receiver->registers[2] : active_task->registers[2];
+                memcpy((void *)receiver->registers[1], (void *)active_task->registers[1], n);
+                receiver->registers[0] = n;
+            } else {
+                queue_add(&(receiver->senders_queue), active_task);
+            }
+            break;
+        }
+        case SYSCALL_RECEIVE: {
+            break;
+        }
+        case SYSCALL_REPLY: {
+            break;
+        }
         default: {
             ASSERT(0, "unrecognized syscall\r\n");
             for (;;) { }

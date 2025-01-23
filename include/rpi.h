@@ -15,5 +15,6 @@ void uart_puts(size_t line, const char *buf);
 void uart_printf(size_t line, const char *fmt, ...);
 
 void ASSERT(int condition, const char *message);
+void ASSERTF(int condition, const char *message, ...);
 
 #endif /* rpi.h */
