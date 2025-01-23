@@ -27,19 +27,25 @@ DEPENDS := $(patsubst src/%.c, build/%.d, $(patsubst asm/%.S, build/%.d, $(SOURC
 all: bin/kernel.img
 
 clean:
-	rm -f $(OBJECTS) $(DEPENDS) build/kernel.elf bin/kernel.img
+	rm -rf bin build
 
-bin/kernel.img: build/kernel.elf
+bin/kernel.img: build/kernel.elf | bin
 	$(OBJCOPY) $< -O binary $@
 
-build/kernel.elf: $(OBJECTS) linker.ld
+bin:
+	mkdir -p $@
+
+build/kernel.elf: $(OBJECTS) linker.ld | build
 	$(CC) $(CFLAGS) $(filter-out %.ld, $^) -o $@ $(LDFLAGS)
 	@$(OBJDUMP) -d $@ | grep -Fq q0 && printf "\n***** WARNING: SIMD DETECTED! *****\n\n" || true
 
-build/%.o: src/%.c Makefile
+build/%.o: src/%.c Makefile | build
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
 
-build/%.o: asm/%.S Makefile
+build/%.o: asm/%.S Makefile | build
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@
+
+build:
+	mkdir -p $@
 
 -include $(DEPENDS)
