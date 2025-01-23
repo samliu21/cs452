@@ -3,7 +3,6 @@
 
 #include "common.h"
 #include "queue.h"
-#include "stack.h"
 
 typedef enum
 {

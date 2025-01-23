@@ -1,8 +1,8 @@
 #include "allocator.h"
+#include "common.h"
 #include "exception.h"
 #include "priority_queue.h"
 #include "rpi.h"
-#include "stack.h"
 #include "syscall.h"
 #include "task.h"
 #include "test.h"
@@ -35,7 +35,7 @@ int kmain()
     priority_queue_t scheduler = pq_new();
     pq_add(&scheduler, initial_task);
 
-    queue_t blocked = queue_new();
+    queue_t blocked_receivers = queue_new();
 
     task_t* active_task;
     while (!pq_empty(&scheduler)) {
@@ -74,17 +74,16 @@ int kmain()
             break;
         }
         case SYSCALL_SEND: {
-            task_t* receiver = get_task(blocked.head, active_task->registers[0]);
-            if (receiver && receiver->state == RECEIVEWAIT) {
+            task_t* receiver = get_task(blocked_receivers.head, active_task->registers[0]);
+            if (receiver) {
+                ASSERT(receiver->state == RECEIVEWAIT, "blocked receiver is not in receive wait state");
                 uint64_t n = (receiver->registers[2] < active_task->registers[2]) ? receiver->registers[2] : active_task->registers[2];
                 memcpy((void*)receiver->registers[1], (void*)active_task->registers[1], n);
                 receiver->registers[0] = n;
-                queue_delete(&blocked, receiver);
+                queue_delete(&blocked_receivers, receiver);
                 pq_add(&scheduler, receiver);
             } else {
-                if (!receiver) {
-                    receiver = get_task(active_task->next_task, active_task->registers[0]);
-                }
+                receiver = get_task(allocator.alloc_list, active_task->registers[0]);
                 queue_add(&(receiver->senders_queue), active_task);
             }
             break;

@@ -6,4 +6,14 @@ typedef long long int64_t;
 
 typedef void (*func_t)();
 
+#define NUM_TASKS 16
+#define STACK_SIZE 16 * 1024
+
+void memcpy(void* dest, void* src, int n);
+void strcpy(char* dest, const char* src);
+int strlen(const char* s);
+int strcmp(const char* s1, const char* s2);
+int strncmp(const char* s1, const char* s2, int n);
+int split(char* s, char** strings);
+
 #endif /* common.h */
