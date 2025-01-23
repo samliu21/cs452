@@ -16,7 +16,6 @@ void pq_add(priority_queue_t* pq, task_t* task)
     if (pq->size == 0) {
         pq->head = task;
         pq->tail = task;
-        task->next_task = NULL;
         pq->size = 1;
         return;
     }

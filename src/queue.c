@@ -1,0 +1,50 @@
+#include "queue.h"
+#include "rpi.h"
+#include <stdlib.h>
+
+#include "task.h"
+
+queue_t queue_new()
+{
+    queue_t q;
+    q.head = NULL;
+    q.tail = NULL;
+    q.size = 0;
+    return q;
+}
+
+void queue_add(queue_t* q, task_t* task)
+{
+    if (q->size == 0) {
+        q->head = task;
+        q->tail = task;
+    } else {
+        q->tail->next_task = task;
+        q->tail = task;
+    }
+    q->size++;
+}
+
+task_t* queue_pop(queue_t* q)
+{
+    ASSERT(q->size > 0, "pop from empty queue");
+    q->size--;
+
+    task_t* t = q->head;
+    q->head = q->head->next_task;
+    if (q->size == 0) {
+        q->tail = NULL;
+    }
+    return t;
+}
+
+task_t* queue_peek(queue_t* q)
+{
+    ASSERT(q->size > 0, "peek from empty queue");
+    return q->head;
+}
+
+int queue_empty(queue_t* q)
+{
+    return q->size == 0;
+}

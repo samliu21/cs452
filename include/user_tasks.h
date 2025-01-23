@@ -1,7 +1,7 @@
 #ifndef _user_tasks_
 #define _user_tasks_
 
-void spawned_task()
+void k1_spawned_task()
 {
     uint64_t tid, parent_tid;
     tid = my_tid();
@@ -12,16 +12,16 @@ void spawned_task()
     exit();
 }
 
-void initial_user_task()
+void k1_initial_user_task()
 {
     int64_t tid;
-    tid = create(0, &spawned_task);
+    tid = create(0, &k1_spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create(0, &spawned_task);
+    tid = create(0, &k1_spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create(2, &spawned_task);
+    tid = create(2, &k1_spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
-    tid = create(2, &spawned_task);
+    tid = create(2, &k1_spawned_task);
     uart_printf(CONSOLE, "Created: %u\r\n", tid);
     uart_printf(CONSOLE, "FirstUserTask: exiting\r\n");
     exit();

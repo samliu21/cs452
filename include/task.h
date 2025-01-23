@@ -2,6 +2,7 @@
 #define _task_h_
 
 #include "common.h"
+#include "queue.h"
 #include "stack.h"
 
 typedef struct task_t {
@@ -15,6 +16,8 @@ typedef struct task_t {
     uint64_t parent_tid;
     struct task_t* next_task;
     struct task_t* next_slab;
+    struct task_t* next_sender;
+    queue_t senders_queue;
 } task_t;
 
 extern uint64_t enter_task(task_t* kernel_task, task_t* task);

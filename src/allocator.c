@@ -12,6 +12,7 @@ allocator_t allocator_new(task_t* slabs, uint64_t n_slabs)
     for (uint64_t i = 0; i < n_slabs - 1; ++i) {
         slabs[i].next_slab = &slabs[i + 1];
     }
+    slabs[n_slabs - 1].next_slab = NULL;
     allocator.free_list = slabs;
     allocator.alloc_list = NULL;
     return allocator;
