@@ -128,6 +128,21 @@ int kmain()
             break;
         }
         case SYSCALL_REPLY: {
+            task_t* sender = get_task(tasks_waiting_for_reply.head, active_task->registers[0]);
+            ASSERTF(sender != NULL, "sender %d could not be found in queue", active_task->registers[0]);
+            ASSERT(sender->state == REPLYWAIT, "blocked sender is not in reply wait state");
+
+            // copy over reply message to sender's buffer and return to both sender and replyer the length.
+            uint64_t n = (active_task->registers[2] < sender->registers[4]) ? active_task->registers[2] : sender->registers[4];
+            memcpy((void*)sender->registers[3], (void*)active_task->registers[1], n);
+            sender->registers[0] = n;
+            active_task->registers[0] = n;
+
+            // unblock sender
+            uart_printf(CONSOLE, "size: %d\r\n", tasks_waiting_for_reply.size);
+            queue_delete(&tasks_waiting_for_reply, sender);
+            pq_add(&scheduler, sender);
+            sender->state = READY;
             break;
         }
         default: {
