@@ -52,7 +52,7 @@ int isspace(char c)
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
 }
 
-int split(char* s, char** strings)
+int split(char* s, char strings[][32])
 {
     int cnt = 0;
     while (1) {

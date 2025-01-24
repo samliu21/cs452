@@ -2,7 +2,7 @@
 #define _syscall_test_h_
 
 #include "allocator.h"
-#include "syscall.h"
+#include "syscall_asm.h"
 #include "testutils.h"
 
 #define SYSCALL_TEST_NUM_TASKS 2

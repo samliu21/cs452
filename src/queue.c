@@ -40,12 +40,12 @@ task_t* queue_pop(queue_t* q)
 
 void queue_delete(queue_t* q, task_t* task)
 {
-    q->size--;
     task_t* t = q->head;
     if (t == task) {
         queue_pop(q);
         return;
     }
+    q->size--;
     while (t->next_task && t->next_task != task) {
         t = t->next_task;
     }

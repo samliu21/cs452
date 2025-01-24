@@ -3,10 +3,21 @@
 #include "exception.h"
 #include "priority_queue.h"
 #include "rpi.h"
-#include "syscall.h"
+#include "syscall_asm.h"
 #include "task.h"
 #include "test.h"
 #include "user_tasks.h"
+
+void send_receive(task_t* sender, task_t* receiver)
+{
+    uint64_t* caller_tid = (uint64_t*)receiver->registers[0];
+    *caller_tid = sender->tid;
+
+    // copy over sender's message to receiver's buffer and return to receiver length of message
+    uint64_t n = (receiver->registers[2] < sender->registers[2]) ? receiver->registers[2] : sender->registers[2];
+    memcpy((void*)receiver->registers[1], (void*)sender->registers[1], n);
+    receiver->registers[0] = n;
+}
 
 int kmain()
 {
@@ -29,13 +40,14 @@ int kmain()
 
     // create initial task
     uint64_t n_tasks = 1;
-    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k1_initial_user_task, &kernel_task);
+    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_initial_user_task, &kernel_task);
 
     // create PQ with initial task in it
     priority_queue_t scheduler = pq_new();
     pq_add(&scheduler, initial_task);
 
-    queue_t blocked_receivers = queue_new();
+    queue_t tasks_waiting_for_send = queue_new();
+    queue_t tasks_waiting_for_reply = queue_new();
 
     task_t* active_task;
     while (!pq_empty(&scheduler)) {
@@ -44,6 +56,8 @@ int kmain()
         uint64_t esr = enter_task(&kernel_task, active_task);
 
         uint64_t syndrome = esr & 0xFFFF;
+
+        uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
@@ -74,21 +88,43 @@ int kmain()
             break;
         }
         case SYSCALL_SEND: {
-            task_t* receiver = get_task(blocked_receivers.head, active_task->registers[0]);
-            if (receiver) {
+            task_t* receiver = get_task(tasks_waiting_for_send.head, active_task->registers[0]);
+
+            if (receiver) { // the receiver is already waiting for a message, so send
                 ASSERT(receiver->state == RECEIVEWAIT, "blocked receiver is not in receive wait state");
-                uint64_t n = (receiver->registers[2] < active_task->registers[2]) ? receiver->registers[2] : active_task->registers[2];
-                memcpy((void*)receiver->registers[1], (void*)active_task->registers[1], n);
-                receiver->registers[0] = n;
-                queue_delete(&blocked_receivers, receiver);
+
+                send_receive(active_task, receiver);
+
+                // unblock receiver
+                uart_printf(CONSOLE, "size: %d\r\n", tasks_waiting_for_send.size);
+                queue_delete(&tasks_waiting_for_send, receiver);
                 pq_add(&scheduler, receiver);
-            } else {
+                receiver->state = READY;
+
+                // block sender
+                queue_add(&tasks_waiting_for_reply, active_task);
+                active_task->state = REPLYWAIT;
+            } else { // the receiver has NOT requested a message
                 receiver = get_task(allocator.alloc_list, active_task->registers[0]);
                 queue_add(&(receiver->senders_queue), active_task);
+                active_task->state = SENDWAIT;
             }
             break;
         }
         case SYSCALL_RECEIVE: {
+            if (queue_empty(&active_task->senders_queue)) { // no senders, wait
+                active_task->state = RECEIVEWAIT;
+                queue_add(&tasks_waiting_for_send, active_task);
+            } else { // there is a sender, fulfill their request
+                task_t* sender = queue_pop(&active_task->senders_queue);
+                ASSERT(sender->state == SENDWAIT, "blocked sender is not in send wait state");
+
+                send_receive(sender, active_task);
+
+                // unblock sender
+                queue_add(&tasks_waiting_for_reply, sender);
+                sender->state = REPLYWAIT;
+            }
             break;
         }
         case SYSCALL_REPLY: {
@@ -100,7 +136,7 @@ int kmain()
         }
         }
 
-        if (syndrome != SYSCALL_EXIT) {
+        if (syndrome != SYSCALL_EXIT && active_task->state == READY) {
             pq_add(&scheduler, active_task);
         }
     }

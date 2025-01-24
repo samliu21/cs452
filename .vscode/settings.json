@@ -3,6 +3,8 @@
 		"*.blade.php": "html",
 		"stringmap.h": "c",
 		"util.h": "c",
-		"compare": "c"
+		"compare": "c",
+		"syscall_asm.h": "c",
+		"typeinfo": "c"
 	}
 }

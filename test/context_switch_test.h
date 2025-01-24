@@ -2,7 +2,7 @@
 #define _context_switch_test_h_
 
 #include "allocator.h"
-#include "syscall.h"
+#include "syscall_asm.h"
 #include "testutils.h"
 
 #define CONTEXT_SWITCH_TEST_NUM_TASKS 1
