@@ -49,6 +49,7 @@ task_t* pq_pop(priority_queue_t* pq)
     if (pq->size == 0) {
         pq->tail = NULL;
     }
+    t->next_task = NULL;
     return t;
 }
 
@@ -67,6 +68,8 @@ void pq_debug(priority_queue_t* pq)
 {
     task_t* t = pq->head;
     while (t) {
+        uart_printf(CONSOLE, "%u ", t->tid);
         t = t->next_task;
     }
+    uart_puts(CONSOLE, "\r\n");
 }

@@ -33,8 +33,10 @@ task_t* queue_pop(queue_t* q)
     task_t* t = q->head;
     q->head = q->head->next_task;
     if (q->size == 0) {
+        q->head = NULL;
         q->tail = NULL;
     }
+    t->next_task = NULL;
     return t;
 }
 
@@ -55,6 +57,11 @@ void queue_delete(queue_t* q, task_t* task)
             q->tail = t;
         }
         t->next_task = task->next_task;
+    }
+    task->next_task = NULL;
+    if (q->size == 0) {
+        q->head = NULL;
+        q->tail = NULL;
     }
 }
 

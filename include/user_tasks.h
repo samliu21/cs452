@@ -36,16 +36,28 @@ void k1_initial_user_task()
 
 // K2
 
+void k2_rps_server()
+{
+    uart_puts(CONSOLE, "hello from rps server\r\n");
+    uint64_t tid = who_is("initial_task");
+    ASSERT(tid > 0, "could not find initial_task");
+    uart_printf(CONSOLE, "found initial_task with tid: %u\r\n", tid);
+    register_as("rps_server");
+
+    exit();
+}
+
+void k2_rps_client() { }
+
 void k2_initial_user_task()
 {
     create(1, &k2_name_server);
 
     register_as("initial_task");
-    for (;;) { }
+
+    create(1, &k2_rps_server);
+
+    exit();
 }
-
-void k2_rps_server() { }
-
-void k2_rps_client() { }
 
 #endif

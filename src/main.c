@@ -52,6 +52,8 @@ int kmain()
     task_t* active_task;
     while (!pq_empty(&scheduler)) {
         active_task = pq_pop(&scheduler);
+        ASSERT(active_task->state == READY, "active task is not in ready state");
+        // uart_printf(CONSOLE, "active task: %u\r\n", active_task->tid);
 
         uint64_t esr = enter_task(&kernel_task, active_task);
 
@@ -89,6 +91,10 @@ int kmain()
         }
         case SYSCALL_SEND: {
             task_t* receiver = get_task(tasks_waiting_for_send.head, active_task->registers[0]);
+            // uart_printf(CONSOLE, "receiver size: %u\r\n", tasks_waiting_for_send.size);
+            // if (receiver != NULL) {
+            //     uart_puts(CONSOLE, "huh?\r\n");
+            // }
 
             if (receiver) { // the receiver is already waiting for a message, so send
                 ASSERT(receiver->state == RECEIVEWAIT, "blocked receiver is not in receive wait state");
@@ -96,7 +102,6 @@ int kmain()
                 send_receive(active_task, receiver);
 
                 // unblock receiver
-                uart_printf(CONSOLE, "size: %d\r\n", tasks_waiting_for_send.size);
                 queue_delete(&tasks_waiting_for_send, receiver);
                 pq_add(&scheduler, receiver);
                 receiver->state = READY;
@@ -105,7 +110,8 @@ int kmain()
                 queue_add(&tasks_waiting_for_reply, active_task);
                 active_task->state = REPLYWAIT;
             } else { // the receiver has NOT requested a message
-                receiver = get_task(allocator.alloc_list, active_task->registers[0]);
+                receiver = get_task(scheduler.head, active_task->registers[0]);
+                ASSERT(receiver != NULL, "receiver not allocated");
                 queue_add(&(receiver->senders_queue), active_task);
                 active_task->state = SENDWAIT;
             }
@@ -139,7 +145,6 @@ int kmain()
             active_task->registers[0] = n;
 
             // unblock sender
-            uart_printf(CONSOLE, "size: %d\r\n", tasks_waiting_for_reply.size);
             queue_delete(&tasks_waiting_for_reply, sender);
             pq_add(&scheduler, sender);
             sender->state = READY;

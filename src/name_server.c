@@ -33,12 +33,13 @@ int64_t who_is(const char* name)
     buf[sz + 2] = 0;
 
     char reply_buf[4]; // tid
-    int ret = send(0, buf, buffersz, reply_buf, 4); // TODO: how to get tid?
+    int ret = send(NAME_SERVER_TID, buf, buffersz, reply_buf, 4);
 
     if (ret < 0) {
         return -1;
     }
-    return 0;
+    uint64_t tid = a2ui(reply_buf, 10);
+    return tid;
 }
 
 void k2_name_server()
