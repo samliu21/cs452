@@ -17,6 +17,6 @@ int strcmp(const char* s1, const char* s2);
 int strncmp(const char* s1, const char* s2, int n);
 int split(char* s, char strings[][32]);
 
-int myrand();
+uint64_t myrand();
 
 #endif /* common.h */

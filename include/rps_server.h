@@ -10,6 +10,12 @@
 #define MAX_GAMES 8
 #define NO_PLAYER 0
 
+#define ABANDONED 'A'
+#define TIE 'T'
+#define WIN 'W'
+#define LOSE 'L'
+#define FAILED 'F'
+
 typedef enum {
     ROCK = 0,
     PAPER = 1,
@@ -25,7 +31,7 @@ typedef struct rps_game_t {
 } rps_game_t;
 
 int64_t signup();
-int64_t play(rps_move_t move);
+char play(rps_move_t move);
 int64_t quit();
 void k2_rps_server();
 

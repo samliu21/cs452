@@ -74,10 +74,10 @@ int split(char* s, char strings[][32])
     return cnt;
 }
 
-uint64_t nxt = 5555;
+static uint64_t seed = 123456789; // You can set this to any initial value
 
-int myrand()
+uint64_t myrand()
 {
-    nxt = (nxt >> 16) & 0x7fff;
-    return nxt;
+    seed = (1103515245 * seed + 12345) & 0x7FFFFFFF; // Linear congruential generator
+    return (seed >> 16) & 0x7FFF; // Scale down to 0-32767
 }

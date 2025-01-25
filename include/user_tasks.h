@@ -37,23 +37,12 @@ void k1_initial_user_task()
 
 // K2
 
-// void k2_rps_server()
-// {
-//     uart_puts(CONSOLE, "hello from rps server\r\n");
-//     uint64_t tid = who_is("initial_task");
-//     ASSERT(tid > 0, "could not find initial_task");
-//     uart_printf(CONSOLE, "found initial_task with tid: %u\r\n", tid);
-//     register_as("rps_server");
-
-//     exit();
-// }
-
 void k2_rps_client()
 {
     ASSERT(signup() >= 0, "signup failed");
     for (int i = 0; i < 5; ++i) {
         rps_move_t move = (rps_move_t)((5 - i) % 3);
-        ASSERT(play(move) >= 0, "play failed");
+        ASSERT(play(move) != FAILED, "play failed");
     }
 
     exit();
@@ -64,7 +53,7 @@ void k2_rps_client_2()
     ASSERT(signup() >= 0, "signup failed");
     for (int i = 0; i < 5; ++i) {
         rps_move_t move = (rps_move_t)(i % 3);
-        ASSERT(play(move) >= 0, "play failed");
+        ASSERT(play(move) != FAILED, "play failed");
     }
 
     exit();
@@ -79,7 +68,11 @@ void k2_rps_client_random()
         int num_plays = myrand() % 3 + 1; // 1 to 3 plays
         for (int j = 0; j < num_plays; ++j) {
             rps_move_t move = (rps_move_t)(myrand() % 3);
-            ASSERT(play(move) >= 0, "play failed");
+            char ret = play(move);
+            ASSERT(ret != FAILED, "play failed");
+            if (ret == ABANDONED) {
+                break;
+            }
         }
 
         ASSERT(quit() >= 0, "quit failed");
@@ -93,8 +86,7 @@ void k2_initial_user_task()
 
     create(1, &k2_rps_server);
 
-    // create(1, &k2_rps_client);
-    // create(1, &k2_rps_client_2);
+    uart_printf(CONSOLE, "Signing up 5 clients... Each client signs up either once or twice, and makes 1 to 3 moves.\r\n");
     for (int i = 0; i < 5; ++i) {
         create(1, &k2_rps_client_random);
     }

@@ -18,7 +18,7 @@ int64_t signup()
     return 0;
 }
 
-int64_t play(rps_move_t move)
+char play(rps_move_t move)
 {
     int rps_server_tid = who_is(RPS_SERVER_NAME);
     char buf[3];
@@ -28,7 +28,7 @@ int64_t play(rps_move_t move)
     char result;
     int ret = send(rps_server_tid, buf, 2, &result, 1);
     if (ret < 0) {
-        return -1;
+        return FAILED;
     }
     return result;
 }
@@ -90,7 +90,7 @@ void k2_rps_server()
         case SIGNUP: {
             ASSERT(buf[1] == 0, "'signup' takes no arguments");
             uart_printf(CONSOLE, "task %d signs up.\r\n", caller_tid);
-			
+
             if (waiting_tid == NO_PLAYER) {
                 waiting_tid = caller_tid;
             } else { // set up game and ready both clients.
@@ -119,13 +119,13 @@ void k2_rps_server()
             ASSERT(buf[1] != PENDING, "valid moves are rock, paper, or scissors.");
 
             int game_id = find_game(caller_tid, games, free_games);
-            ASSERTF(game_id >= 0, "task %d is not in a game.");
+            ASSERTF(game_id >= 0, "task %d is not in a game.", caller_tid);
             rps_game_t* game = &(games[game_id]);
 
             // check if other player has quit
             if (game->tid_1 == NO_PLAYER || game->tid_2 == NO_PLAYER) {
                 uart_printf(CONSOLE, "task %d wins by forfeit.\r\n", caller_tid, moves[(int)buf[1]]);
-                reply(caller_tid, "F", 1);
+                reply_uint(caller_tid, ABANDONED);
 
                 // game is over, reclaim game
                 free_games &= ~((uint64_t)1 << game_id);
@@ -146,18 +146,18 @@ void k2_rps_server()
                     switch (result) {
                     case 0: // tie
                         uart_printf(CONSOLE, "%s ties %s, tie game.\r\n", moves[game->move_1], moves[game->move_2]);
-                        reply(game->tid_1, "T", 1);
-                        reply(game->tid_2, "T", 1);
+                        reply_uint(game->tid_1, TIE);
+                        reply_uint(game->tid_2, TIE);
                         break;
                     case 1: // player 1 wins
                         uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->move_1], moves[game->move_2], game->tid_1);
-                        reply(game->tid_1, "W", 1);
-                        reply(game->tid_2, "L", 1);
+                        reply_uint(game->tid_1, WIN);
+                        reply_uint(game->tid_2, LOSE);
                         break;
                     case 2: // player 2 wins
                         uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->move_2], moves[game->move_1], game->tid_2);
-                        reply(game->tid_1, "L", 1);
-                        reply(game->tid_2, "W", 1);
+                        reply_uint(game->tid_1, LOSE);
+                        reply_uint(game->tid_2, WIN);
                         break;
                     }
 
@@ -175,20 +175,29 @@ void k2_rps_server()
             ASSERT(buf[1] == 0, "'quit' takes no arguments");
 
             int game_id = find_game(caller_tid, games, free_games);
-            ASSERTF(game_id >= 0, "task %d is not in a game.");
+            ASSERTF(game_id >= 0, "task %d is not in a game.", caller_tid);
             rps_game_t* game = &(games[game_id]);
 
             // update game state
             uart_printf(CONSOLE, "task %d quits.\r\n", caller_tid);
+            uint64_t other_tid;
+            rps_move_t other_move;
             if (game->tid_1 == caller_tid) {
                 game->tid_1 = NO_PLAYER;
+                other_tid = game->tid_2;
+                other_move = game->move_2;
             } else {
                 game->tid_2 = NO_PLAYER;
+                other_tid = game->tid_1;
+                other_move = game->move_1;
             }
 
             // check if game over and reclaim game.
-            if (game->tid_1 == NO_PLAYER && game->tid_2 == NO_PLAYER) {
+            if (other_tid == NO_PLAYER) {
                 free_games &= ~((uint64_t)1 << game_id);
+            } else if (other_move != PENDING) {
+                // inform other play of forfeit if they're waiting for a response
+                reply_uint(other_tid, ABANDONED);
             }
 
             reply_null(caller_tid);
