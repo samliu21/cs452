@@ -44,8 +44,6 @@ void k2_initial_user_task()
     for (;;) { }
 }
 
-void k2_rps_server() { }
-
 void k2_rps_client() { }
 
 #endif
