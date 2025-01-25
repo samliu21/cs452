@@ -1,4 +1,5 @@
 #include "common.h"
+#include "timer.h"
 
 void memcpy(void* dest, const void* src, int n)
 {
@@ -71,4 +72,12 @@ int split(char* s, char strings[][32])
         cnt++;
     }
     return cnt;
+}
+
+uint64_t nxt = 5555;
+
+int myrand()
+{
+    nxt = (nxt >> 16) & 0x7fff;
+    return nxt;
 }

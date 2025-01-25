@@ -59,7 +59,7 @@ int kmain()
 
         uint64_t syndrome = esr & 0xFFFF;
 
-        uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
+        // uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {

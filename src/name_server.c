@@ -54,9 +54,6 @@ void k2_name_server()
         int64_t sz = receive(&caller_tid, namebuf, bufsize);
         namebuf[sz] = 0;
         int argc = split(namebuf, argv);
-        for (int i = 0; i < argc; ++i) {
-            uart_printf(CONSOLE, "argv[%d]: %s\r\n", i, argv[i]);
-        }
 
         switch (argv[0][0]) {
         case WHO_IS:

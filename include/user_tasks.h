@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "name_server.h"
+#include "rps_server.h"
 #include "stringmap.h"
 #include "syscall_func.h"
 #include "util.h"
@@ -47,15 +48,56 @@ void k1_initial_user_task()
 //     exit();
 // }
 
-void k2_rps_client() { }
+void k2_rps_client()
+{
+    ASSERT(signup() >= 0, "signup failed");
+    for (int i = 0; i < 5; ++i) {
+        rps_move_t move = (rps_move_t)((5 - i) % 3);
+        ASSERT(play(move) >= 0, "play failed");
+    }
+
+    exit();
+}
+
+void k2_rps_client_2()
+{
+    ASSERT(signup() >= 0, "signup failed");
+    for (int i = 0; i < 5; ++i) {
+        rps_move_t move = (rps_move_t)(i % 3);
+        ASSERT(play(move) >= 0, "play failed");
+    }
+
+    exit();
+}
+
+void k2_rps_client_random()
+{
+    int num_signups = myrand() % 2 + 1; // 1 or 2 signups
+    for (int i = 0; i < num_signups; ++i) {
+        ASSERT(signup() >= 0, "signup failed");
+
+        int num_plays = myrand() % 3 + 1; // 1 to 3 plays
+        for (int j = 0; j < num_plays; ++j) {
+            rps_move_t move = (rps_move_t)(myrand() % 3);
+            ASSERT(play(move) >= 0, "play failed");
+        }
+
+        ASSERT(quit() >= 0, "quit failed");
+    }
+    exit();
+}
 
 void k2_initial_user_task()
 {
-    // create(1, &k2_name_server);
+    create(1, &k2_name_server);
 
-    // register_as("initial_task");
+    create(1, &k2_rps_server);
 
-    // create(1, &k2_rps_server);
+    // create(1, &k2_rps_client);
+    // create(1, &k2_rps_client_2);
+    for (int i = 0; i < 5; ++i) {
+        create(1, &k2_rps_client_random);
+    }
 
     exit();
 }

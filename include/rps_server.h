@@ -11,9 +11,9 @@
 #define NO_PLAYER 0
 
 typedef enum {
-    ROCK,
-    PAPER,
-    SCISSORS,
+    ROCK = 0,
+    PAPER = 1,
+    SCISSORS = 2,
     PENDING,
 } rps_move_t;
 

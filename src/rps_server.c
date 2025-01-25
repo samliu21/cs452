@@ -89,23 +89,26 @@ void k2_rps_server()
         switch (buf[0]) {
         case SIGNUP: {
             ASSERT(buf[1] == 0, "'signup' takes no arguments");
+            uart_printf(CONSOLE, "task %d signs up.\r\n", caller_tid);
+			
             if (waiting_tid == NO_PLAYER) {
                 waiting_tid = caller_tid;
             } else { // set up game and ready both clients.
                 // find and claim a free game.
-                int i = find_free_game(free_games);
-                free_games |= (uint64_t)1 << i;
-                ASSERT(i >= 0, "no free games left.");
+                int game_id = find_free_game(free_games);
+                free_games |= (uint64_t)1 << game_id;
+                ASSERT(game_id >= 0, "no free games left.");
 
                 // initialize game.
-                games[i].move_1 = PENDING;
-                games[i].move_2 = PENDING;
-                games[i].tid_1 = waiting_tid;
-                games[i].tid_2 = caller_tid;
+                games[game_id].move_1 = PENDING;
+                games[game_id].move_2 = PENDING;
+                games[game_id].tid_1 = waiting_tid;
+                games[game_id].tid_2 = caller_tid;
 
                 // reply to clients.
                 reply_null(waiting_tid);
                 reply_null(caller_tid);
+                uart_printf(CONSOLE, "task %d and task %d are now playing.\r\n", waiting_tid, caller_tid);
 
                 waiting_tid = 0;
             }
@@ -114,17 +117,22 @@ void k2_rps_server()
         case PLAY: {
             ASSERT(buf[2] == 0, "'play' takes 1 argument");
             ASSERT(buf[1] != PENDING, "valid moves are rock, paper, or scissors.");
-            int i = find_game(caller_tid, games, free_games);
-            ASSERTF(i >= 0, "task %d is not in a game.");
-            rps_game_t* game = &(games[i]);
+
+            int game_id = find_game(caller_tid, games, free_games);
+            ASSERTF(game_id >= 0, "task %d is not in a game.");
+            rps_game_t* game = &(games[game_id]);
 
             // check if other player has quit
             if (game->tid_1 == NO_PLAYER || game->tid_2 == NO_PLAYER) {
-                uart_printf(CONSOLE, "task %d wins by forfeit.", caller_tid, moves[(int) buf[1]]);
+                uart_printf(CONSOLE, "task %d wins by forfeit.\r\n", caller_tid, moves[(int)buf[1]]);
                 reply(caller_tid, "F", 1);
+
+                // game is over, reclaim game
+                free_games &= ~((uint64_t)1 << game_id);
+                break;
             } else {
                 // update caller's move
-                uart_printf(CONSOLE, "task %d plays %s.", caller_tid, moves[(int) buf[1]]);
+                uart_printf(CONSOLE, "task %d plays %s.\r\n", caller_tid, moves[(int)buf[1]]);
                 if (game->tid_1 == caller_tid) {
                     game->move_1 = buf[1];
                 } else {
@@ -137,38 +145,41 @@ void k2_rps_server()
                     int result = (game->move_1 - game->move_2 + 3) % 3;
                     switch (result) {
                     case 0: // tie
-                        uart_printf(CONSOLE, "%s ties %s, tie game.", moves[game->move_1], moves[game->move_2]);
+                        uart_printf(CONSOLE, "%s ties %s, tie game.\r\n", moves[game->move_1], moves[game->move_2]);
                         reply(game->tid_1, "T", 1);
                         reply(game->tid_2, "T", 1);
                         break;
                     case 1: // player 1 wins
-                        uart_printf(CONSOLE, "%s beats %s, task %d wins.", moves[game->move_1], moves[game->move_2], game->tid_1);
+                        uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->move_1], moves[game->move_2], game->tid_1);
                         reply(game->tid_1, "W", 1);
                         reply(game->tid_2, "L", 1);
                         break;
                     case 2: // player 2 wins
-                        uart_printf(CONSOLE, "%s beats %s, task %d wins.", moves[game->move_2], moves[game->move_1], game->tid_2);
+                        uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->move_2], moves[game->move_1], game->tid_2);
                         reply(game->tid_1, "L", 1);
                         reply(game->tid_2, "W", 1);
                         break;
                     }
+
+                    // reset game state
+                    game->move_1 = PENDING;
+                    game->move_2 = PENDING;
                 } else {
                     // game is not finished yet.
                     break;
                 }
             }
-            // game is over, reclaim game
-            free_games &= ~((uint64_t)1 << i);
             break;
         }
         case QUIT: {
             ASSERT(buf[1] == 0, "'quit' takes no arguments");
-            int i = find_game(caller_tid, games, free_games);
-            ASSERTF(i >= 0, "task %d is not in a game.");
-            rps_game_t* game = &(games[i]);
+
+            int game_id = find_game(caller_tid, games, free_games);
+            ASSERTF(game_id >= 0, "task %d is not in a game.");
+            rps_game_t* game = &(games[game_id]);
 
             // update game state
-            uart_printf(CONSOLE, "task %d quits.", caller_tid);
+            uart_printf(CONSOLE, "task %d quits.\r\n", caller_tid);
             if (game->tid_1 == caller_tid) {
                 game->tid_1 = NO_PLAYER;
             } else {
@@ -177,7 +188,7 @@ void k2_rps_server()
 
             // check if game over and reclaim game.
             if (game->tid_1 == NO_PLAYER && game->tid_2 == NO_PLAYER) {
-                free_games &= ~((uint64_t)1 << i);
+                free_games &= ~((uint64_t)1 << game_id);
             }
 
             reply_null(caller_tid);
