@@ -68,7 +68,7 @@ void k2_rps_client_random()
         int num_plays = myrand() % 3 + 1; // 1 to 3 plays
         for (int j = 0; j < num_plays; ++j) {
             rps_move_t move = (rps_move_t)(myrand() % 3);
-            char ret = play(move);
+            rps_server_response_t ret = play(move);
             ASSERT(ret != FAILED, "play failed");
             if (ret == ABANDONED) {
                 break;

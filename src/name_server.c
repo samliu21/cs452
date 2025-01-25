@@ -6,6 +6,7 @@
 
 int64_t register_as(const char* name)
 {
+    // "R <name>"
     int sz = strlen(name);
     int buffersz = sz + 3;
     char buf[buffersz];
@@ -24,6 +25,7 @@ int64_t register_as(const char* name)
 
 int64_t who_is(const char* name)
 {
+    // "W <name>"
     int sz = strlen(name);
     int buffersz = sz + 3;
     char buf[buffersz];
@@ -58,6 +60,7 @@ void k2_name_server()
         switch (argv[0][0]) {
         case WHO_IS:
             ASSERT(argc == 2, "'who_is' takes 1 argument");
+
             mapped_tid = stringmap_get(&names, argv[1]);
             char buf[4];
             ui2a(mapped_tid, 10, buf);
@@ -65,8 +68,9 @@ void k2_name_server()
             break;
         case REGISTER_AS:
             ASSERT(argc == 2, "'register_as' takes 1 argument");
+
             stringmap_set(&names, argv[1], caller_tid);
-            reply_null(caller_tid);
+            reply_empty(caller_tid);
             break;
         default:
             ASSERT(0, "invalid command");
