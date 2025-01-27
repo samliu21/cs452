@@ -1,5 +1,10 @@
 #include "syscall_func.h"
 
+int64_t reply_char(uint64_t tid, char rp)
+{
+    return reply(tid, &rp, 1);
+}
+
 int64_t reply_num(uint64_t tid, uint64_t rp)
 {
     char buf[32];

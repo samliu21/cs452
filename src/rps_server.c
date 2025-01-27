@@ -131,10 +131,7 @@ void k2_rps_server()
             // check if other player has quit
             if (is_empty_player(game->p1) || is_empty_player(game->p2)) {
                 uart_printf(CONSOLE, "task %d wins by forfeit.\r\n", caller_tid, moves[(int)buf[1]]);
-                reply_num(caller_tid, ABANDONED);
-
-                // game is over, reclaim game
-                free_games &= ~((uint64_t)1 << game_id);
+                reply_char(caller_tid, ABANDONED);
                 break;
             } else {
                 // update caller's move
@@ -152,18 +149,18 @@ void k2_rps_server()
                     switch (result) {
                     case 0: // tie
                         uart_printf(CONSOLE, "%s ties %s, tie game.\r\n", moves[game->p1.move], moves[game->p2.move]);
-                        reply_num(game->p1.tid, TIE);
-                        reply_num(game->p2.tid, TIE);
+                        reply_char(game->p1.tid, TIE);
+                        reply_char(game->p2.tid, TIE);
                         break;
                     case 1: // player 1 wins
                         uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->p1.move], moves[game->p2.move], game->p1.tid);
-                        reply_num(game->p1.tid, WIN);
-                        reply_num(game->p2.tid, LOSE);
+                        reply_char(game->p1.tid, WIN);
+                        reply_char(game->p2.tid, LOSE);
                         break;
                     case 2: // player 2 wins
                         uart_printf(CONSOLE, "%s beats %s, task %d wins.\r\n", moves[game->p2.move], moves[game->p1.move], game->p2.tid);
-                        reply_num(game->p1.tid, LOSE);
-                        reply_num(game->p2.tid, WIN);
+                        reply_char(game->p1.tid, LOSE);
+                        reply_char(game->p2.tid, WIN);
                         break;
                     }
 
@@ -200,7 +197,8 @@ void k2_rps_server()
                 free_games &= ~((uint64_t)1 << game_id);
             } else if (other_player.move != PENDING) {
                 // inform other play of forfeit if they're waiting for a response
-                reply_num(other_player.tid, ABANDONED);
+                uart_printf(CONSOLE, "task %d wins by forfeit.\r\n", other_player.tid);
+                reply_char(other_player.tid, ABANDONED);
             }
 
             reply_empty(caller_tid);
