@@ -1,4 +1,5 @@
 #include "common.h"
+#include "timer.h"
 
 void memcpy(void* dest, const void* src, int n)
 {
@@ -71,4 +72,12 @@ int split(char* s, char strings[][32])
         cnt++;
     }
     return cnt;
+}
+
+static uint64_t seed = 123456789; // You can set this to any initial value
+
+uint64_t myrand()
+{
+    seed = (1103515245 * seed + 12345) & 0x7FFFFFFF; // Linear congruential generator
+    return (seed >> 16) & 0x7FFF; // Scale down to 0-32767
 }

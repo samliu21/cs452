@@ -3,8 +3,11 @@
 
 #include "common.h"
 
-#define WHO_IS 'W'
-#define REGISTER_AS 'R'
+typedef enum {
+    WHO_IS = 'W',
+    REGISTER_AS = 'R',
+} name_server_request_t;
+
 #define NAME_SERVER_TID 2
 
 int64_t register_as(const char* name);

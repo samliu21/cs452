@@ -1,13 +1,18 @@
 #include "syscall_func.h"
 
-int64_t reply_uint(uint64_t tid, uint64_t rp)
+int64_t reply_char(uint64_t tid, char rp)
+{
+    return reply(tid, &rp, 1);
+}
+
+int64_t reply_num(uint64_t tid, uint64_t rp)
 {
     char buf[32];
     ui2a(rp, 10, buf);
     return reply(tid, buf, strlen(buf));
 }
 
-int64_t reply_null(uint64_t tid)
+int64_t reply_empty(uint64_t tid)
 {
     return reply(tid, NULL, 0);
 }
