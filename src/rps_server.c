@@ -7,7 +7,7 @@
 
 int64_t signup()
 {
-    int rps_server_tid = who_is(RPS_SERVER_NAME);
+    int64_t rps_server_tid = who_is(RPS_SERVER_NAME);
     char buf[2];
     buf[0] = SIGNUP;
     buf[1] = 0;
@@ -20,7 +20,7 @@ int64_t signup()
 
 rps_server_response_t play(rps_move_t move)
 {
-    int rps_server_tid = who_is(RPS_SERVER_NAME);
+    int64_t rps_server_tid = who_is(RPS_SERVER_NAME);
     char buf[3];
     buf[0] = PLAY;
     buf[1] = move;

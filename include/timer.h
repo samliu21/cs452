@@ -3,6 +3,7 @@
 
 #include "common.h"
 
-uint64_t timer_get();
+uint32_t timer_get_us();
+uint32_t timer_get_ms();
 
 #endif

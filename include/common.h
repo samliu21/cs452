@@ -2,6 +2,7 @@
 #define _common_h_
 
 typedef unsigned long long uint64_t;
+typedef unsigned int uint32_t;
 typedef long long int64_t;
 
 typedef void (*func_t)();
@@ -11,6 +12,7 @@ typedef void (*func_t)();
 #define MAX_RAND 32767
 
 void memcpy(void* dest, const void* src, int n);
+void memset(void* s, int c, int n);
 void strcpy(char* dest, const char* src);
 int strlen(const char* s);
 int strcmp(const char* s1, const char* s2);

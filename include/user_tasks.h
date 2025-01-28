@@ -6,6 +6,7 @@
 #include "rps_server.h"
 #include "stringmap.h"
 #include "syscall_func.h"
+#include "timer.h"
 #include "util.h"
 
 // K1
@@ -123,6 +124,87 @@ void k2_initial_user_task()
     k2_random_test();
     press_enter_to_continue();
 
+    exit();
+}
+
+uint32_t start_time, end_time;
+char send_buf[256], receive_buf[256], reply_buf[256];
+uint32_t num_bytes;
+const int NUM_REPEATS = 2048;
+
+void reset_timers()
+{
+    start_time = 0;
+    end_time = 0;
+    memset(send_buf, 0, 256);
+    memset(receive_buf, 0, 256);
+    memset(reply_buf, 0, 256);
+}
+
+void start_timer()
+{
+    if (!start_time) {
+        start_time = timer_get_us();
+    }
+}
+
+void end_timer()
+{
+    if (!end_time) {
+        end_time = timer_get_us();
+    }
+}
+
+void k2_perf_sender() // tid 3
+{
+    start_timer();
+
+    for (int i = 0; i < NUM_REPEATS; ++i) {
+        // uart_printf(CONSOLE, "time: %u\r\n", timer_get_us());
+        ASSERT(send(4, send_buf, num_bytes, reply_buf, num_bytes) >= 0, "send failed");
+    }
+
+    end_timer();
+
+    exit();
+}
+
+void k2_perf_receiver() // tid 4
+{
+    uint64_t sender;
+
+    start_timer();
+
+    for (int i = 0; i < NUM_REPEATS; ++i) {
+        ASSERT(receive(&sender, send_buf, num_bytes) >= 0, "receive failed");
+
+        ASSERT(reply(sender, reply_buf, num_bytes) >= 0, "reply failed");
+    }
+
+    end_timer();
+
+    exit();
+}
+
+void k2_perf_test()
+{
+    uart_printf(CONSOLE, "testing perf of SRR...\r\n");
+
+    reset_timers();
+    num_bytes = 256;
+    create(2, &k2_perf_sender);
+    create(2, &k2_perf_receiver);
+    uart_puts(CONSOLE, "done creating tasks; run them now\r\n");
+
+    exit();
+}
+
+void k2_perf_initial_task()
+{
+    create(999, &k2_perf_test);
+    uart_printf(CONSOLE, "start: %u, end: %u\r\n", start_time, end_time);
+    uint32_t avg_time = (end_time - start_time) / NUM_REPEATS;
+    uart_printf(CONSOLE, "time taken: %u us\r\n", avg_time);
     exit();
 }
 

@@ -63,7 +63,6 @@ void send_handler(main_context_t* context)
         if (receiver == NULL) {
             context->active_task->registers[0] = -1;
         } else {
-            ASSERT(receiver != NULL, "receiver not allocated");
             queue_add(&(receiver->senders_queue), context->active_task);
             context->active_task->state = SENDWAIT;
         }

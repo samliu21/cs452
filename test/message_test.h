@@ -11,16 +11,16 @@
 
 void senderfunc()
 {
-    char reply_buf[6];
-    int64_t n = send(2, "hello", 6, reply_buf, 5);
+    char reply_buf[4];
+    int64_t n = send(2, "hello world", 11, reply_buf, 4);
     TEST_TASK_ASSERT(n == 4);
-    TEST_TASK_ASSERT(strcmp(reply_buf, "hell"));
+    TEST_TASK_ASSERT(strncmp(reply_buf, "hell", 4) == 0); // receiver replies with "hello" but sender can only receive "hell"
 
     yield();
 
     n = send(2, "yo", 2, reply_buf, 2);
     TEST_TASK_ASSERT(n == 2);
-    TEST_TASK_ASSERT(strcmp(reply_buf, "yo"));
+    TEST_TASK_ASSERT(strncmp(reply_buf, "wh", 2) == 0);
 
     n = send(42, "yo", 2, reply_buf, 2);
     TEST_TASK_ASSERT(n == -1);
@@ -34,15 +34,15 @@ void receiverfunc()
     char receive_buf[5];
     int64_t n = receive(&tid, receive_buf, 5);
     TEST_TASK_ASSERT(tid == 1);
-    TEST_TASK_ASSERT(n == 4);
-    TEST_TASK_ASSERT(strcmp(receive_buf, "hell"));
+    TEST_TASK_ASSERT(n == 5);
+    TEST_TASK_ASSERT(strncmp(receive_buf, "hello", 5) == 0); // sender sends "hello world\0", but receiver can only receive "hello"
     n = reply(tid, receive_buf, 4);
     TEST_TASK_ASSERT(n == 4)
 
     n = receive(&tid, receive_buf, 4);
     TEST_TASK_ASSERT(tid == 1);
     TEST_TASK_ASSERT(n == 2);
-    TEST_TASK_ASSERT(strcmp(receive_buf, "yo"));
+    TEST_TASK_ASSERT(strncmp(receive_buf, "yo", 2) == 0);
     n = reply(tid, "what's up?", 9);
     TEST_TASK_ASSERT(n == 2)
 
@@ -120,7 +120,6 @@ int _test_message()
 
     context.active_task = sender;
     syndrome = enter_task(&kernel_task, sender) & 0xFFFF;
-    uart_printf(CONSOLE, "2\r\n");
     TEST_ASSERT(syndrome == SYSCALL_SEND);
     send_handler(&context);
     TEST_ASSERT(context.tasks_waiting_for_reply->head = sender);
@@ -136,15 +135,22 @@ int _test_message()
 
     context.active_task = sender;
     syndrome = enter_task(&kernel_task, sender) & 0xFFFF;
+    TEST_ASSERT(syndrome == SYSCALL_SEND);
+    reply_handler(&context);
+
+    context.active_task = sender;
+    syndrome = enter_task(&kernel_task, sender) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
 
     context.active_task = receiver;
 
     syndrome = enter_task(&kernel_task, receiver) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_REPLY);
+    reply_handler(&context);
 
     syndrome = enter_task(&kernel_task, receiver) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_REPLY);
+    reply_handler(&context);
 
     syndrome = enter_task(&kernel_task, receiver) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
