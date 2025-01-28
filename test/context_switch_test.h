@@ -24,7 +24,7 @@ int _test_context_switch()
     task_t kernel_task;
     kernel_task.tid = 0;
 
-    task_t tasks[1];
+    task_t tasks[CONTEXT_SWITCH_TEST_NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, CONTEXT_SWITCH_TEST_NUM_TASKS);
     char stack[CONTEXT_SWITCH_TEST_NUM_TASKS * TEST_STACK_SIZE];
     task_t* task = allocator_new_task(&allocator, stack, 1, 1, &taskfunc, &kernel_task);

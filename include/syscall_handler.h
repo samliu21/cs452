@@ -1,0 +1,28 @@
+#ifndef _syscall_handler_h_
+#define _syscall_handler_h_
+
+#include "allocator.h"
+#include "priority_queue.h"
+#include "queue.h"
+#include "task.h"
+
+typedef struct main_context_t {
+    task_t* kernel_task;
+    allocator_t* allocator;
+    char* stack;
+    uint64_t* n_tasks;
+    priority_queue_t* scheduler;
+    queue_t* tasks_waiting_for_send;
+    queue_t* tasks_waiting_for_reply;
+    task_t* active_task;
+} main_context_t;
+
+void create_handler(main_context_t* context);
+void my_tid_handler(main_context_t* context);
+void my_parent_tid_handler(main_context_t* context);
+void exit_handler(main_context_t* context);
+void send_handler(main_context_t* context);
+void receive_handler(main_context_t* context);
+void reply_handler(main_context_t* context);
+
+#endif
