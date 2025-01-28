@@ -130,7 +130,7 @@ void k2_initial_user_task()
 uint32_t start_time, end_time;
 char send_buf[256], receive_buf[256], reply_buf[256];
 uint32_t num_bytes;
-const int NUM_REPEATS = 2048;
+const int NUM_REPEATS = 8092;
 
 void reset_timers()
 {
@@ -160,7 +160,6 @@ void k2_perf_sender() // tid 3
     start_timer();
 
     for (int i = 0; i < NUM_REPEATS; ++i) {
-        // uart_printf(CONSOLE, "time: %u\r\n", timer_get_us());
         ASSERT(send(4, send_buf, num_bytes, reply_buf, num_bytes) >= 0, "send failed");
     }
 
@@ -191,7 +190,7 @@ void k2_perf_test()
     uart_printf(CONSOLE, "testing perf of SRR...\r\n");
 
     reset_timers();
-    num_bytes = 256;
+    num_bytes = 4;
     create(2, &k2_perf_sender);
     create(2, &k2_perf_receiver);
     uart_puts(CONSOLE, "done creating tasks; run them now\r\n");
