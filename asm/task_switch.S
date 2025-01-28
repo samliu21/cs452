@@ -58,7 +58,6 @@ enter_task:
 
     eret
 
-
 restore_kernel:
 	// store the current user x1 register
     str x1, [sp, #-8]!

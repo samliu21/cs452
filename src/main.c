@@ -36,11 +36,11 @@ int kmain()
     priority_queue_t scheduler = pq_new();
     pq_add(&scheduler, initial_task);
 
-	// blocked queues
+    // blocked queues
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
 
-	// kernel context
+    // kernel context
     main_context_t context;
     context.kernel_task = &kernel_task;
     context.allocator = &allocator;

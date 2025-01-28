@@ -14,7 +14,7 @@ void taskfunc()
     debug_set_registers(200);
     yield();
     debug_dump_registers(registers);
-    for (uint64_t i = 2; i < 29; ++i) {
+    for (uint64_t i = 2; i < 19; ++i) { // goes up to 18 because 19 and above are callee-saved!!!
         TEST_TASK_ASSERT(registers[i] == 200 + i);
     }
     yield();
@@ -28,6 +28,7 @@ int _test_context_switch()
     task_t tasks[CONTEXT_SWITCH_TEST_NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, CONTEXT_SWITCH_TEST_NUM_TASKS);
     char stack[CONTEXT_SWITCH_TEST_NUM_TASKS * TEST_STACK_SIZE];
+
     task_t* task = allocator_new_task(&allocator, stack, 1, 1, &taskfunc, &kernel_task);
     uint64_t syndrome;
     uint64_t registers[31];
@@ -37,7 +38,7 @@ int _test_context_switch()
     enter_task(&kernel_task, task);
 
     debug_dump_registers(registers);
-    for (uint64_t i = 2; i < 29; ++i) {
+    for (uint64_t i = 2; i < 19; ++i) {
         TEST_ASSERT(registers[i] == 100 + i);
     }
 

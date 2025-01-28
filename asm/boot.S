@@ -66,6 +66,16 @@ el1_entry:
 	ldr x1, =(FPEN_TRAP | ZEN_TRAP)
 	msr cpacr_el1, x1
 
+	// caching
+	orr x0, x0, #(1 << 2) // enable d cache
+    orr x0, x0, #(1 << 12) // enable i cache
+	#ifdef NODCACHE
+    and x0, x0, #(~(1 << 2)) // disable d cache    
+    #endif
+    #ifdef NOICACHE
+    and x0, x0, #(~(1 << 12)) // disable i cache    
+    #endif
+
 	// initialize SP (initial stack below text here)
 	ldr x2, =_start
 	mov sp, x2

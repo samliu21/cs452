@@ -14,7 +14,7 @@ void print_register(uint64_t reg)
 
 void synchronous_kernel_error(uint64_t esr)
 {
-    uart_puts(CONSOLE, "kernel error\r\n");
     uint64_t exception_class = (esr >> 26) & 0x3F;
-    uart_printf(CONSOLE, "exception class: %u", exception_class);
+    uart_printf(CONSOLE, "sync kernel error, exception class: %u\r\n", exception_class);
+    for (;;) { }
 }

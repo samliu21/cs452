@@ -66,16 +66,6 @@ debug_set_registers:
     add x16, x0, #16
     add x17, x0, #17
     add x18, x0, #18
-    add x19, x0, #19
-    add x20, x0, #20
-    add x21, x0, #21
-    add x22, x0, #22
-    add x23, x0, #23
-    add x24, x0, #24
-    add x25, x0, #25
-    add x26, x0, #26
-    add x27, x0, #27
-    add x28, x0, #28
     ret
 
 debug_dump_registers:
@@ -97,3 +87,4 @@ debug_dump_registers:
     stp x27, x28, [x0], #16
     stp x29, x30, [x0], #16
     ret
+	
