@@ -18,5 +18,6 @@ task_t* allocator_alloc(allocator_t* allocator);
 void allocator_free(allocator_t* allocator, task_t* task);
 
 task_t* allocator_new_task(allocator_t* allocator, char* stack, uint64_t tid, uint64_t priority, func_t entry_point, task_t* parent_task);
+task_t* allocator_get_task(allocator_t* allocator, uint64_t tid);
 
 #endif

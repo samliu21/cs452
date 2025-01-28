@@ -69,3 +69,15 @@ task_t* allocator_new_task(allocator_t* allocator, char* stack, uint64_t tid, ui
     task_new(task, tid, priority, sp, entry_point, parent_task);
     return task;
 }
+
+task_t* allocator_get_task(allocator_t* allocator, uint64_t tid)
+{
+    task_t* t = allocator->alloc_list;
+    while (t) {
+        if (t->tid == tid) {
+            return t;
+        }
+        t = t->next_slab;
+    }
+    return NULL;
+}

@@ -53,13 +53,10 @@ int kmain()
     while (!pq_empty(&scheduler)) {
         active_task = pq_pop(&scheduler);
         ASSERT(active_task->state == READY, "active task is not in ready state");
-        // uart_printf(CONSOLE, "active task: %u\r\n", active_task->tid);
 
         uint64_t esr = enter_task(&kernel_task, active_task);
 
         uint64_t syndrome = esr & 0xFFFF;
-
-        // uart_printf(CONSOLE, "syscall with code: %u\r\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
@@ -91,10 +88,6 @@ int kmain()
         }
         case SYSCALL_SEND: {
             task_t* receiver = get_task(tasks_waiting_for_send.head, active_task->registers[0]);
-            // uart_printf(CONSOLE, "receiver size: %u\r\n", tasks_waiting_for_send.size);
-            // if (receiver != NULL) {
-            //     uart_puts(CONSOLE, "huh?\r\n");
-            // }
 
             if (receiver) { // the receiver is already waiting for a message, so send
                 ASSERT(receiver->state == RECEIVEWAIT, "blocked receiver is not in receive wait state");
@@ -110,10 +103,14 @@ int kmain()
                 queue_add(&tasks_waiting_for_reply, active_task);
                 active_task->state = REPLYWAIT;
             } else { // the receiver has NOT requested a message
-                receiver = get_task(scheduler.head, active_task->registers[0]);
-                ASSERT(receiver != NULL, "receiver not allocated");
-                queue_add(&(receiver->senders_queue), active_task);
-                active_task->state = SENDWAIT;
+                receiver = allocator_get_task(&allocator, active_task->registers[0]);
+                if (receiver == NULL) {
+                    active_task->registers[0] = -1;
+                } else {
+                    ASSERT(receiver != NULL, "receiver not allocated");
+                    queue_add(&(receiver->senders_queue), active_task);
+                    active_task->state = SENDWAIT;
+                }
             }
             break;
         }
@@ -134,9 +131,16 @@ int kmain()
             break;
         }
         case SYSCALL_REPLY: {
+            if (!allocator_get_task(&allocator, active_task->registers[0])) {
+                active_task->registers[0] = -1;
+                break;
+            }
+
             task_t* sender = get_task(tasks_waiting_for_reply.head, active_task->registers[0]);
-            ASSERTF(sender != NULL, "sender %d could not be found in queue", active_task->registers[0]);
-            ASSERT(sender->state == REPLYWAIT, "blocked sender is not in reply wait state");
+            if (sender == NULL || sender->state != REPLYWAIT) {
+                active_task->registers[0] = -2;
+                break;
+            }
 
             // copy over reply message to sender's buffer and return to both sender and replyer the length.
             uint64_t n = (active_task->registers[2] < sender->registers[4]) ? active_task->registers[2] : sender->registers[4];
