@@ -9,11 +9,12 @@
 
 void taskfunc()
 {
+    // set user registers to 200, 201, ..., and ensure they stay the same after a context switch
     uint64_t registers[31];
     debug_set_registers(200);
     yield();
     debug_dump_registers(registers);
-    for (uint64_t i = 2; i < 29; ++i) { // user registers are 2xx
+    for (uint64_t i = 2; i < 29; ++i) {
         TEST_TASK_ASSERT(registers[i] == 200 + i);
     }
     yield();
@@ -31,11 +32,12 @@ int _test_context_switch()
     uint64_t syndrome;
     uint64_t registers[31];
 
+    // set kernel registers to 100, 101, ..., and ensure they stay the same after a context switch
     debug_set_registers(100);
     enter_task(&kernel_task, task);
 
     debug_dump_registers(registers);
-    for (uint64_t i = 2; i < 29; ++i) { // kernel registers are 1xx
+    for (uint64_t i = 2; i < 29; ++i) {
         TEST_ASSERT(registers[i] == 100 + i);
     }
 
