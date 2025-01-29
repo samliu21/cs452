@@ -188,22 +188,59 @@ void k2_perf_receiver() // tid 4
 void k2_perf_test()
 {
     uart_printf(CONSOLE, "testing perf of SRR...\r\n");
-
+    uint64_t tester_id;
+    char args[2];
+    int n = receive(&tester_id, args, 2);
+    ASSERT(n = 2, "Did not receive enough args for perf test.\r\n");
+    reply_empty(tester_id);
     reset_timers();
-    num_bytes = 4;
-    create(2, &k2_perf_sender);
-    create(2, &k2_perf_receiver);
-    uart_puts(CONSOLE, "done creating tasks; run them now\r\n");
+    num_bytes = (uint32_t)args[1];
+    switch (args[0]) {
+    case 'S': {
+        create(2, &k2_perf_sender);
+        create(2, &k2_perf_receiver);
+        uart_printf(CONSOLE, "Testing Sender First, %d Bytes\r\n", args[1]);
+        break;
+    }
+    case 'R': {
+        create(2, &k2_perf_receiver);
+        create(2, &k2_perf_sender);
+        uart_printf(CONSOLE, "Testing Receiver First, %d Bytes\r\n", args[1]);
+        break;
+    }
+    default: {
+        ASSERTF(0, "First arg for perf test was not S or R.\r\n");
+    }
+    }
 
+    uart_puts(CONSOLE, "done creating tasks; run them now\r\n");
     exit();
 }
 
 void k2_perf_initial_task()
 {
-    create(999, &k2_perf_test);
-    uart_printf(CONSOLE, "start: %u, end: %u\r\n", start_time, end_time);
-    uint32_t avg_time = (end_time - start_time) / NUM_REPEATS;
-    uart_printf(CONSOLE, "time taken: %u us\r\n", avg_time);
+    reset_timers();
+    start_timer();
+    end_timer();
+    uint32_t overhead = end_time - start_time;
+
+    char modes[] = "SR";
+    uint64_t test_id;
+    char args[2];
+    args[1] = 1;
+    for (int i = 0; i < 3; ++i) {
+        args[1] *= 4; // Set n_bytes to 4, 64, 256
+
+        for (int j = 0; j < 2; ++j) {
+            args[0] = modes[j];
+
+            test_id = create(999, &k2_perf_test);
+            send(test_id, args, 2, NULL, 0);
+            uart_printf(CONSOLE, "start: %u, end: %u\r\n", start_time, end_time);
+            uint32_t avg_time = (end_time - start_time - overhead) / NUM_REPEATS;
+            uart_printf(CONSOLE, "time taken: %u us\r\n", avg_time);
+        }
+    }
     exit();
 }
 
