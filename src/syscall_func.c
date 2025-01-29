@@ -1,5 +1,15 @@
 #include "syscall_func.h"
 
+int64_t send_empty(uint64_t tid)
+{
+    return send(tid, NULL, 0, NULL, 0);
+}
+
+int64_t receive_empty(uint64_t* tid)
+{
+    return receive(tid, NULL, 0);
+}
+
 int64_t reply_char(uint64_t tid, char rp)
 {
     return reply(tid, &rp, 1);
