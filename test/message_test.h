@@ -67,9 +67,9 @@ int _test_message()
     task_t* sender = allocator_new_task(&allocator, stack, n_tasks++, 1, &senderfunc, &kernel_task);
     task_t* receiver = allocator_new_task(&allocator, stack, n_tasks++, 1, &receiverfunc, &kernel_task);
 
-    priority_queue_t pq;
-    queue_t send_queue;
-    queue_t reply_queue;
+    priority_queue_t pq = pq_new();
+    queue_t send_queue = queue_new();
+    queue_t reply_queue = queue_new();
 
     main_context_t context;
     context.kernel_task = &kernel_task;

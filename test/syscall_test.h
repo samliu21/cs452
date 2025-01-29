@@ -41,7 +41,7 @@ int _test_syscall()
     uint64_t n_tasks = 500;
     task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &task1func, &kernel_task);
 
-    priority_queue_t scheduler;
+    priority_queue_t scheduler = pq_new();
 
     main_context_t context;
     context.kernel_task = &kernel_task;
