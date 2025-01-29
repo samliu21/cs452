@@ -60,13 +60,7 @@ _start:
 el1_entry:
 	// configure processor
 	ldr x0, =(SCTLR_RESERVED | SCTLR_WFE_WFI)
-	msr sctlr_el1, x0
-
-	// disable EL0 trap on FP/SIMD/SVE instructions
-	ldr x1, =(FPEN_TRAP | ZEN_TRAP)
-	msr cpacr_el1, x1
-
-	// caching
+    // caching
 	orr x0, x0, #(1 << 2) // enable d cache
     orr x0, x0, #(1 << 12) // enable i cache
 	#ifdef NODCACHE
@@ -75,6 +69,11 @@ el1_entry:
     #ifdef NOICACHE
     and x0, x0, #(~(1 << 12)) // disable i cache    
     #endif
+	msr sctlr_el1, x0
+
+	// disable EL0 trap on FP/SIMD/SVE instructions
+	ldr x1, =(FPEN_TRAP | ZEN_TRAP)
+	msr cpacr_el1, x1
 
 	// initialize SP (initial stack below text here)
 	ldr x2, =_start

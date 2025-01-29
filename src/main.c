@@ -40,6 +40,14 @@ int kmain()
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
 
+    // uint64_t register_value = debug_register();
+    // if (register_value & (1 << 2)) {
+    //     uart_puts(CONSOLE, "dcache enabled\r\n");
+    // }
+    // if (register_value & (1 << 12)) {
+    //     uart_puts(CONSOLE, "icache enabled\r\n");
+    // }
+
     // kernel context
     main_context_t context;
     context.kernel_task = &kernel_task;

@@ -127,7 +127,7 @@ void k2_initial_user_task()
     exit();
 }
 
-#define NUM_REPEATS 8092
+#define NUM_REPEATS 50000
 
 int64_t get_num_bytes(char key)
 {
@@ -153,7 +153,6 @@ void k2_perf_sender() // tid 3
     int64_t num_bytes = get_num_bytes(args[1]);
     uint64_t sender_tid = my_tid();
     uint64_t receiver_tid = (args[0] == 'S') ? sender_tid + 1 : sender_tid - 1;
-    // uart_printf(CONSOLE, "values: num_bytes: %d, sender_tid: %u, receiver_tid: %u\r\n", num_bytes, sender_tid, receiver_tid);
 
     char send_buf[256], reply_buf[256];
     memset(send_buf, 0, 256);
@@ -198,7 +197,6 @@ void k2_perf_receiver() // tid 4
 
 void k2_perf_test()
 {
-    // uart_printf(CONSOLE, "testing perf of SRR...\r\n");
     uint64_t tester_id;
     char args[2];
     int n = receive(&tester_id, args, 2);
@@ -223,8 +221,6 @@ void k2_perf_test()
         ASSERTF(0, "First arg for perf test was not S or R.\r\n");
     }
     }
-
-    // uart_puts(CONSOLE, "done creating tasks; run them now\r\n");
 
     send(tid, args, 2, NULL, 0);
     send(tid2, args, 2, NULL, 0);

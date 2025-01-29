@@ -1,16 +1,9 @@
 .global debug_set_registers
 .global debug_dump_registers
+.global debug_register
 
 .local save_print_register
 
-.macro debug_register, register
-    str x30, [sp, #-8]!
-    str x0, [sp, #-8]!
-    mov x0, \register
-    bl save_print_register
-    ldr x0, [sp], #8
-    ldr x30, [sp], #8
-.endm
 save_print_register:
     stp x1, x0,   [sp, #-16]!
     stp x3, x2,   [sp, #-16]!
@@ -86,5 +79,9 @@ debug_dump_registers:
     stp x25, x26, [x0], #16
     stp x27, x28, [x0], #16
     stp x29, x30, [x0], #16
+    ret
+
+debug_register:
+    mrs x0, sctlr_el1
     ret
 	

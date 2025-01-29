@@ -25,6 +25,7 @@ extern int64_t send(uint64_t tid, const char* msg, uint64_t msglen, char* rp, ui
 extern int64_t receive(uint64_t* tid, char* msg, uint64_t msglen);
 extern int64_t reply(uint64_t tid, const char* rp, uint64_t rplen);
 
+extern uint64_t debug_register();
 extern void debug_set_registers(uint64_t i);
 extern void debug_dump_registers(uint64_t* registers);
 
