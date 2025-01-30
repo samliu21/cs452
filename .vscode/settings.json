@@ -5,6 +5,7 @@
 		"util.h": "c",
 		"compare": "c",
 		"syscall_asm.h": "c",
-		"typeinfo": "c"
+		"typeinfo": "c",
+		"k2_user_tasks.h": "c"
 	}
 }

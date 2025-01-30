@@ -1,13 +1,14 @@
 #include "allocator.h"
 #include "common.h"
 #include "exception.h"
+#include "k2_perf_test.h"
+#include "k2_user_tasks.h"
 #include "priority_queue.h"
 #include "rpi.h"
 #include "syscall_asm.h"
 #include "syscall_handler.h"
 #include "task.h"
 #include "test.h"
-#include "user_tasks.h"
 
 extern void setup_mmu();
 
@@ -35,11 +36,11 @@ int kmain()
     char* stack = USER_STACK_START;
     // create initial task
     uint64_t n_tasks = 1;
-    #ifdef PERFTEST
+#ifdef PERFTEST
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_perf_initial_task, &kernel_task);
-    #else 
+#else
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_initial_user_task, &kernel_task);
-    #endif
+#endif
     // create PQ with initial task in it
     priority_queue_t scheduler = pq_new();
     pq_add(&scheduler, initial_task);
