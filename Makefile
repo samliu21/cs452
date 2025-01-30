@@ -9,6 +9,9 @@ INC:=-Iinclude -Itest
 
 MMU?=on
 OPT?=on
+ICACHE?=on
+DCACHE?=on
+PERFTEST?=off
 
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable
@@ -27,8 +30,16 @@ endif
 CFLAGS:=-g -pipe -static -mstrict-align -ffreestanding -mgeneral-regs-only \
 	-mcpu=$(ARCH) -march=armv8-a $(WARNINGS) $(INC) $(MMUFLAGS) $(OPTFLAGS)
 
-# CFLAGS += -DNOICACHE
-# CFLAGS += -DNODCACHE
+ifneq ($(ICACHE),on)
+CFLAGS += -DNOICACHE
+endif
+ifneq ($(DCACHE),on)
+CFLAGS += -DNODCACHE
+endif
+
+ifeq ($(PERFTEST),on)
+CFLAGS += -DPERFTEST
+endif
 
 # -Wl,option tells g++ to pass 'option' to the linker with commas replaced by spaces
 # doing this rather than calling the linker directly simplifies the compilation procedure

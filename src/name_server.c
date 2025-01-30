@@ -46,7 +46,7 @@ int64_t who_is(const char* name)
 
 void k2_name_server()
 {
-    stringmap_t names;
+    stringmap_t names = stringmap_new();
     uint64_t caller_tid, mapped_tid;
     const int bufsize = 128;
     char namebuf[bufsize + 1];
