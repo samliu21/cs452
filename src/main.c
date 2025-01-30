@@ -9,8 +9,14 @@
 #include "test.h"
 #include "user_tasks.h"
 
+extern void setup_mmu();
+
 int kmain()
 {
+#if defined(MMU)
+    setup_mmu();
+#endif
+
     gpio_init();
     uart_config_and_enable(CONSOLE);
     uart_puts(CONSOLE, "\r\nconsole loaded!\r\n");
@@ -26,8 +32,7 @@ int kmain()
     // create allocator
     task_t tasks[NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, NUM_TASKS);
-    char stack[NUM_TASKS * STACK_SIZE];
-
+    char* stack = USER_STACK_START;
     // create initial task
     uint64_t n_tasks = 1;
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_perf_initial_task, &kernel_task);
@@ -39,14 +44,6 @@ int kmain()
     // blocked queues
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
-
-    // uint64_t register_value = debug_register();
-    // if (register_value & (1 << 2)) {
-    //     uart_puts(CONSOLE, "dcache enabled\r\n");
-    // }
-    // if (register_value & (1 << 12)) {
-    //     uart_puts(CONSOLE, "icache enabled\r\n");
-    // }
 
     // kernel context
     main_context_t context;
@@ -61,7 +58,6 @@ int kmain()
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
-        // uart_printf(CONSOLE, "active task: %u\r\n", context.active_task->tid);
 
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 

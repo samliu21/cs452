@@ -36,6 +36,11 @@ _start:
 	and  x0, x0, #3
 	cbnz x0, exit
 
+	// enable SMP cores (needed for MMU, caching)
+	mrs x0, s3_1_c15_c2_1
+	orr x0, x0, #(0x1 << 6)
+	msr s3_1_c15_c2_1, x0
+
 	// are we already in EL1?
 	mrs	x1, CurrentEL
 	and	x1, x1, #8
@@ -60,15 +65,6 @@ _start:
 el1_entry:
 	// configure processor
 	ldr x0, =(SCTLR_RESERVED | SCTLR_WFE_WFI)
-    // caching
-	orr x0, x0, #(1 << 2) // enable d cache
-    orr x0, x0, #(1 << 12) // enable i cache
-	#ifdef NODCACHE
-    and x0, x0, #(~(1 << 2)) // disable d cache    
-    #endif
-    #ifdef NOICACHE
-    and x0, x0, #(~(1 << 12)) // disable i cache    
-    #endif
 	msr sctlr_el1, x0
 
 	// disable EL0 trap on FP/SIMD/SVE instructions

@@ -36,7 +36,7 @@ int _test_syscall()
 
     task_t tasks[SYSCALL_TEST_NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, SYSCALL_TEST_NUM_TASKS);
-    char stack[SYSCALL_TEST_NUM_TASKS * TEST_STACK_SIZE];
+    char* stack = USER_STACK_START;
 
     uint64_t n_tasks = 500;
     task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &task1func, &kernel_task);

@@ -127,7 +127,7 @@ void k2_initial_user_task()
     exit();
 }
 
-#define NUM_REPEATS 50000
+#define NUM_REPEATS 10000
 
 int64_t get_num_bytes(char key)
 {

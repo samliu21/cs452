@@ -7,13 +7,28 @@ OBJCOPY:=$(XBINDIR)/$(TRIPLE)-objcopy
 OBJDUMP:=$(XBINDIR)/$(TRIPLE)-objdump
 INC:=-Iinclude -Itest
 
+MMU?=on
+OPT?=on
+
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable
 CFLAGS:=-g -pipe -static -mstrict-align -ffreestanding -mgeneral-regs-only \
 	-mcpu=$(ARCH) -march=armv8-a $(WARNINGS) $(INC)
-CFLAGS += -O3
-CFLAGS += -DNOICACHE
-CFLAGS += -DNODCACHE
+
+ifeq ($(MMU),on)
+MMUFLAGS:=-DMMU
+else
+MMUFLAGS:=-mstrict-align -mgeneral-regs-only
+endif
+ifeq ($(OPT),on)
+OPTFLAGS=-O3
+endif
+
+CFLAGS:=-g -pipe -static -mstrict-align -ffreestanding -mgeneral-regs-only \
+	-mcpu=$(ARCH) -march=armv8-a $(WARNINGS) $(INC) $(MMUFLAGS) $(OPTFLAGS)
+
+# CFLAGS += -DNOICACHE
+# CFLAGS += -DNODCACHE
 
 # -Wl,option tells g++ to pass 'option' to the linker with commas replaced by spaces
 # doing this rather than calling the linker directly simplifies the compilation procedure
@@ -40,7 +55,9 @@ bin:
 
 build/kernel.elf: $(OBJECTS) linker.ld | build
 	$(CC) $(CFLAGS) $(filter-out %.ld, $^) -o $@ $(LDFLAGS)
+ifneq ($(MMU),on)
 	@$(OBJDUMP) -d $@ | grep -Fq q0 && printf "\n***** WARNING: SIMD DETECTED! *****\n\n" || true
+endif
 
 build/%.o: src/%.c Makefile | build
 	$(CC) $(CFLAGS) -MMD -MP -c $< -o $@

@@ -62,7 +62,7 @@ int _test_message()
 
     task_t tasks[MESSAGE_TEST_NUM_TASKS];
     allocator_t allocator = allocator_new(tasks, MESSAGE_TEST_NUM_TASKS);
-    char stack[MESSAGE_TEST_NUM_TASKS * TEST_STACK_SIZE];
+    char* stack = USER_STACK_START;
     uint64_t n_tasks = 1;
     task_t* sender = allocator_new_task(&allocator, stack, n_tasks++, 1, &senderfunc, &kernel_task);
     task_t* receiver = allocator_new_task(&allocator, stack, n_tasks++, 1, &receiverfunc, &kernel_task);

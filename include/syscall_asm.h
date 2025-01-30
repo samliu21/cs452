@@ -15,6 +15,8 @@
 #define SYSCALL_RECEIVE 6
 #define SYSCALL_REPLY 7
 
+#define USER_STACK_START (char*)0xFF00000
+
 // syscall asm functions
 extern int64_t create(uint64_t priority, func_t entry_point);
 extern uint64_t my_tid();
