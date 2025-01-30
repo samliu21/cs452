@@ -35,7 +35,7 @@ int kmain()
     char* stack = USER_STACK_START;
     // create initial task
     uint64_t n_tasks = 1;
-    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_perf_initial_task, &kernel_task);
+    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_initial_user_task, &kernel_task);
 
     // create PQ with initial task in it
     priority_queue_t scheduler = pq_new();
