@@ -5,9 +5,13 @@
 
 void k3_initial_user_task()
 {
-    timer_set_delay(2000);
+    uart_puts(CONSOLE, "k3_initial_user_task\n");
 
-    for (;;) { }
+    timer_set_delay(20);
+
+    for (;;) {
+        // uart_puts(CONSOLE, "in loop\r\n");
+    }
 }
 
 #endif

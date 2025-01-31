@@ -62,6 +62,9 @@ int kmain()
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
 
+    uint64_t out = debug_register();
+    uart_printf(CONSOLE, "Debug register: %u\n", out & (1 << 6));
+
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");

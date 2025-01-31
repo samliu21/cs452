@@ -6,7 +6,7 @@
 #define GICC_BASE (const char*)(GIC_BASE + 0x2000)
 
 #define GICC_IAR (const char*)(GICC_BASE + 0x00c)
-#define GICD_ITARGETS (const char*)(GICD_BASE + 0x820)
+#define GICD_ITARGETS (const char*)(GICD_BASE + 0x800)
 #define GICD_ISENABLE (const char*)(GICD_BASE + 0x100)
 
 #define INTERRUPT_ID_MASK 0x3ff

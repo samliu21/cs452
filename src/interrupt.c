@@ -12,10 +12,17 @@ void interrupt_handler()
 
 void init_interrupts()
 {
+    *(volatile uint32_t*)GICD_BASE = 3;
+    *(volatile uint32_t*)GICC_BASE = 3;
+    uint32_t rg = *(volatile uint32_t*)GICD_BASE;
+    uart_printf(CONSOLE, "GICD_BASE: %u\n", rg);
+
+    uart_puts(CONSOLE, "initializing interrupts\n");
+
     // route interrupt to cpu0
-	*(volatile char*)(GICD_ITARGETS + 97) = 1;
+    *(volatile uint32_t*)(GICD_ITARGETS + 96) |= 1 << 8;
 
     // enable interrupt 97
-	// 97/8 = 12R1
-    *(volatile char*)(GICD_ISENABLE + 12) = 2;
+    // 97/8 = 12R1
+    *(volatile uint32_t*)(GICD_ISENABLE + 12) |= 2;
 }

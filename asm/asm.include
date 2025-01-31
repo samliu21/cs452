@@ -82,6 +82,6 @@ debug_dump_registers:
     ret
 
 debug_register:
-    mrs x0, sctlr_el1
+    mrs x0, daif
     ret
 	
