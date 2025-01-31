@@ -6,6 +6,9 @@
 		"compare": "c",
 		"syscall_asm.h": "c",
 		"typeinfo": "c",
-		"k2_user_tasks.h": "c"
+		"k2_user_tasks.h": "c",
+		"interrupt.h": "c",
+		"common.h": "c",
+		"k3_user_tasks.h": "c"
 	}
 }

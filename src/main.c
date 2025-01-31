@@ -1,8 +1,10 @@
 #include "allocator.h"
 #include "common.h"
 #include "exception.h"
+#include "interrupt.h"
 #include "k2_perf_test.h"
 #include "k2_user_tasks.h"
+#include "k3_user_tasks.h"
 #include "priority_queue.h"
 #include "rpi.h"
 #include "syscall_asm.h"
@@ -23,6 +25,7 @@ int kmain()
     uart_puts(CONSOLE, "\r\nconsole loaded!\r\n");
 
     // run tests and initialize exception vector
+    init_interrupts();
     init_vbar();
     tests();
 
@@ -39,7 +42,7 @@ int kmain()
 #ifdef PERFTEST
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_perf_initial_task, &kernel_task);
 #else
-    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_initial_user_task, &kernel_task);
+    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k3_initial_user_task, &kernel_task);
 #endif
     // create PQ with initial task in it
     priority_queue_t scheduler = pq_new();
