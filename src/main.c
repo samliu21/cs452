@@ -54,7 +54,7 @@ int kmain()
     queue_t tasks_waiting_for_event = queue_new();
 
     // timer
-    uint32_t next_tick = timer_get_us() + 10000;
+    uint32_t next_tick = timer_get_us() + US_PER_TICK;
 
     // kernel context
     main_context_t context;

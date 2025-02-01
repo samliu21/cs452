@@ -1,6 +1,7 @@
 #ifndef _k3_user_tasks_
 #define _k3_user_tasks_
 
+#include "clock_server.h"
 #include "timer.h"
 
 void k3_clock_notifier()

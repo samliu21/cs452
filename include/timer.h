@@ -10,8 +10,11 @@
 
 #define EVENT_TICK 0
 
+#define US_PER_TICK 10000
+
 uint32_t timer_get_us();
 uint32_t timer_get_ms();
+uint32_t timer_get_ticks();
 void timer_notify_at(uint32_t ms);
 
 #endif
