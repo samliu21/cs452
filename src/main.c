@@ -116,28 +116,7 @@ int kmain()
             break;
         }
         case INTERRUPT_CODE: {
-            uint64_t iar = *(volatile uint32_t*)GICC_IAR;
-
-            uint64_t interrupt_id = iar & INTERRUPT_ID_MASK;
-            switch (interrupt_id) {
-            case INTERRUPT_ID_TIMER: {
-                while (!queue_empty(&tasks_waiting_for_event)) {
-                    task_t* task = queue_pop(&tasks_waiting_for_event);
-                    pq_add(&scheduler, task);
-                    task->state = READY;
-                }
-
-                uart_printf(CONSOLE, "Clock interrupt\r\n");
-                *(volatile uint32_t*)(BASE_SYSTEM_TIMER + CS_OFFSET) |= 2;
-                *(volatile uint32_t*)(BASE_SYSTEM_TIMER + C1_OFFSET) = 0;
-                break;
-            }
-            default: {
-                ASSERT(0, "unrecognized interrupt\r\n");
-                for (;;) { }
-            }
-            }
-            stop_interrupt(iar);
+            handle_interrupt(&context);
             break;
         }
         default: {
