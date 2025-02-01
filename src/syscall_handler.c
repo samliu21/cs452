@@ -118,7 +118,9 @@ void await_event_handler(main_context_t* context)
     switch (event_type) {
     case EVENT_TICK: {
         timer_notify_at(context->next_tick);
-        context->next_tick += 2000000;
+        context->next_tick += 5000000;
+        uart_printf(CONSOLE, "Current time %u", timer_get_us());
+        uart_printf(CONSOLE, "Interrupt at %u", context->next_tick);
         context->active_task->state = EVENTWAIT;
         queue_add(context->tasks_waiting_for_event, context->active_task);
         break;

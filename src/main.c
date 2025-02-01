@@ -128,8 +128,8 @@ int kmain()
                 }
 
                 uart_printf(CONSOLE, "Clock interrupt\r\n");
-                *(BASE_SYSTEM_TIMER + CS_OFFSET) &= ~2;
-                *(BASE_SYSTEM_TIMER + C1_OFFSET) = 0;
+                *(volatile uint32_t*)(BASE_SYSTEM_TIMER + CS_OFFSET) |= 2;
+                *(volatile uint32_t*)(BASE_SYSTEM_TIMER + C1_OFFSET) = 0;
                 break;
             }
             default: {

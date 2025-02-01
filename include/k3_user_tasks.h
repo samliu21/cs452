@@ -21,7 +21,6 @@ void k3_idle_task()
     uart_puts(CONSOLE, "idle task begin\r\n");
 
     for (;;) {
-        uart_puts(CONSOLE, "idling\r\n");
     }
 }
 
