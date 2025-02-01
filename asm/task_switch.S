@@ -1,6 +1,7 @@
 #include "asm.include"
 .global enter_task
-.global restore_kernel
+.global syscall_handler
+.global interrupt_handler
 
 enter_task:
 	// store user task, kernel task on kernel stack
@@ -58,9 +59,10 @@ enter_task:
 
     eret
 
-restore_kernel:
+.macro restore_kernel
 	// store the current user x1 register
     str x1, [sp, #-8]!
+    // load the user's task descriptor
     ldr x1, [sp, #8]
 
     // save user registers (except x1)
@@ -113,7 +115,19 @@ restore_kernel:
     ldp x25, x26, [x0], #16
     ldp x27, x28, [x0], #16
     ldp x29, x30, [x0], #16
+.endm
 
-	// we return ESR to kernel so it can get syscall number
+
+syscall_handler:
+    restore_kernel
     mrs x0, esr_el1
     ret
+
+interrupt_handler:
+    restore_kernel
+    mov x0, #100
+    // ldr x0, [x0]
+    ret
+
+//iar_address:
+  //  .word 0xff840000

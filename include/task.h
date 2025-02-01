@@ -10,6 +10,7 @@ typedef enum
     SENDWAIT,
     RECEIVEWAIT,
     REPLYWAIT,
+    EVENTWAIT,
 } state_t;
 
 typedef struct task_t {
@@ -25,6 +26,7 @@ typedef struct task_t {
     struct task_t* next_slab;
     queue_t senders_queue;
     state_t state;
+    uint64_t delay_until;
 } task_t;
 
 extern uint64_t enter_task(task_t* kernel_task, task_t* task);

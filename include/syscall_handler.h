@@ -14,7 +14,9 @@ typedef struct main_context_t {
     priority_queue_t* scheduler;
     queue_t* tasks_waiting_for_send;
     queue_t* tasks_waiting_for_reply;
+    queue_t* tasks_waiting_for_event;
     task_t* active_task;
+    uint32_t next_tick;
 } main_context_t;
 
 void create_handler(main_context_t* context);
@@ -24,5 +26,6 @@ void exit_handler(main_context_t* context);
 void send_handler(main_context_t* context);
 void receive_handler(main_context_t* context);
 void reply_handler(main_context_t* context);
+void await_event_handler(main_context_t* context);
 
 #endif

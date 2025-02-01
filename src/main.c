@@ -51,6 +51,10 @@ int kmain()
     // blocked queues
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
+    queue_t tasks_waiting_for_event = queue_new();
+
+    // timer
+    uint32_t next_tick = timer_get_us() + 10000;
 
     // kernel context
     main_context_t context;
@@ -61,6 +65,8 @@ int kmain()
     context.scheduler = &scheduler;
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
+    context.tasks_waiting_for_event = &tasks_waiting_for_event;
+    context.next_tick = next_tick;
 
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
@@ -69,6 +75,7 @@ int kmain()
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 
         uint64_t syndrome = esr & 0xFFFF;
+        uart_printf(CONSOLE, "syndrome: %u\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
@@ -100,6 +107,33 @@ int kmain()
         }
         case SYSCALL_REPLY: {
             reply_handler(&context);
+            break;
+        }
+        case SYSCALL_AWAIT_EVENT: {
+            await_event_handler(&context);
+            break;
+        }
+        case INTERRUPT_CODE: {
+            uint64_t iar = *(volatile uint32_t*)GICC_IAR;
+            uint64_t interrupt_id = iar & INTERRUPT_ID_MASK;
+            switch (interrupt_id) {
+            case INTERRUPT_ID_TIMER: {
+                while (!queue_empty(&tasks_waiting_for_event)) {
+                    task_t* task = queue_pop(&tasks_waiting_for_event);
+                    pq_add(&scheduler, task);
+                    task->state = READY;
+                }
+
+                uart_printf(CONSOLE, "Clock interrupt\r\n");
+                break;
+            }
+            default: {
+                ASSERT(0, "unrecognized interrupt\r\n");
+                for (;;) { }
+            }
+            }
+
+            stop_interrupt(interrupt_id);
             break;
         }
         default: {

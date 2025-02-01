@@ -1,18 +1,24 @@
 #ifndef _interrupt_h_
 #define _interrupt_h_
 
-#define GIC_BASE (const char*)0xff840000
-#define GICD_BASE (const char*)(GIC_BASE + 0x1000)
-#define GICC_BASE (const char*)(GIC_BASE + 0x2000)
+#include "common.h"
 
-#define GICC_IAR (const char*)(GICC_BASE + 0x00c)
-#define GICD_ITARGETS (const char*)(GICD_BASE + 0x820)
-#define GICD_ISENABLE (const char*)(GICD_BASE + 0x100)
+#define GIC_BASE (char*)0xff840000
+#define GICD_BASE (char*)(GIC_BASE + 0x1000)
+#define GICC_BASE (char*)(GIC_BASE + 0x2000)
+
+#define GICC_EOIR (char*)(GICC_BASE + 0x10)
+#define GICC_IAR (char*)(GICC_BASE + 0xc)
+#define GICD_ITARGETS (char*)(GICD_BASE + 0x800)
+#define GICD_ISENABLE (char*)(GICD_BASE + 0x100)
 
 #define INTERRUPT_ID_MASK 0x3ff
 
-void interrupt_handler();
+#define INTERRUPT_ID_TIMER 97
+// void interrupt_handler();
 
 void init_interrupts();
+
+void stop_interrupt(uint64_t interrupt_id);
 
 #endif

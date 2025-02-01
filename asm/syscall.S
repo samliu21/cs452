@@ -6,6 +6,7 @@
 .global send
 .global receive
 .global reply
+.global await_event
 
 create:
 	svc #0
@@ -33,5 +34,9 @@ receive:
 
 reply:
     svc #7
+    ret
+
+await_event:
+    svc #8
     ret
 	

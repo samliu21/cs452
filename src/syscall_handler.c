@@ -1,5 +1,6 @@
 #include "syscall_handler.h"
 #include "rpi.h"
+#include "timer.h"
 #include <stdlib.h>
 
 void send_receive(task_t* sender, task_t* receiver)
@@ -109,4 +110,20 @@ void reply_handler(main_context_t* context)
     queue_delete(context->tasks_waiting_for_reply, sender);
     pq_add(context->scheduler, sender);
     sender->state = READY;
+}
+
+void await_event_handler(main_context_t* context)
+{
+    uint64_t event_type = context->active_task->registers[0];
+    switch (event_type) {
+    case EVENT_TICK: {
+        timer_notify_at(context->next_tick);
+        context->next_tick += 10000;
+        context->active_task->state = EVENTWAIT;
+        queue_add(context->tasks_waiting_for_event, context->active_task);
+        break;
+    }
+    default:
+        context->active_task->registers[0] = -1;
+    }
 }

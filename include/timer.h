@@ -7,8 +7,10 @@
 #define CLO_OFFSET 0x04
 #define C1_OFFSET 0x10
 
+#define EVENT_TICK 0
+
 uint32_t timer_get_us();
 uint32_t timer_get_ms();
-void timer_set_delay(uint64_t ms);
+void timer_notify_at(uint32_t ms);
 
 #endif

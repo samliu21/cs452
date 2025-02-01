@@ -10,7 +10,6 @@ uint32_t timer_get_ms()
     return timer_get_us() / 1000;
 }
 
-void timer_set_delay(uint64_t ms) {
-	uint64_t end_time = timer_get_us() + 1000 * ms;
-	*(volatile uint32_t*)(BASE_SYSTEM_TIMER + C1_OFFSET) = end_time;
+void timer_notify_at(uint32_t ms) {
+	*(volatile uint32_t*)(BASE_SYSTEM_TIMER + C1_OFFSET) = ms;
 }
