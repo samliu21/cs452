@@ -7,6 +7,7 @@
 #include "priority_queue_test.h"
 #include "queue_test.h"
 #include "stringmap_test.h"
+#include "uintmap_test.h"
 #include "syscall_test.h"
 
 void tests()
@@ -16,6 +17,7 @@ void tests()
     run_pq_tests();
     run_queue_tests();
     run_stringmap_tests();
+    run_uintmap_tests();
     run_context_switch_tests();
     run_syscall_tests();
     run_message_tests();
