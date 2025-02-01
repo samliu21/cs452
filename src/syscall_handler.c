@@ -1,6 +1,7 @@
 #include "syscall_handler.h"
 #include "rpi.h"
 #include "timer.h"
+#include "uintmap.h"
 #include <stdlib.h>
 
 void send_receive(task_t* sender, task_t* receiver)
@@ -118,9 +119,7 @@ void await_event_handler(main_context_t* context)
     switch (event_type) {
     case EVENT_TICK: {
         timer_notify_at(context->next_tick);
-        context->next_tick += 5000000;
-        uart_printf(CONSOLE, "Current time %u", timer_get_us());
-        uart_printf(CONSOLE, "Interrupt at %u", context->next_tick);
+        context->next_tick += US_PER_TICK;
         context->active_task->state = EVENTWAIT;
         queue_add(context->tasks_waiting_for_event, context->active_task);
         break;
@@ -128,4 +127,16 @@ void await_event_handler(main_context_t* context)
     default:
         context->active_task->registers[0] = -1;
     }
+}
+
+void my_cpu_usage_handler(main_context_t* context)
+{
+    uint64_t total_usage = 0;
+    uintmap_t* map = context->performance_map;
+    for (int i = 0; i < map->num_keys; ++i) {
+        total_usage += map->values[i];
+    }
+    uint64_t my_usage = uintmap_get(map, context->active_task->tid);
+    uint64_t percentage = my_usage * 100 / total_usage;
+    context->active_task->registers[0] = percentage;
 }

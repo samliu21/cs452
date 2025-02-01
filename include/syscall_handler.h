@@ -5,6 +5,7 @@
 #include "priority_queue.h"
 #include "queue.h"
 #include "task.h"
+#include "uintmap.h"
 
 typedef struct main_context_t {
     task_t* kernel_task;
@@ -17,6 +18,7 @@ typedef struct main_context_t {
     queue_t* tasks_waiting_for_event;
     task_t* active_task;
     uint32_t next_tick;
+    uintmap_t* performance_map;
 } main_context_t;
 
 void create_handler(main_context_t* context);
@@ -27,5 +29,6 @@ void send_handler(main_context_t* context);
 void receive_handler(main_context_t* context);
 void reply_handler(main_context_t* context);
 void await_event_handler(main_context_t* context);
+void my_cpu_usage_handler(main_context_t* context);
 
 #endif

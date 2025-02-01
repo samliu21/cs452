@@ -43,8 +43,22 @@ void uintmap_remove(uintmap_t* map, uint64_t key)
     int key_index = _uintmap_key_index(map, key);
     ASSERT(key_index != -1, "key not found");
     map->num_keys--;
-    if (key_index < map->num_keys){
+    if (key_index < map->num_keys) {
         map->keys[key_index] = map->keys[map->num_keys];
         map->values[key_index] = map->values[map->num_keys];
     }
+}
+
+int uintmap_contains(uintmap_t* map, uint64_t key)
+{
+    return _uintmap_key_index(map, key) >= 0;
+}
+
+void uintmap_increment(uintmap_t* map, uint64_t key, uint64_t value)
+{
+    uint64_t cur = 0;
+    if (uintmap_contains(map, key)) {
+        cur = uintmap_get(map, key);
+    }
+    uintmap_set(map, key, cur + value);
 }

@@ -16,11 +16,6 @@ typedef enum {
     TICK = 'K',
 } clock_server_request_t;
 
-typedef enum {
-    OK = 'O',
-    NEGATIVE = 'N',
-} clock_server_response_t;
-
 int64_t time(uint64_t tid)
 {
     uint64_t clock_server_tid = who_is("clock_server");
@@ -110,13 +105,16 @@ void k3_clock_server()
         switch (argv[0][0]) {
         case TIME: {
             ASSERT(argc == 1, "time expects 1 argument");
-            uint32_t ticks_passed = timer_get_ticks() - cur_ticks;
-            reply_num(caller_tid, ticks_passed);
+            reply_num(caller_tid, cur_ticks);
             break;
         }
         case DELAY: {
             ASSERT(argc == 2, "delay expects 2 arguments");
-            uint32_t delay_until = a2ui(argv[1], 10);
+            uint32_t delay_until = cur_ticks + a2ui(argv[1], 10);
+            if (cur_ticks == delay_until) {
+                reply_num(caller_tid, cur_ticks);
+                break;
+            }
             uintmap_set(&waiting_tasks, caller_tid, delay_until);
             break;
         }
@@ -126,20 +124,26 @@ void k3_clock_server()
             if (delay_until < cur_ticks) {
                 reply_empty(caller_tid);
                 break;
+            } else if (cur_ticks == delay_until) {
+                reply_num(caller_tid, cur_ticks);
+                break;
             }
             uintmap_set(&waiting_tasks, caller_tid, delay_until);
             break;
         }
         case TICK: {
+            ASSERT(caller_tid == 4, "tick not called by clock notifier");
             cur_ticks++;
+            //uart_printf(CONSOLE, "tick %u\r\n", cur_ticks);
             for (int i = 0; i < waiting_tasks.num_keys; ++i) {
                 uint64_t tid = waiting_tasks.keys[i];
                 uint64_t delay_until = waiting_tasks.values[i];
-                if (delay_until <= cur_ticks) { // <= handles the case of delay(0)
+                if (delay_until == cur_ticks) {
                     reply_num(tid, delay_until);
                     uintmap_remove(&waiting_tasks, tid);
                 }
             }
+            reply_empty(caller_tid);
         }
         }
     }

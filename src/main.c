@@ -56,6 +56,10 @@ int kmain()
     // timer
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
 
+    // performance metrics
+    uintmap_t performance_map = uintmap_new();
+    uint64_t kernel_time_start = timer_get_us(), kernel_time_duration, kernel_time_end, user_time_duration;
+
     // kernel context
     main_context_t context;
     context.kernel_task = &kernel_task;
@@ -67,17 +71,23 @@ int kmain()
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
     context.tasks_waiting_for_event = &tasks_waiting_for_event;
     context.next_tick = next_tick;
+    context.performance_map = &performance_map;
 
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
 
-        uart_printf(CONSOLE, "task: %u\r\n", context.active_task->tid);
+        kernel_time_end = timer_get_us();
+        kernel_time_duration = kernel_time_end - kernel_time_start;
+        uintmap_increment(&performance_map, kernel_task.tid, kernel_time_duration);
 
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 
+        kernel_time_start = timer_get_us();
+        user_time_duration = kernel_time_start - kernel_time_end;
+        uintmap_increment(&performance_map, context.active_task->tid, user_time_duration);
+
         uint64_t syndrome = esr & 0xFFFF;
-        uart_printf(CONSOLE, "syndrome: %u\r\n", syndrome);
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
@@ -113,6 +123,10 @@ int kmain()
         }
         case SYSCALL_AWAIT_EVENT: {
             await_event_handler(&context);
+            break;
+        }
+        case SYSCALL_MYCPUUSAGE: {
+            my_cpu_usage_handler(&context);
             break;
         }
         case INTERRUPT_CODE: {

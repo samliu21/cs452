@@ -32,7 +32,6 @@ void handle_interrupt(main_context_t* context)
             task->state = READY;
         }
 
-        uart_printf(CONSOLE, "Clock interrupt\r\n");
         *(volatile uint32_t*)(BASE_SYSTEM_TIMER + CS_OFFSET) |= 2;
         *(volatile uint32_t*)(BASE_SYSTEM_TIMER + C1_OFFSET) = 0;
         break;
