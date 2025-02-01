@@ -3,7 +3,8 @@
 
 #include "common.h"
 
-#define BASE_SYSTEM_TIMER (const char*)0xfe003000
+#define BASE_SYSTEM_TIMER (char*)0xfe003000
+#define CS_OFFSET 0x00
 #define CLO_OFFSET 0x04
 #define C1_OFFSET 0x10
 

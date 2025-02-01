@@ -20,17 +20,18 @@ vbar:
     .balign 0x80
     b dummy_handler
     .balign 0x80
-    b dummy_handler
+    b dummy_handler2
     .balign 0x80
-    b dummy_handler
+    b dummy_handler3
     .balign 0x80 // lower EL (64-bit)
     b syscall_handler
     .balign 0x80
     b interrupt_handler
     .balign 0x80
-    b dummy_handler
+    b dummy_handler2
     .balign 0x80
-    b dummy_handler
+    mrs x0, esr_el1
+    b dummy_handler3
     .balign 0x80 // lower EL (32-bit)
     b dummy_handler
     .balign 0x80

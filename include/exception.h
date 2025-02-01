@@ -7,6 +7,6 @@ extern void init_vbar();
 
 // exception vector handlers
 void dummy_handler();
-void synchronous_kerenl_error(uint64_t esr);
+void synchronous_kernel_error(uint64_t esr);
 
 #endif /* exception.h */
