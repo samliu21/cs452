@@ -35,6 +35,7 @@ int kmain()
 
     // clear screen
     terminal_clear();
+    uart_puts(CONSOLE, "\r\n\r\n");
 
     // create kernel task
     task_t kernel_task;

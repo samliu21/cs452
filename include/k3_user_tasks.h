@@ -3,26 +3,8 @@
 
 #include "clock_notifier.h"
 #include "clock_server.h"
+#include "terminal.h"
 #include "timer.h"
-
-// void k3_user_task()
-// {
-//     uint64_t clock_server_tid = who_is("clock_server");
-//     uint64_t curr_time = time(clock_server_tid);
-//     uart_printf(CONSOLE, "time: %u\r\n", curr_time);
-
-//     delay(clock_server_tid, 10);
-
-//     curr_time = time(clock_server_tid);
-//     uart_printf(CONSOLE, "time: %u\r\n", curr_time);
-
-//     delay_until(clock_server_tid, 15);
-
-//     curr_time = time(clock_server_tid);
-//     uart_printf(CONSOLE, "time: %u\r\n", curr_time);
-
-//     exit();
-// }
 
 void k3_client_task()
 {
@@ -47,12 +29,19 @@ void k3_idle_task()
 {
     uart_puts(CONSOLE, "idle task begin\r\n");
     int iterations_per_print = 100;
+    uint64_t last_usage = 0;
     for (int i = 0;; ++i) {
         if (i % iterations_per_print == 0) {
             uint64_t usage = my_cpu_usage();
-            uart_printf(CONSOLE, "\r\n", usage);
-            uart_printf(CONSOLE, "Idle percentage: %u\r\n", usage);
-            uart_printf(CONSOLE, "Idle percentage: %u\r\n", usage);
+            if (usage != last_usage) {
+                last_usage = usage;
+
+                terminal_save_cursor();
+                terminal_set_cursor(0, 0);
+                terminal_clear_line();
+                uart_printf(CONSOLE, "idle percentage: %u\r\n", usage);
+                terminal_restore_cursor();
+            }
         }
     }
 }
