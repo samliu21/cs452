@@ -10,6 +10,7 @@
 #include "syscall_asm.h"
 #include "syscall_handler.h"
 #include "task.h"
+#include "terminal.h"
 #include "test.h"
 
 extern void setup_mmu();
@@ -27,7 +28,13 @@ int kmain()
     // run tests and initialize exception vector
     init_interrupts();
     init_vbar();
-    tests();
+    int failed = tests();
+    if (failed) {
+        for (;;) { }
+    }
+
+    // clear screen
+    terminal_clear();
 
     // create kernel task
     task_t kernel_task;

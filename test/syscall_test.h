@@ -82,9 +82,10 @@ int _test_syscall()
     return 1;
 }
 
-void run_syscall_tests()
+int run_syscall_tests()
 {
     TEST_RUN(_test_syscall);
+	return 1;
 }
 
 #endif /* syscall_test.h */

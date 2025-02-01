@@ -30,7 +30,8 @@ int _test_allocator()
     return 1;
 }
 
-void run_allocator_tests()
+int run_allocator_tests()
 {
     TEST_RUN(_test_allocator);
+	return 1;
 }

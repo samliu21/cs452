@@ -18,6 +18,7 @@
 #define TEST_RUN(x)                                    \
     if (!x()) {                                        \
         uart_puts(CONSOLE, "test failed: " #x "\r\n"); \
+        return 0;                                      \
     }
 
 #endif

@@ -35,9 +35,10 @@ int _test_stringmap()
     return 1;
 }
 
-void run_stringmap_tests()
+int run_stringmap_tests()
 {
     TEST_RUN(_test_stringmap);
+	return 1;
 }
 
 #endif

@@ -69,11 +69,12 @@ int _test_queue_delete()
     return 1;
 }
 
-void run_queue_tests()
+int run_queue_tests()
 {
     // TODO: make these tests WAY more comprehensive
     TEST_RUN(_test_queue);
     TEST_RUN(_test_queue_delete);
+	return 1;
 }
 
 #endif

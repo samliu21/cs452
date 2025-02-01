@@ -50,9 +50,10 @@ int _test_context_switch()
     return 1;
 }
 
-void run_context_switch_tests()
+int run_context_switch_tests()
 {
     TEST_RUN(_test_context_switch);
+	return 1;
 }
 
 #endif

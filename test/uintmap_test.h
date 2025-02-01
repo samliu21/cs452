@@ -1,8 +1,8 @@
 #ifndef _uintmap_test_h_
 #define _uintmap_test_h_
 
-#include "uintmap.h"
 #include "testutils.h"
+#include "uintmap.h"
 
 int _test_uintmap()
 {
@@ -35,9 +35,10 @@ int _test_uintmap()
     return 1;
 }
 
-void run_uintmap_tests()
+int run_uintmap_tests()
 {
     TEST_RUN(_test_uintmap);
+    return 1;
 }
 
 #endif

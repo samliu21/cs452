@@ -158,9 +158,10 @@ int _test_message()
     return 1;
 }
 
-void run_message_tests()
+int run_message_tests()
 {
     TEST_RUN(_test_message);
+	return 1;
 }
 
 #endif
