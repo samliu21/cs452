@@ -12,8 +12,8 @@ void init_interrupts()
     *(GICD_ISENABLE + 12) = 2;
 }
 
-void stop_interrupt(uint64_t interrupt_id)
+void stop_interrupt(uint64_t iar)
 {
 
-    *(GICC_EOIR) = interrupt_id;
+    *(volatile uint32_t*)GICC_EOIR = iar;
 }

@@ -72,6 +72,8 @@ int kmain()
         context.active_task = pq_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
 
+        uart_printf(CONSOLE, "task: %u\r\n", context.active_task->tid);
+
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 
         uint64_t syndrome = esr & 0xFFFF;
@@ -115,9 +117,9 @@ int kmain()
         }
         case INTERRUPT_CODE: {
             uint64_t iar = *(volatile uint32_t*)GICC_IAR;
+
             uint64_t interrupt_id = iar & INTERRUPT_ID_MASK;
             switch (interrupt_id) {
-            
             case INTERRUPT_ID_TIMER: {
                 while (!queue_empty(&tasks_waiting_for_event)) {
                     task_t* task = queue_pop(&tasks_waiting_for_event);
@@ -135,8 +137,7 @@ int kmain()
                 for (;;) { }
             }
             }
-
-            stop_interrupt(interrupt_id);
+            stop_interrupt(iar);
             break;
         }
         default: {

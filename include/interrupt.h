@@ -19,6 +19,6 @@
 
 void init_interrupts();
 
-void stop_interrupt(uint64_t interrupt_id);
+void stop_interrupt(uint64_t iar);
 
 #endif

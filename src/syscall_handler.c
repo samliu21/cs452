@@ -118,7 +118,7 @@ void await_event_handler(main_context_t* context)
     switch (event_type) {
     case EVENT_TICK: {
         timer_notify_at(context->next_tick);
-        context->next_tick += 10000;
+        context->next_tick += 2000000;
         context->active_task->state = EVENTWAIT;
         queue_add(context->tasks_waiting_for_event, context->active_task);
         break;

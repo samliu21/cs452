@@ -20,7 +20,9 @@ void k3_idle_task()
 {
     uart_puts(CONSOLE, "idle task begin\r\n");
 
-    for (;;) { }
+    for (;;) {
+        uart_puts(CONSOLE, "idling\r\n");
+    }
 }
 
 void k3_initial_user_task()
