@@ -12,6 +12,13 @@
 
 void init_interrupts()
 {
+    *(volatile uint32_t*)GICD_BASE = 3;
+    *(volatile uint32_t*)GICC_BASE = 3;
+    uint32_t rg = *(volatile uint32_t*)GICD_BASE;
+    uart_printf(CONSOLE, "GICD_BASE: %u\n", rg);
+
+    uart_puts(CONSOLE, "initializing interrupts\n");
+
     // route interrupt to cpu0
     *(GICD_ITARGETS + 97) = 1;
 
