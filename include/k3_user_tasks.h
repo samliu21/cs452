@@ -30,6 +30,7 @@ void k3_idle_task()
     uart_puts(CONSOLE, "idle task begin\r\n");
     int iterations_per_print = 100;
     uint64_t last_usage = 0;
+    // TODO: use wfi
     for (int i = 0;; ++i) {
         if (i % iterations_per_print == 0) {
             uint64_t usage = my_cpu_usage();
