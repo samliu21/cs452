@@ -129,14 +129,23 @@ void await_event_handler(main_context_t* context)
     }
 }
 
-void my_cpu_usage_handler(main_context_t* context)
+void cpu_usage_handler(main_context_t* context)
 {
     uint64_t total_usage = 0;
     uintmap_t* map = context->performance_map;
     for (int i = 0; i < map->num_keys; ++i) {
         total_usage += map->values[i];
     }
-    uint64_t my_usage = uintmap_get(map, context->active_task->tid);
-    uint64_t percentage = my_usage * 100 / total_usage;
-    context->active_task->registers[0] = percentage;
+    uint64_t kernel_usage = uintmap_get(map, context->kernel_task->tid);
+
+    task_t* idle_task = context->allocator->alloc_list;
+    while (idle_task != NULL && idle_task->priority != 0) {
+        idle_task = idle_task->next_slab;
+    }
+    ASSERT(idle_task != NULL && idle_task->priority == 0, "idle task not found");
+    uint64_t idle_usage = uintmap_get(map, idle_task->tid);
+
+    uint64_t kernel_percentage = kernel_usage * 100 / total_usage;
+    uint64_t idle_percentage = idle_usage * 100 / total_usage;
+    context->active_task->registers[0] = kernel_percentage + 100 * idle_percentage;
 }

@@ -10,10 +10,11 @@
 #include "syscall_asm.h"
 #include "syscall_handler.h"
 #include "task.h"
-#include "terminal.h"
 #include "test.h"
 
 extern void setup_mmu();
+
+#define PRINT_PERF_AFTER_MS 50
 
 int kmain()
 {
@@ -34,8 +35,7 @@ int kmain()
     }
 
     // clear screen
-    terminal_clear();
-    uart_puts(CONSOLE, "\r\n\r\n");
+    uart_puts(CONSOLE, "\033[2J\r\n\r\n");
 
     // create kernel task
     task_t kernel_task;
@@ -81,6 +81,9 @@ int kmain()
     context.next_tick = next_tick;
     context.performance_map = &performance_map;
 
+    uint64_t last_perf_print = timer_get_ms();
+    uint64_t idle_tid = 0;
+
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
@@ -94,6 +97,44 @@ int kmain()
         kernel_time_start = timer_get_us();
         user_time_duration = kernel_time_start - kernel_time_end;
         uintmap_increment(&performance_map, context.active_task->tid, user_time_duration);
+
+        int should_print_perf = timer_get_ms() - last_perf_print > PRINT_PERF_AFTER_MS;
+        if (should_print_perf) {
+            // get idle task's tid if we haven't set it yet
+            if (!idle_tid) {
+                task_t* idle_task = allocator.alloc_list;
+                while (idle_task != NULL && idle_task->priority != 0) {
+                    idle_task = idle_task->next_slab;
+                }
+                if (idle_task) {
+                    idle_tid = idle_task->tid;
+                }
+            }
+
+            // get perf stats
+            uint64_t total_time = 0, kernel_time = 0, idle_time = 0, user_time = 0;
+            for (int i = 0; i < performance_map.num_keys; ++i) {
+                total_time += performance_map.values[i];
+                if (performance_map.keys[i] == idle_tid) {
+                    idle_time = performance_map.values[i];
+                } else if (performance_map.keys[i] == kernel_task.tid) {
+                    kernel_time = performance_map.values[i];
+                }
+            }
+
+            // convert to percentage
+            if (total_time > 0) {
+                kernel_time = kernel_time * 100 / total_time;
+                idle_time = idle_time * 100 / total_time;
+                user_time = 100 - kernel_time - idle_time;
+            }
+
+            // print
+            uart_printf(CONSOLE, "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u", kernel_time, idle_time, user_time);
+
+            // update last print time
+            last_perf_print = timer_get_ms();
+        }
 
         uint64_t syndrome = esr & 0xFFFF;
 
@@ -133,8 +174,8 @@ int kmain()
             await_event_handler(&context);
             break;
         }
-        case SYSCALL_MYCPUUSAGE: {
-            my_cpu_usage_handler(&context);
+        case SYSCALL_CPUUSAGE: {
+            cpu_usage_handler(&context);
             break;
         }
         case INTERRUPT_CODE: {

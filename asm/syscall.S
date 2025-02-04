@@ -7,7 +7,7 @@
 .global receive
 .global reply
 .global await_event
-.global my_cpu_usage
+.global cpu_usage
 
 create:
 	svc #0
@@ -40,7 +40,7 @@ reply:
 await_event:
     svc #8
     ret
-my_cpu_usage:
+cpu_usage:
     svc #9
     ret
 	

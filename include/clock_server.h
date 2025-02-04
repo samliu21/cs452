@@ -134,7 +134,7 @@ void k3_clock_server()
         case TICK: {
             ASSERT(caller_tid == 4, "tick not called by clock notifier");
             cur_ticks++;
-            //uart_printf(CONSOLE, "tick %u\r\n", cur_ticks);
+
             for (int i = 0; i < waiting_tasks.num_keys; ++i) {
                 uint64_t tid = waiting_tasks.keys[i];
                 uint64_t delay_until = waiting_tasks.values[i];

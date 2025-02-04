@@ -29,6 +29,6 @@ void send_handler(main_context_t* context);
 void receive_handler(main_context_t* context);
 void reply_handler(main_context_t* context);
 void await_event_handler(main_context_t* context);
-void my_cpu_usage_handler(main_context_t* context);
+void cpu_usage_handler(main_context_t* context);
 
 #endif

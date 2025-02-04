@@ -1,7 +1,8 @@
 #include "rpi.h"
+#include "common.h"
 #include "util.h"
 #include <stdarg.h>
-#include <stdint.h>
+// #include <stdint.h>
 
 static char* const MMIO_BASE = (char*)0xFE000000;
 
@@ -171,34 +172,61 @@ void uart_puts(size_t line, const char* buf)
 void va_uart_printf(size_t line, const char* fmt, va_list va)
 {
     char ch, buf[12];
+    int width = 0, pad_zero = 0;
 
     while ((ch = *(fmt++))) {
-        if (ch != '%')
+        if (ch != '%') {
             uart_putc(line, ch);
-        else {
+        } else {
+            // Reset width and padding flag
+            width = 0;
+            pad_zero = 0;
+
+            // Parse width specifier (e.g., %2u, %03d)
             ch = *(fmt++);
+            if (ch == '0') { // Zero-padding detected
+                pad_zero = 1;
+                ch = *(fmt++);
+            }
+            while (ch >= '0' && ch <= '9') { // Extract width
+                width = width * 10 + (ch - '0');
+                ch = *(fmt++);
+            }
+
             switch (ch) {
             case 'u':
                 ui2a(va_arg(va, unsigned int), 10, buf);
-                uart_puts(line, buf);
                 break;
             case 'd':
                 i2a(va_arg(va, int), buf);
-                uart_puts(line, buf);
                 break;
             case 'x':
                 ui2a(va_arg(va, unsigned int), 16, buf);
-                uart_puts(line, buf);
                 break;
             case 's':
                 uart_puts(line, va_arg(va, char*));
-                break;
+                continue;
             case '%':
-                uart_putc(line, ch);
-                break;
+                uart_putc(line, '%');
+                continue;
             case '\0':
-                return;
+                return; // End of format string
+            default:
+                uart_putc(line, ch);
+                continue;
             }
+
+            // Get length of formatted number
+            int len = strlen(buf);
+
+            // Handle padding (either '0' or ' ')
+            while (len < width) {
+                uart_putc(line, pad_zero ? '0' : ' ');
+                len++;
+            }
+
+            // Print formatted number
+            uart_puts(line, buf);
         }
     }
 }
