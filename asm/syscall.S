@@ -40,6 +40,7 @@ reply:
 await_event:
     svc #8
     ret
+	
 cpu_usage:
     svc #9
     ret

@@ -3,6 +3,7 @@ CS452 Kernel
 
 ## Make Instructions
 Navigate to the root directory and call `make`. The executable is called `kernel.img` and is located in the `bin` directory.
+
 ### Important Make Variables
 `PERFTEST`: Set this to `on` to run the performance test. Otherwise, runs the Rock-Paper-Scissors test.
 `OPT`: Whether compiler optimization is on. On by default.
