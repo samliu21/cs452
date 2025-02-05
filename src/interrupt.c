@@ -3,14 +3,20 @@
 #include "rpi.h"
 #include "timer.h"
 
+void set_route_to_core0(uint64_t interrupt_id)
+{
+    *(GICD_ITARGETS + interrupt_id) = 1;
+}
+
+void set_interrupt_enable(uint64_t interrupt_id)
+{
+    *(GICD_ISENABLE + (interrupt_id / 8)) = 1 << (interrupt_id % 8);
+}
+
 void init_interrupts()
 {
-    // route interrupt to cpu0
-    *(GICD_ITARGETS + 97) = 1;
-
-    // enable interrupt 97
-    // 97/8 = 12R1
-    *(GICD_ISENABLE + 12) = 2;
+    set_route_to_core0(INTERRUPT_ID_TIMER);
+    set_interrupt_enable(INTERRUPT_ID_TIMER);
 }
 
 void stop_interrupt(uint64_t iar)

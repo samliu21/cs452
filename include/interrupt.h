@@ -16,7 +16,6 @@
 #define INTERRUPT_ID_MASK 0x3ff
 
 #define INTERRUPT_ID_TIMER 97
-// void interrupt_handler();
 
 void init_interrupts();
 
