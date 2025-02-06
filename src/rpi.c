@@ -185,7 +185,12 @@ void uart_printf(size_t line, const char* fmt, ...)
 
 int uart_read_available(size_t line)
 {
-    return UART_REG(line, UART_FR) & ~UART_FR_RXFE;
+    return !(UART_REG(line, UART_FR) & UART_FR_RXFE);
+}
+
+int uart_write_available(size_t line)
+{
+    return !(UART_REG(line, UART_FR) & UART_FR_TXFF);
 }
 
 unsigned char uart_assert_getc(size_t line)
@@ -198,7 +203,7 @@ unsigned char uart_assert_getc(size_t line)
 
 void uart_assert_putc(size_t line, char c)
 {
-    ASSERT(!(UART_REG(line, UART_FR) & UART_FR_TXFF), "data line not ready for char");
+    ASSERT(uart_write_available(line), "data line not ready for char");
     UART_REG(line, UART_DR) = c;
 }
 

@@ -78,7 +78,7 @@ void handle_interrupt(main_context_t* context)
 
         uint32_t uart_status = UART_REG(CONSOLE, UART_MIS);
 
-        uart_printf(CONSOLE, "UART interrupt with status: %u\r\n", uart_status);
+        // uart_printf(CONSOLE, "UART interrupt with status: %u\r\n", uart_status);
         if ((uart_status & UART_MIS_RXMIS) || (uart_status & UART_MIS_RTIM)) {
             disable_uart_read_interrupts();
             uart_task->registers[0] = 0;

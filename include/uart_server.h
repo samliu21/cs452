@@ -9,8 +9,8 @@
 typedef enum {
     REQUEST_UART_READ = 'R',
     REQUEST_UART_WRITE = 'W',
-    REQUEST_READ_INTERRUPT = 'E',
-    REQUEST_WRITE_INTERRUPT = 'F',
+    REQUEST_READ_AVAILABLE = 'r',
+    REQUEST_WRITE_AVAILABLE = 'w',
 } uart_request_t;
 
 int getc(uint64_t tid, int channel)
@@ -31,45 +31,74 @@ int getc(uint64_t tid, int channel)
     return c;
 }
 
+int putc(uint64_t tid, int channel, char c)
+{
+    uint64_t uart_server_tid = who_is("uart_server");
+    if (tid != uart_server_tid) {
+        return -1;
+    }
+    char buf[2];
+    buf[0] = REQUEST_UART_WRITE;
+    buf[1] = c;
+    int64_t ret;
+    if (channel == CONSOLE) {
+        ret = send(uart_server_tid, buf, 2, NULL, 0);
+    } else {
+        ret = -1;
+    }
+    ASSERT(ret >= 0, "send failed");
+    return 0;
+}
+
 void k4_uart_server()
 {
     int64_t res = register_as("uart_server");
     ASSERT(res >= 0, "register_as failed");
 
-    char argv[4][32];
     char msg[32];
-
     charqueuenode readnodes[256], writenodes[256];
     charqueue readqueue = charqueue_new(readnodes, 256);
     charqueue writequeue = charqueue_new(writenodes, 256);
     uint64_t reader_tid = 0; // assume there is only one task that reads from console
+    uint64_t writer_tid = 0;
+    uint64_t caller_tid;
 
     for (;;) {
-        uint64_t caller_tid;
-        int64_t msglen = receive(&caller_tid, msg, 32);
-        msg[msglen] = 0;
-        int argc = split(msg, argv);
+        int64_t ret = receive(&caller_tid, msg, 32);
+        ASSERT(ret >= 0, "receive failed");
 
-        switch (argv[0][0]) {
+        switch (msg[0]) {
         case REQUEST_UART_READ: {
-            ASSERT(argc == 1, "uart_read expects no parameters");
-
-            // if we have a char in the buffer, return it immediately
             if (!charqueue_empty(&readqueue)) {
+                // if we have a char in the buffer, return it immediately
                 char c = charqueue_pop(&readqueue);
                 reply(caller_tid, &c, 1);
-                break;
+            } else {
+                // otherwise, enable read interrupts and wait for the interrupt
+                enable_uart_read_interrupts();
+                reader_tid = caller_tid;
             }
-            enable_uart_read_interrupts();
-            reader_tid = caller_tid;
             break;
         }
         case REQUEST_UART_WRITE: {
+            char c = msg[1];
+
+            if (uart_write_available(CONSOLE)) {
+                // if write channel is clear, write immediately
+                uart_assert_putc(CONSOLE, c);
+                reply_empty(caller_tid);
+            } else {
+                // otherwise, add to buffer and enable write interrupts
+                enable_uart_write_interrupts();
+                writer_tid = caller_tid;
+                charqueue_add(&writequeue, c);
+            }
+
             break;
         }
-        case REQUEST_READ_INTERRUPT: {
-            charqueue_add(&readqueue, uart_assert_getc(CONSOLE));
+        case REQUEST_READ_AVAILABLE: {
             ASSERT(reader_tid != 0, "reader_tid doesn't exist");
+            charqueue_add(&readqueue, uart_assert_getc(CONSOLE));
 
             // respond to reader
             char c = charqueue_pop(&readqueue);
@@ -78,14 +107,22 @@ void k4_uart_server()
             reader_tid = 0;
 
             // respond to notifier
-            reply_empty(caller_tid);
+            res = reply_empty(caller_tid);
+            ASSERT(res >= 0, "reply failed");
             break;
         }
-        case REQUEST_WRITE_INTERRUPT: {
+        case REQUEST_WRITE_AVAILABLE: {
+            ASSERT(writer_tid != 0, "writer_tid doesn't exist");
+
             // TODO: look into repeatedly writing to FIFO output buffer
             if (!charqueue_empty(&writequeue)) {
                 uart_assert_putc(CONSOLE, charqueue_pop(&writequeue));
             }
+
+            int64_t res = reply_empty(writer_tid);
+            ASSERT(res >= 0, "reply failed");
+            res = reply_empty(caller_tid);
+            ASSERT(res >= 0, "reply failed");
             break;
         }
         }

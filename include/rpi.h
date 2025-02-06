@@ -87,6 +87,7 @@ void uart_puts(size_t line, const char* buf);
 void uart_printf(size_t line, const char* fmt, ...);
 
 int uart_read_available(size_t line);
+int uart_write_available(size_t line);
 unsigned char uart_assert_getc(size_t line);
 void uart_assert_putc(size_t line, char c);
 

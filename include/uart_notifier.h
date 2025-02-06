@@ -13,7 +13,7 @@ void k4_uart_notifier()
 
     for (;;) {
         uint64_t is_write_event = await_event(EVENT_UART);
-        char c = is_write_event ? REQUEST_WRITE_INTERRUPT : REQUEST_READ_INTERRUPT;
+        char c = is_write_event ? REQUEST_WRITE_AVAILABLE : REQUEST_READ_AVAILABLE;
         send(uart_server_tid, &c, 1, NULL, 0);
     }
 }

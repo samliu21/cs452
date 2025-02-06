@@ -15,8 +15,7 @@ void k4_user_task()
 
     for (;;) {
         char c = getc(uart_server_tid, CONSOLE);
-        uart_putc(CONSOLE, c);
-        uart_puts(CONSOLE, "\r\n");
+        putc(uart_server_tid, CONSOLE, c);
     }
 
     exit();
