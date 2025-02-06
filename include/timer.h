@@ -8,8 +8,6 @@
 #define CLO_OFFSET 0x04
 #define C1_OFFSET 0x10
 
-#define EVENT_TICK 0
-
 #define US_PER_TICK 10000
 
 uint32_t timer_get_us();

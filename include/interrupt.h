@@ -16,6 +16,10 @@
 #define INTERRUPT_ID_MASK 0x3ff
 
 #define INTERRUPT_ID_TIMER 97
+#define INTERRUPT_ID_UART 153
+
+#define EVENT_TICK 0
+#define EVENT_UART 1
 
 void init_interrupts();
 

@@ -5,6 +5,7 @@
 #include "k2_perf_test.h"
 #include "k2_user_tasks.h"
 #include "k3_user_tasks.h"
+#include "k4_user_tasks.h"
 #include "priority_queue.h"
 #include "rpi.h"
 #include "syscall_asm.h"
@@ -50,7 +51,7 @@ int kmain()
 #ifdef PERFTEST
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_perf_initial_task, &kernel_task);
 #else
-    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k3_initial_user_task, &kernel_task);
+    task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k4_initial_user_task, &kernel_task);
 #endif
     // create PQ with initial task in it
     priority_queue_t scheduler = pq_new();
@@ -59,7 +60,8 @@ int kmain()
     // blocked queues
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
-    queue_t tasks_waiting_for_event = queue_new();
+    queue_t tasks_waiting_for_timer = queue_new();
+    queue_t tasks_waiting_for_uart = queue_new();
 
     // timer
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
@@ -77,7 +79,8 @@ int kmain()
     context.scheduler = &scheduler;
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
-    context.tasks_waiting_for_event = &tasks_waiting_for_event;
+    context.tasks_waiting_for_timer = &tasks_waiting_for_timer;
+    context.tasks_waiting_for_uart = &tasks_waiting_for_uart;
     context.next_tick = next_tick;
     context.performance_map = &performance_map;
 

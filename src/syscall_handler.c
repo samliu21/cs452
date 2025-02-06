@@ -1,4 +1,5 @@
 #include "syscall_handler.h"
+#include "interrupt.h"
 #include "rpi.h"
 #include "timer.h"
 #include "uintmap.h"
@@ -121,7 +122,12 @@ void await_event_handler(main_context_t* context)
         timer_notify_at(context->next_tick);
         context->next_tick += US_PER_TICK;
         context->active_task->state = EVENTWAIT;
-        queue_add(context->tasks_waiting_for_event, context->active_task);
+        queue_add(context->tasks_waiting_for_timer, context->active_task);
+        break;
+    }
+    case EVENT_UART: {
+        context->active_task->state = EVENTWAIT;
+        queue_add(context->tasks_waiting_for_uart, context->active_task);
         break;
     }
     default:
