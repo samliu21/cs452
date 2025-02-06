@@ -183,6 +183,25 @@ void uart_printf(size_t line, const char* fmt, ...)
     va_end(va);
 }
 
+int uart_read_available(size_t line)
+{
+    return UART_REG(line, UART_FR) & ~UART_FR_RXFE;
+}
+
+unsigned char uart_assert_getc(size_t line)
+{
+    unsigned char ch;
+    ASSERT(uart_read_available(line), "char not ready");
+    ch = UART_REG(line, UART_DR);
+    return ch;
+}
+
+void uart_assert_putc(size_t line, char c)
+{
+    ASSERT(!(UART_REG(line, UART_FR) & UART_FR_TXFF), "data line not ready for char");
+    UART_REG(line, UART_DR) = c;
+}
+
 void ASSERT(int condition, const char* message)
 {
     if (!condition) {

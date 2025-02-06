@@ -18,12 +18,17 @@
 #define INTERRUPT_ID_TIMER 97
 #define INTERRUPT_ID_UART 153
 
-#define EVENT_TICK 0
-#define EVENT_UART 1
+typedef enum {
+    EVENT_TICK = 0,
+    EVENT_UART = 1,
+} event_type_t;
 
 void init_interrupts();
 
-void stop_interrupt(uint64_t iar);
+void enable_uart_read_interrupts();
+void disable_uart_read_interrupts();
+void enable_uart_write_interrupts();
+void disable_uart_write_interrupts();
 
 void handle_interrupt(main_context_t* context);
 

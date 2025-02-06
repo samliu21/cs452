@@ -2,30 +2,31 @@
 #define _clock_test_h_
 
 #include "allocator.h"
+#include "clock_notifier.h"
+#include "clock_server.h"
+#include "interrupt.h"
+#include "name_server.h"
 #include "syscall_asm.h"
 #include "syscall_handler.h"
-#include "interrupt.h"
 #include "testutils.h"
-#include "name_server.h"
-#include "clock_server.h"
-#include "clock_notifier.h"
 
 #define CLOCK_TEST_NUM_TASKS 5
 
 void idletaskfunc()
 {
-    for (;;);
+    for (;;)
+        ;
 }
 
-void clock_task1func() 
+void clock_task1func()
 {
     int64_t invalid_input = time(50);
     TEST_TASK_ASSERT(invalid_input == -1);
-    
+
     uint32_t real_start_time = timer_get_ticks();
     uint64_t clock_start_time = time(3);
     int diff = (int)(real_start_time - clock_start_time);
-    
+
     invalid_input = delay(3, -50);
     TEST_TASK_ASSERT(invalid_input == -2);
 
@@ -68,7 +69,8 @@ int _test_clock()
     priority_queue_t scheduler = pq_new();
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
-    queue_t tasks_waiting_for_event = queue_new();
+    queue_t tasks_waiting_for_timer = queue_new();
+    queue_t tasks_waiting_for_uart = queue_new();
 
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
 
@@ -80,7 +82,8 @@ int _test_clock()
     context.scheduler = &scheduler;
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
-    context.tasks_waiting_for_event = &tasks_waiting_for_event;
+    context.tasks_waiting_for_timer = &tasks_waiting_for_timer;
+    context.tasks_waiting_for_uart = &tasks_waiting_for_uart;
     context.next_tick = next_tick;
 
     uint64_t syndrome;
@@ -93,15 +96,15 @@ int _test_clock()
     RECEIVE_REPLY(name_server);
 
     // Enter test task
-    
+
     // Test time() with invalid tid
     SEND(task1);
     RECEIVE_REPLY(name_server);
-    
+
     // Test time()
     SEND(task1);
     RECEIVE_REPLY(name_server);
-    
+
     SEND(task1);
     RECEIVE_REPLY(clock_server);
 
@@ -124,12 +127,12 @@ int _test_clock()
         syndrome = enter_task(&kernel_task, clock_notifier) & 0xFFFF;
         TEST_ASSERT(syndrome == SYSCALL_AWAIT_EVENT);
         await_event_handler(&context);
-        
+
         context.active_task = idle_task;
         syndrome = enter_task(&kernel_task, idle_task) & 0xFFFF;
         TEST_ASSERT(syndrome == INTERRUPT_CODE);
         handle_interrupt(&context);
-        
+
         SEND(clock_notifier);
         RECEIVE_REPLY(clock_server);
     }
@@ -138,7 +141,7 @@ int _test_clock()
     syndrome = enter_task(&kernel_task, clock_server) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_REPLY);
     reply_handler(&context);
-    
+
     SEND(task1);
     RECEIVE_REPLY(name_server);
 
@@ -167,14 +170,14 @@ int _test_clock()
         syndrome = enter_task(&kernel_task, clock_notifier) & 0xFFFF;
         TEST_ASSERT(syndrome == SYSCALL_AWAIT_EVENT);
         await_event_handler(&context);
-        
+
         context.active_task = idle_task;
         syndrome = enter_task(&kernel_task, idle_task) & 0xFFFF;
         TEST_ASSERT(syndrome == INTERRUPT_CODE);
         handle_interrupt(&context);
 
         SEND(clock_notifier);
-        RECEIVE_REPLY(clock_server);        
+        RECEIVE_REPLY(clock_server);
     }
 
     context.active_task = clock_server;

@@ -36,7 +36,7 @@ int kmain()
     }
 
     // clear screen
-    uart_puts(CONSOLE, "\033[2J\r\n\r\n");
+    // uart_puts(CONSOLE, "\033[2J\r\n\r\n");
 
     // create kernel task
     task_t kernel_task;
@@ -186,7 +186,7 @@ int kmain()
             break;
         }
         default: {
-            ASSERT(0, "unrecognized syscall\r\n");
+            ASSERTF(0, "unrecognized syscall: %u\r\n", syndrome);
             for (;;) { }
         }
         }

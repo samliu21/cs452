@@ -68,12 +68,15 @@ static const uint32_t UART_LCRH_WLEN_HIGH = 0x40;
 
 static const uint32_t UART_IMSC_RXIM = 0x10;
 static const uint32_t UART_IMSC_TXIM = 0x20;
+static const uint32_t UART_IMSC_RTIM = 0x40;
 
 static const uint32_t UART_MIS_RXMIS = 0x10;
 static const uint32_t UART_MIS_TXMIS = 0x20;
+static const uint32_t UART_MIS_RTIM = 0x40;
 
 static const uint32_t UART_ICR_RXIC = 0x10;
 static const uint32_t UART_ICR_TXIC = 0x20;
+static const uint32_t UART_ICR_RTIM = 0x40;
 
 void gpio_init();
 void uart_config_and_enable(size_t line);
@@ -82,6 +85,10 @@ void uart_putc(size_t line, char c);
 void uart_putl(size_t line, const char* buf, size_t blen);
 void uart_puts(size_t line, const char* buf);
 void uart_printf(size_t line, const char* fmt, ...);
+
+int uart_read_available(size_t line);
+unsigned char uart_assert_getc(size_t line);
+void uart_assert_putc(size_t line, char c);
 
 void ASSERT(int condition, const char* message);
 void ASSERTF(int condition, const char* message, ...);
