@@ -26,8 +26,6 @@ void k3_client_task()
 
 void k3_idle_task()
 {
-    uart_puts(CONSOLE, "idle task begin\r\n");
-
     for (;;) {
         __asm__ volatile("wfi");
     }

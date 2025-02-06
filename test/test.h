@@ -3,6 +3,7 @@
 
 #include "allocator_test.h"
 #include "context_switch_test.h"
+#include "clock_test.h"
 #include "message_test.h"
 #include "priority_queue_test.h"
 #include "queue_test.h"
@@ -29,6 +30,7 @@ int tests()
     execute(run_context_switch_tests, failed);
     execute(run_syscall_tests, failed);
     execute(run_message_tests, failed);
+    execute(run_clock_tests, failed)
     uart_puts(CONSOLE, "Tests complete.\r\n-------------------------\r\n\r\n");
     return failed;
 }

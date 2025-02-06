@@ -8,7 +8,6 @@
 
 void k3_clock_notifier()
 {
-    uart_puts(CONSOLE, "notifier begin\r\n");
     uint64_t clock_server_tid = who_is("clock_server");
     char tick_msg[2];
     tick_msg[0] = TICK;

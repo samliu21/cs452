@@ -8,12 +8,12 @@
 
 #define SYSCALL_TEST_NUM_TASKS 2
 
-void task2func()
+void syscall_task2func()
 {
     exit();
 }
 
-void task1func()
+void syscall_task1func()
 {
     uint64_t tid = my_tid();
     TEST_TASK_ASSERT(tid == 500);
@@ -21,7 +21,7 @@ void task1func()
     uint64_t parent_tid = my_parent_tid();
     TEST_TASK_ASSERT(parent_tid == 0);
 
-    uint64_t new_tid = create(2, &task2func);
+    uint64_t new_tid = create(2, &syscall_task2func);
     TEST_TASK_ASSERT(new_tid == 501);
 
     yield();
@@ -39,7 +39,7 @@ int _test_syscall()
     char* stack = USER_STACK_START;
 
     uint64_t n_tasks = 500;
-    task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &task1func, &kernel_task);
+    task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &syscall_task1func, &kernel_task);
 
     priority_queue_t scheduler = pq_new();
 
@@ -64,11 +64,11 @@ int _test_syscall()
     syndrome = enter_task(&kernel_task, task1) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_CREATE);
     TEST_ASSERT(task1->registers[0] == 2);
-    TEST_ASSERT(task1->registers[1] == (uint64_t)&task2func);
+    TEST_ASSERT(task1->registers[1] == (uint64_t)&syscall_task2func);
     create_handler(&context);
     task_t* task2 = pq_pop(&scheduler);
     TEST_ASSERT(task2->priority == 2);
-    TEST_ASSERT(task2->elr == (uint64_t)&task2func);
+    TEST_ASSERT(task2->elr == (uint64_t)&syscall_task2func);
 
     syndrome = enter_task(&kernel_task, task1) & 0xFFFF;
     TEST_ASSERT(syndrome == SYSCALL_YIELD);
