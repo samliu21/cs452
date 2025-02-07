@@ -62,7 +62,8 @@ int kmain()
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
     queue_t tasks_waiting_for_timer = queue_new();
-    queue_t tasks_waiting_for_uart = queue_new();
+    queue_t tasks_waiting_for_terminal = queue_new();
+    queue_t tasks_waiting_for_marklin = queue_new();
 
     // timer
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
@@ -81,7 +82,8 @@ int kmain()
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
     context.tasks_waiting_for_timer = &tasks_waiting_for_timer;
-    context.tasks_waiting_for_uart = &tasks_waiting_for_uart;
+    context.tasks_waiting_for_terminal = &tasks_waiting_for_terminal;
+    context.tasks_waiting_for_marklin = &tasks_waiting_for_marklin;
     context.next_tick = next_tick;
     context.performance_map = &performance_map;
 

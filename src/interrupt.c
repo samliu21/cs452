@@ -41,7 +41,7 @@ void enable_uart_cts_interrupts()
     UART_REG(CONSOLE, UART_IMSC) |= UART_IMSC_CTSMIM;
 }
 
-void reset_uart_cts_interrupts()
+void clear_uart_cts_interrupts()
 {
     // UART_REG(CONSOLE, UART_IMSC) &= ~UART_IMSC_CTSMIM;
     UART_REG(CONSOLE, UART_ICR) |= UART_ICR_CTSMIC;
@@ -78,17 +78,16 @@ void handle_interrupt(main_context_t* context)
         break;
     }
     case INTERRUPT_ID_UART: {
-        if (queue_empty(context->tasks_waiting_for_uart)) {
-            UART_REG(CONSOLE, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC;
+        uint32_t mis = UART_REG(CONSOLE, UART_MIS);
+        if (queue_empty(context->tasks_waiting_for_terminal)) {
+            UART_REG(CONSOLE, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC | UART_ICR_RTIM | UART_ICR_CTSMIC;
             break;
         }
-        ASSERT(context->tasks_waiting_for_uart->size == 1, "more than one task waiting for uart");
+        ASSERT(context->tasks_waiting_for_terminal->size == 1, "more than one task waiting for uart");
 
-        task_t* uart_task = queue_pop(context->tasks_waiting_for_uart);
+        task_t* uart_task = queue_pop(context->tasks_waiting_for_terminal);
         pq_add(context->scheduler, uart_task);
         uart_task->state = READY;
-
-        uint32_t mis = UART_REG(CONSOLE, UART_MIS);
 
         if ((mis & UART_MIS_RXMIS) || (mis & UART_MIS_RTIM)) {
             disable_uart_read_interrupts();
@@ -99,8 +98,7 @@ void handle_interrupt(main_context_t* context)
             uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
         }
         if (mis & UART_MIS_CTSMMIS) {
-            uart_puts(CONSOLE, "MIS CTS\r\n");
-            reset_uart_cts_interrupts();
+            clear_uart_cts_interrupts();
             uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
         }
 

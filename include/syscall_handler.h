@@ -16,7 +16,8 @@ typedef struct main_context_t {
     queue_t* tasks_waiting_for_send;
     queue_t* tasks_waiting_for_reply;
     queue_t* tasks_waiting_for_timer;
-    queue_t* tasks_waiting_for_uart;
+    queue_t* tasks_waiting_for_terminal;
+    queue_t* tasks_waiting_for_marklin;
     task_t* active_task;
     uint32_t next_tick;
     uintmap_t* performance_map;

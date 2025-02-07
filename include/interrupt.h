@@ -30,7 +30,7 @@ void disable_uart_read_interrupts();
 void enable_uart_write_interrupts();
 void disable_uart_write_interrupts();
 void enable_uart_cts_interrupts();
-void reset_uart_cts_interrupts();
+void clear_uart_cts_interrupts();
 
 void handle_interrupt(main_context_t* context);
 

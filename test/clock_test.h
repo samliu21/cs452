@@ -70,7 +70,7 @@ int _test_clock()
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
     queue_t tasks_waiting_for_timer = queue_new();
-    queue_t tasks_waiting_for_uart = queue_new();
+    queue_t tasks_waiting_for_terminal = queue_new();
 
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
 
@@ -83,7 +83,7 @@ int _test_clock()
     context.tasks_waiting_for_send = &tasks_waiting_for_send;
     context.tasks_waiting_for_reply = &tasks_waiting_for_reply;
     context.tasks_waiting_for_timer = &tasks_waiting_for_timer;
-    context.tasks_waiting_for_uart = &tasks_waiting_for_uart;
+    context.tasks_waiting_for_terminal = &tasks_waiting_for_terminal;
     context.next_tick = next_tick;
 
     uint64_t syndrome;

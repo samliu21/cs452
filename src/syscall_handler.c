@@ -127,7 +127,7 @@ void await_event_handler(main_context_t* context)
     }
     case EVENT_UART: {
         context->active_task->state = EVENTWAIT;
-        queue_add(context->tasks_waiting_for_uart, context->active_task);
+        queue_add(context->tasks_waiting_for_terminal, context->active_task);
         break;
     }
     default:
