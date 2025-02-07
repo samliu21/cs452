@@ -114,14 +114,15 @@ void handle_interrupt(main_context_t* context)
             uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
         }
         if (mis & UART_MIS_CTSMMIS) {
-            if (line == CONSOLE) {
-                uart_puts(CONSOLE, "CTS from console\r\n");
-            } else {
-                uart_puts(CONSOLE, "CTS from marklin\r\n");
-            }
-            uint32_t fr = UART_REG(line, UART_FR);
-            uart_putc(CONSOLE, fr & UART_FR_CTS ? '1' : '0');
-            uart_puts(CONSOLE, "\r\n");
+            ASSERT(line == MARKLIN, "CTS from console");
+            // if (line == CONSOLE) {
+            //     uart_puts(CONSOLE, "CTS from console\r\n");
+            // } else {
+            //     uart_puts(CONSOLE, "CTS from marklin\r\n");
+            // }
+            // uint32_t fr = UART_REG(line, UART_FR);
+            // uart_putc(CONSOLE, fr & UART_FR_CTS ? '1' : '0');
+            // uart_puts(CONSOLE, "\r\n");
             clear_uart_cts_interrupts(line);
             uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
         }

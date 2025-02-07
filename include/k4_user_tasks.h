@@ -15,7 +15,6 @@ void k4_terminal_task()
 
     for (;;) {
         char c = getc(uart_server_tid, CONSOLE);
-        uart_putc(CONSOLE, c);
         if (c == '\r' || c == '\n') {
             puts(uart_server_tid, CONSOLE, "\r\n");
         } else {
@@ -42,8 +41,13 @@ void k4_initial_user_task()
     create(1, &k2_name_server);
     create(0, &k3_idle_task);
 
-    create(1, &k4_uart_terminal_server);
-    create(1, &k4_uart_marklin_server);
+    char c;
+    uint64_t terminal_server_tid = create(1, &k4_uart_server);
+    c = CONSOLE;
+    send(terminal_server_tid, &c, 1, NULL, 0);
+    uint64_t marklin_server_tid = create(1, &k4_uart_server);
+    c = MARKLIN;
+    send(marklin_server_tid, &c, 1, NULL, 0);
 
     create(1, &k4_terminal_notifier);
     create(1, &k4_marklin_notifier);
