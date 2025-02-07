@@ -56,8 +56,7 @@ void k4_uart_server()
     ASSERT(res >= 0, "register_as failed");
 
     char msg[32];
-    charqueuenode readnodes[256], writenodes[256];
-    charqueue readqueue = charqueue_new(readnodes, 256);
+    charqueuenode writenodes[256];
     charqueue writequeue = charqueue_new(writenodes, 256);
     uint64_t reader_tid = 0; // assume there is only one task that reads from console
     uint64_t writer_tid = 0;
@@ -69,9 +68,9 @@ void k4_uart_server()
 
         switch (msg[0]) {
         case REQUEST_UART_READ: {
-            if (!charqueue_empty(&readqueue)) {
-                // if we have a char in the buffer, return it immediately
-                char c = charqueue_pop(&readqueue);
+            if (uart_read_available(CONSOLE)) {
+                // if we have a char in the uart, return it immediately
+                char c = uart_assert_getc(CONSOLE);
                 reply(caller_tid, &c, 1);
             } else {
                 // otherwise, enable read interrupts and wait for the interrupt
@@ -98,10 +97,9 @@ void k4_uart_server()
         }
         case REQUEST_READ_AVAILABLE: {
             ASSERT(reader_tid != 0, "reader_tid doesn't exist");
-            charqueue_add(&readqueue, uart_assert_getc(CONSOLE));
 
             // respond to reader
-            char c = charqueue_pop(&readqueue);
+            char c = uart_assert_getc(CONSOLE);
             int64_t res = reply(reader_tid, &c, 1);
             ASSERTF(res >= 0, "reply failed with code: %d", res);
             reader_tid = 0;
