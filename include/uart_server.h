@@ -13,7 +13,7 @@ typedef enum {
     REQUEST_WRITE_AVAILABLE = 'w',
 } uart_request_t;
 
-int getc(uint64_t tid, int channel)
+int64_t getc(uint64_t tid, int channel)
 {
     uint64_t uart_server_tid = who_is("uart_server");
     if (tid != uart_server_tid) {
@@ -31,7 +31,7 @@ int getc(uint64_t tid, int channel)
     return c;
 }
 
-int putc(uint64_t tid, int channel, char c)
+int64_t putc(uint64_t tid, int channel, char c)
 {
     uint64_t uart_server_tid = who_is("uart_server");
     if (tid != uart_server_tid) {
@@ -48,6 +48,19 @@ int putc(uint64_t tid, int channel, char c)
     }
     ASSERT(ret >= 0, "send failed");
     return 0;
+}
+
+int64_t puts(uint64_t tid, int channel, const char* buf)
+{
+    int64_t res = 0;
+    while (buf[res] != '\0') {
+        if (putc(tid, channel, buf[res]) == -1) {
+            res = -1;
+            break;
+        }
+        res++;
+    }
+    return res;
 }
 
 void k4_uart_server()

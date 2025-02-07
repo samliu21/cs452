@@ -15,7 +15,11 @@ void k4_user_task()
 
     for (;;) {
         char c = getc(uart_server_tid, CONSOLE);
-        putc(uart_server_tid, CONSOLE, c);
+        if (c == '\r' || c == '\n') {
+            puts(uart_server_tid, CONSOLE, "\r\n");
+        } else {
+            putc(uart_server_tid, CONSOLE, c);
+        }
     }
 
     exit();
