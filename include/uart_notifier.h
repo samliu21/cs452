@@ -6,14 +6,25 @@
 #include "syscall_func.h"
 #include "uart_server.h"
 
-void k4_uart_notifier()
+void k4_terminal_notifier()
 {
-    int64_t uart_server_tid = who_is("uart_server");
-    ASSERT(uart_server_tid >= 0, "who_is failed");
+    int64_t terminal_tid = who_is("uart_terminal_server");
+    ASSERT(terminal_tid >= 0, "who_is failed");
 
     for (;;) {
-        char c = await_event(EVENT_UART);
-        send(uart_server_tid, &c, 1, NULL, 0);
+        char c = await_event(EVENT_UART_TERMINAL);
+        send(terminal_tid, &c, 1, NULL, 0);
+    }
+}
+
+void k4_marklin_notifier()
+{
+    int64_t marklin_tid = who_is("uart_marklin_server");
+    ASSERT(marklin_tid >= 0, "who_is failed");
+
+    for (;;) {
+        char c = await_event(EVENT_UART_MARKLIN);
+        send(marklin_tid, &c, 1, NULL, 0);
     }
 }
 

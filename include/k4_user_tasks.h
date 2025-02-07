@@ -8,9 +8,9 @@
 #include "uart_notifier.h"
 #include "uart_server.h"
 
-void k4_user_task()
+void k4_terminal_task()
 {
-    int64_t uart_server_tid = who_is("uart_server");
+    int64_t uart_server_tid = who_is("uart_terminal_server");
     ASSERT(uart_server_tid >= 0, "who_is failed");
 
     for (;;) {
@@ -26,13 +26,30 @@ void k4_user_task()
     exit();
 }
 
+void k4_marklin_task()
+{
+    int64_t uart_server_tid = who_is("uart_marklin_server");
+    ASSERT(uart_server_tid >= 0, "who_is failed");
+
+    putc(uart_server_tid, MARKLIN, 26);
+    putc(uart_server_tid, MARKLIN, 55);
+
+    exit();
+}
+
 void k4_initial_user_task()
 {
     create(1, &k2_name_server);
     create(0, &k3_idle_task);
-    create(1, &k4_uart_server);
-    create(1, &k4_uart_notifier);
-    create(1, &k4_user_task);
+
+    create(1, &k4_uart_terminal_server);
+    create(1, &k4_uart_marklin_server);
+
+    create(1, &k4_terminal_notifier);
+    create(1, &k4_marklin_notifier);
+
+    create(1, &k4_terminal_task);
+    create(1, &k4_marklin_task);
 
     exit();
 }

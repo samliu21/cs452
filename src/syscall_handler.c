@@ -125,9 +125,14 @@ void await_event_handler(main_context_t* context)
         queue_add(context->tasks_waiting_for_timer, context->active_task);
         break;
     }
-    case EVENT_UART: {
+    case EVENT_UART_TERMINAL: {
         context->active_task->state = EVENTWAIT;
         queue_add(context->tasks_waiting_for_terminal, context->active_task);
+        break;
+    }
+    case EVENT_UART_MARKLIN: {
+        context->active_task->state = EVENTWAIT;
+        queue_add(context->tasks_waiting_for_marklin, context->active_task);
         break;
     }
     default:

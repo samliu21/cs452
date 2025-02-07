@@ -20,17 +20,18 @@
 
 typedef enum {
     EVENT_TICK = 0,
-    EVENT_UART = 1,
+    EVENT_UART_TERMINAL = 1,
+    EVENT_UART_MARKLIN = 2,
 } event_type_t;
 
 void init_interrupts();
 
-void enable_uart_read_interrupts();
-void disable_uart_read_interrupts();
-void enable_uart_write_interrupts();
-void disable_uart_write_interrupts();
-void enable_uart_cts_interrupts();
-void clear_uart_cts_interrupts();
+void enable_uart_read_interrupts(int line);
+void disable_uart_read_interrupts(int line);
+void enable_uart_write_interrupts(int line);
+void disable_uart_write_interrupts(int line);
+void enable_uart_cts_interrupts(int line);
+void clear_uart_cts_interrupts(int line);
 
 void handle_interrupt(main_context_t* context);
 

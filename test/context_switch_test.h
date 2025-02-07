@@ -53,7 +53,7 @@ int _test_context_switch()
 int run_context_switch_tests()
 {
     TEST_RUN(_test_context_switch);
-	return 1;
+    return 1;
 }
 
 #endif

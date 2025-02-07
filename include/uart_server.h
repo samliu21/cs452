@@ -14,6 +14,7 @@ typedef enum {
 int64_t getc(uint64_t tid, int channel);
 int64_t putc(uint64_t tid, int channel, char c);
 int64_t puts(uint64_t tid, int channel, const char* buf);
-void k4_uart_server();
+void k4_uart_terminal_server();
+void k4_uart_marklin_server();
 
 #endif

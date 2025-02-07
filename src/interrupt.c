@@ -14,37 +14,37 @@ void set_interrupt_enable(uint64_t interrupt_id)
     *(GICD_ISENABLE + (interrupt_id / 8)) = 1 << (interrupt_id % 8);
 }
 
-void enable_uart_read_interrupts()
+void enable_uart_read_interrupts(int line)
 {
-    UART_REG(CONSOLE, UART_IMSC) |= UART_IMSC_RXIM | UART_IMSC_RTIM;
+    UART_REG(line, UART_IMSC) |= UART_IMSC_RXIM | UART_IMSC_RTIM;
 }
 
-void disable_uart_read_interrupts()
+void disable_uart_read_interrupts(int line)
 {
-    UART_REG(CONSOLE, UART_IMSC) &= ~(UART_IMSC_RXIM | UART_IMSC_RTIM);
-    UART_REG(CONSOLE, UART_ICR) |= UART_ICR_RXIC | UART_ICR_RTIM;
+    UART_REG(line, UART_IMSC) &= ~(UART_IMSC_RXIM | UART_IMSC_RTIM);
+    UART_REG(line, UART_ICR) |= UART_ICR_RXIC | UART_ICR_RTIM;
 }
 
-void enable_uart_write_interrupts()
+void enable_uart_write_interrupts(int line)
 {
-    UART_REG(CONSOLE, UART_IMSC) |= UART_IMSC_TXIM;
+    UART_REG(line, UART_IMSC) |= UART_IMSC_TXIM;
 }
 
-void disable_uart_write_interrupts()
+void disable_uart_write_interrupts(int line)
 {
-    UART_REG(CONSOLE, UART_IMSC) &= ~UART_IMSC_TXIM;
-    UART_REG(CONSOLE, UART_ICR) |= UART_ICR_TXIC;
+    UART_REG(line, UART_IMSC) &= ~UART_IMSC_TXIM;
+    UART_REG(line, UART_ICR) |= UART_ICR_TXIC;
 }
 
-void enable_uart_cts_interrupts()
+void enable_uart_cts_interrupts(int line)
 {
-    UART_REG(CONSOLE, UART_IMSC) |= UART_IMSC_CTSMIM;
+    UART_REG(line, UART_IMSC) |= UART_IMSC_CTSMIM;
 }
 
-void clear_uart_cts_interrupts()
+void clear_uart_cts_interrupts(int line)
 {
     // UART_REG(CONSOLE, UART_IMSC) &= ~UART_IMSC_CTSMIM;
-    UART_REG(CONSOLE, UART_ICR) |= UART_ICR_CTSMIC;
+    UART_REG(line, UART_ICR) |= UART_ICR_CTSMIC;
 }
 
 void init_interrupts()
@@ -55,7 +55,7 @@ void init_interrupts()
     set_route_to_core0(INTERRUPT_ID_UART);
     set_interrupt_enable(INTERRUPT_ID_UART);
 
-    enable_uart_cts_interrupts();
+    enable_uart_cts_interrupts(MARKLIN);
     // enable_uart_read_interrupts();
     // enable_uart_write_interrupts();
 }
@@ -78,27 +78,51 @@ void handle_interrupt(main_context_t* context)
         break;
     }
     case INTERRUPT_ID_UART: {
-        uint32_t mis = UART_REG(CONSOLE, UART_MIS);
-        if (queue_empty(context->tasks_waiting_for_terminal)) {
-            UART_REG(CONSOLE, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC | UART_ICR_RTIM | UART_ICR_CTSMIC;
+        uint32_t terminal_mis = UART_REG(CONSOLE, UART_MIS);
+        uint32_t marklin_mis = UART_REG(MARKLIN, UART_MIS);
+        ASSERT(!terminal_mis || !marklin_mis, "both terminals have interrupts");
+
+        queue_t* waiting_queue;
+        int line;
+        uint32_t mis;
+        if (terminal_mis) {
+            waiting_queue = context->tasks_waiting_for_terminal;
+            line = CONSOLE;
+            mis = terminal_mis;
+        } else {
+            waiting_queue = context->tasks_waiting_for_marklin;
+            line = MARKLIN;
+            mis = marklin_mis;
+        }
+
+        if (queue_empty(waiting_queue)) {
+            UART_REG(line, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC | UART_ICR_RTIM | UART_ICR_CTSMIC;
             break;
         }
-        ASSERT(context->tasks_waiting_for_terminal->size == 1, "more than one task waiting for uart");
+        ASSERT(waiting_queue->size == 1, "more than one task waiting for uart");
 
-        task_t* uart_task = queue_pop(context->tasks_waiting_for_terminal);
+        task_t* uart_task = queue_pop(waiting_queue);
         pq_add(context->scheduler, uart_task);
         uart_task->state = READY;
 
         if ((mis & UART_MIS_RXMIS) || (mis & UART_MIS_RTIM)) {
-            disable_uart_read_interrupts();
+            disable_uart_read_interrupts(line);
             uart_task->registers[0] = REQUEST_READ_AVAILABLE;
         }
         if (mis & UART_MIS_TXMIS) {
-            disable_uart_write_interrupts();
+            disable_uart_write_interrupts(line);
             uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
         }
         if (mis & UART_MIS_CTSMMIS) {
-            clear_uart_cts_interrupts();
+            if (line == CONSOLE) {
+                uart_puts(CONSOLE, "CTS from console\r\n");
+            } else {
+                uart_puts(CONSOLE, "CTS from marklin\r\n");
+            }
+            uint32_t fr = UART_REG(line, UART_FR);
+            uart_putc(CONSOLE, fr & UART_FR_CTS ? '1' : '0');
+            uart_puts(CONSOLE, "\r\n");
+            clear_uart_cts_interrupts(line);
             uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
         }
 

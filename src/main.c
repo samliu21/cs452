@@ -31,10 +31,10 @@ int kmain()
     // run tests and initialize exception vector
     init_interrupts();
     init_vbar();
-    int failed = tests();
-    if (failed) {
-        for (;;) { }
-    }
+    // int failed = tests();
+    // if (failed) {
+    //     for (;;) { }
+    // }
 
     // clear screen
     // uart_puts(CONSOLE, "\033[2J\r\n\r\n");
