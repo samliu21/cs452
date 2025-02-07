@@ -47,6 +47,7 @@ void uart_config_and_enable(size_t line)
 {
     uint32_t baud_ival, baud_fval;
     uint32_t stop2;
+    uint32_t fifo;
 
     switch (line) {
     // setting baudrate to approx. 115246.09844 (best we can do); 1 stop bit
@@ -54,12 +55,14 @@ void uart_config_and_enable(size_t line)
         baud_ival = 26;
         baud_fval = 2;
         stop2 = 0;
+        fifo = UART_LCRH_FEN;
         break;
     // setting baudrate to 2400; 2 stop bits
     case MARKLIN:
         baud_ival = 1250;
         baud_fval = 0;
         stop2 = UART_LCRH_STP2;
+        fifo = 0;
         break;
     default:
         return;
@@ -74,7 +77,7 @@ void uart_config_and_enable(size_t line)
     UART_REG(line, UART_FBRD) = baud_fval;
 
     // set the line control registers: 8 bit, no parity, 1 or 2 stop bits, FIFOs enabled
-    UART_REG(line, UART_LCRH) = UART_LCRH_WLEN_HIGH | UART_LCRH_WLEN_LOW | UART_LCRH_FEN | stop2;
+    UART_REG(line, UART_LCRH) = UART_LCRH_WLEN_HIGH | UART_LCRH_WLEN_LOW | fifo | stop2;
 
     // re-enable the UART; enable both transmit and receive regardless of previous state
     UART_REG(line, UART_CR) = cr_state | UART_CR_UARTEN | UART_CR_TXE | UART_CR_RXE;

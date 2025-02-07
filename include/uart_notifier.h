@@ -12,8 +12,7 @@ void k4_uart_notifier()
     ASSERT(uart_server_tid >= 0, "who_is failed");
 
     for (;;) {
-        uint64_t is_write_event = await_event(EVENT_UART);
-        char c = is_write_event ? REQUEST_WRITE_AVAILABLE : REQUEST_READ_AVAILABLE;
+        char c = await_event(EVENT_UART);
         send(uart_server_tid, &c, 1, NULL, 0);
     }
 }

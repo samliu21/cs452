@@ -46,6 +46,7 @@ static const uint32_t UART_MIS = 0x40;
 static const uint32_t UART_ICR = 0x44;
 
 // masks for specific fields in the UART registers
+static const uint32_t UART_FR_CTS = 0x01;
 static const uint32_t UART_FR_RXFE = 0x10;
 static const uint32_t UART_FR_TXFF = 0x20;
 static const uint32_t UART_FR_RXFF = 0x40;
@@ -66,14 +67,17 @@ static const uint32_t UART_LCRH_FEN = 0x10;
 static const uint32_t UART_LCRH_WLEN_LOW = 0x20;
 static const uint32_t UART_LCRH_WLEN_HIGH = 0x40;
 
+static const uint32_t UART_IMSC_CTSMIM = 0x02;
 static const uint32_t UART_IMSC_RXIM = 0x10;
 static const uint32_t UART_IMSC_TXIM = 0x20;
 static const uint32_t UART_IMSC_RTIM = 0x40;
 
+static const uint32_t UART_MIS_CTSMMIS = 0x02;
 static const uint32_t UART_MIS_RXMIS = 0x10;
 static const uint32_t UART_MIS_TXMIS = 0x20;
 static const uint32_t UART_MIS_RTIM = 0x40;
 
+static const uint32_t UART_ICR_CTSMIC = 0x02;
 static const uint32_t UART_ICR_RXIC = 0x10;
 static const uint32_t UART_ICR_TXIC = 0x20;
 static const uint32_t UART_ICR_RTIM = 0x40;

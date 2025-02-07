@@ -2,6 +2,7 @@
 #include "common.h"
 #include "rpi.h"
 #include "timer.h"
+#include "uart_server.h"
 
 void set_route_to_core0(uint64_t interrupt_id)
 {
@@ -35,6 +36,17 @@ void disable_uart_write_interrupts()
     UART_REG(CONSOLE, UART_ICR) |= UART_ICR_TXIC;
 }
 
+void enable_uart_cts_interrupts()
+{
+    UART_REG(CONSOLE, UART_IMSC) |= UART_IMSC_CTSMIM;
+}
+
+void reset_uart_cts_interrupts()
+{
+    // UART_REG(CONSOLE, UART_IMSC) &= ~UART_IMSC_CTSMIM;
+    UART_REG(CONSOLE, UART_ICR) |= UART_ICR_CTSMIC;
+}
+
 void init_interrupts()
 {
     set_route_to_core0(INTERRUPT_ID_TIMER);
@@ -43,6 +55,7 @@ void init_interrupts()
     set_route_to_core0(INTERRUPT_ID_UART);
     set_interrupt_enable(INTERRUPT_ID_UART);
 
+    enable_uart_cts_interrupts();
     // enable_uart_read_interrupts();
     // enable_uart_write_interrupts();
 }
@@ -66,7 +79,6 @@ void handle_interrupt(main_context_t* context)
     }
     case INTERRUPT_ID_UART: {
         if (queue_empty(context->tasks_waiting_for_uart)) {
-            uart_puts(CONSOLE, "in loop\r\n");
             UART_REG(CONSOLE, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC;
             break;
         }
@@ -76,16 +88,20 @@ void handle_interrupt(main_context_t* context)
         pq_add(context->scheduler, uart_task);
         uart_task->state = READY;
 
-        uint32_t uart_status = UART_REG(CONSOLE, UART_MIS);
+        uint32_t mis = UART_REG(CONSOLE, UART_MIS);
 
-        // uart_printf(CONSOLE, "UART interrupt with status: %u\r\n", uart_status);
-        if ((uart_status & UART_MIS_RXMIS) || (uart_status & UART_MIS_RTIM)) {
+        if ((mis & UART_MIS_RXMIS) || (mis & UART_MIS_RTIM)) {
             disable_uart_read_interrupts();
-            uart_task->registers[0] = 0;
+            uart_task->registers[0] = REQUEST_READ_AVAILABLE;
         }
-        if (uart_status & UART_MIS_TXMIS) {
+        if (mis & UART_MIS_TXMIS) {
             disable_uart_write_interrupts();
-            uart_task->registers[0] = 1;
+            uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
+        }
+        if (mis & UART_MIS_CTSMMIS) {
+            uart_puts(CONSOLE, "MIS CTS\r\n");
+            reset_uart_cts_interrupts();
+            uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
         }
 
         break;

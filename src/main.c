@@ -25,6 +25,7 @@ int kmain()
 
     gpio_init();
     uart_config_and_enable(CONSOLE);
+    uart_config_and_enable(MARKLIN);
     uart_puts(CONSOLE, "\r\nconsole loaded!\r\n");
 
     // run tests and initialize exception vector
