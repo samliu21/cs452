@@ -6,6 +6,7 @@
 #include "k3_user_tasks.h"
 #include "marklin.h"
 #include "name_server.h"
+#include "sensor.h"
 #include "state_server.h"
 #include "syscall_func.h"
 #include "uart_notifier.h"
@@ -47,6 +48,25 @@ void terminal_task()
     exit();
 }
 
+void display_state_task()
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
+    int64_t terminal_task_tid = who_is(TERMINAL_TASK_NAME);
+    ASSERT(terminal_task_tid >= 0, "who_is failed");
+
+    for (;;) {
+        char sensors[32];
+        state_get_recent_sensors(state_task_tid, sensors);
+        // printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Ksensors: %s\r\n\033[u", sensors);
+        uart_printf(CONSOLE, "\033[s\033[2;1H\033[2Ksensors: %s\r\n\033[u", sensors);
+
+        delay(clock_task_tid, 20);
+    }
+}
+
 void k4_initial_user_task()
 {
     // system tasks
@@ -68,6 +88,8 @@ void k4_initial_user_task()
 
     // train setup tasks
     create(1, &state_task);
+    create(1, &sensor_task);
+    create(1, &display_state_task);
 
     // client tasks
     create(1, &command_task);

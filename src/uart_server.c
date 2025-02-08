@@ -67,12 +67,14 @@ int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
     char ch, buf[12];
     int width = 0, pad_zero = 0;
     int64_t res = 0;
+    char output[256];
+    memset(output, 0, 256);
+    int pos = 0;
+    char* cur;
 
     while ((ch = *(fmt++))) {
         if (ch != '%') {
-            if (putc(line, channel, ch) == -1) {
-                res = -1;
-            }
+            output[pos++] = ch;
         } else {
             // Reset width and padding flag
             width = 0;
@@ -100,21 +102,20 @@ int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
                 ui2a(va_arg(va, unsigned int), 16, buf);
                 break;
             case 's':
-                if (puts(line, channel, va_arg(va, char*)) == -1) {
-                    res = -1;
+                cur = va_arg(va, char*);
+                while (*cur) {
+                    output[pos++] = *cur;
+                    cur++;
                 }
                 continue;
             case '%':
-                if (putc(line, channel, '%') == -1) {
-                    res = -1;
-                }
+                output[pos++] = '%';
                 continue;
             case '\0':
+                puts(line, channel, output);
                 return 0; // End of format string
             default:
-                if (putc(line, channel, ch) == -1) {
-                    res = -1;
-                }
+                output[pos++] = ch;
                 continue;
             }
 
@@ -123,18 +124,19 @@ int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
 
             // Handle padding (either '0' or ' ')
             while (len < width) {
-                if (putc(line, channel, pad_zero ? '0' : ' ') == -1) {
-                    res = -1;
-                }
+                output[pos++] = pad_zero ? '0' : ' ';
                 len++;
             }
 
             // Print formatted number
-            if (puts(line, channel, buf) == -1) {
-                res = -1;
+            cur = buf;
+            while (*cur) {
+                output[pos++] = *cur;
+                cur++;
             }
         }
     }
+    puts(line, channel, output);
     return res;
 }
 

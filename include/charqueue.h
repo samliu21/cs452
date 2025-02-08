@@ -11,7 +11,8 @@ typedef struct charqueue {
     charqueuenode* tail;
     charqueuenode* available_nodes;
     int available_nodes_pos;
-    int size;
+	int size;
+    int max_size;
 } charqueue;
 
 charqueue charqueue_new(charqueuenode* available_nodes, int size);

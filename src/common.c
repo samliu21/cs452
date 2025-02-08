@@ -89,3 +89,8 @@ uint64_t myrand()
     seed = (1103515245 * seed + 12345) & 0x7FFFFFFF; // Linear congruential generator
     return (seed >> 16) & 0x7FFF; // Scale down to 0-32767
 }
+
+uint64_t min(uint64_t a, uint64_t b)
+{
+    return a < b ? a : b;
+}

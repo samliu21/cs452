@@ -5,14 +5,14 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-charqueue charqueue_new(charqueuenode* available_nodes, int size)
+charqueue charqueue_new(charqueuenode* available_nodes, int max_size)
 {
     charqueue q;
     q.head = NULL;
     q.tail = NULL;
     q.available_nodes = available_nodes;
     q.available_nodes_pos = 0;
-    q.size = size;
+    q.max_size = max_size;
     return q;
 }
 
@@ -33,7 +33,8 @@ void charqueue_add(charqueue* q, char c)
         q->tail->next = n;
         q->tail = n;
     }
-    q->available_nodes_pos %= q->size;
+    q->size++;
+    q->available_nodes_pos %= q->max_size;
 }
 
 void charqueue_add_s(charqueue* q, char* s)
@@ -82,6 +83,7 @@ char charqueue_pop(charqueue* q)
     ASSERT(q->head != NULL, "popping from empty queue");
     char c = q->head->data;
     q->head = q->head->next;
+    q->size--;
     return c;
 }
 
