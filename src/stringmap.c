@@ -35,14 +35,14 @@ void stringmap_set(stringmap_t* map, char* key, uint64_t value)
 uint64_t stringmap_get(stringmap_t* map, char* key)
 {
     int key_index = _stringmap_key_index(map, key);
-    ASSERT(key_index != -1, "key not found");
+    ASSERT(key_index != -1, "string key not found");
     return map->values[key_index];
 }
 
 void stringmap_remove(stringmap_t* map, char* key)
 {
     int key_index = _stringmap_key_index(map, key);
-    ASSERT(key_index != -1, "key not found");
+    ASSERT(key_index != -1, "string key not found");
     map->num_keys--;
     if (key_index < map->num_keys){
         strcpy(map->keys[key_index], map->keys[map->num_keys]);

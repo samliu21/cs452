@@ -34,14 +34,14 @@ void uintmap_set(uintmap_t* map, uint64_t key, uint64_t value)
 uint64_t uintmap_get(uintmap_t* map, uint64_t key)
 {
     int key_index = _uintmap_key_index(map, key);
-    ASSERT(key_index != -1, "key not found");
+    ASSERT(key_index != -1, "int key not found");
     return map->values[key_index];
 }
 
 void uintmap_remove(uintmap_t* map, uint64_t key)
 {
     int key_index = _uintmap_key_index(map, key);
-    ASSERT(key_index != -1, "key not found");
+    ASSERT(key_index != -1, "int key not found");
     map->num_keys--;
     if (key_index < map->num_keys) {
         map->keys[key_index] = map->keys[map->num_keys];

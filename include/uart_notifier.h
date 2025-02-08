@@ -8,7 +8,7 @@
 
 void terminal_notifier()
 {
-    int64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
+    int64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
     ASSERT(terminal_tid >= 0, "who_is failed");
 
     for (;;) {
@@ -19,12 +19,12 @@ void terminal_notifier()
 
 void marklin_notifier()
 {
-    int64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
-    ASSERT(marklin_tid >= 0, "who_is failed");
+    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
     for (;;) {
         char c = await_event(EVENT_UART_MARKLIN);
-        send(marklin_tid, &c, 1, NULL, 0);
+        send(marklin_task_tid, &c, 1, NULL, 0);
     }
 }
 

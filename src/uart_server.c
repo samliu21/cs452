@@ -9,12 +9,12 @@
 
 int64_t getc(uint64_t tid, int channel)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
-    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
-    if (tid != terminal_tid && tid != marklin_tid) {
+    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
+    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    if (tid != terminal_tid && tid != marklin_task_tid) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_tid && channel != MARKLIN)) {
+    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
         return -1;
     }
     char c;
@@ -26,12 +26,12 @@ int64_t getc(uint64_t tid, int channel)
 
 int64_t putc(uint64_t tid, int channel, char c)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
-    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
-    if (tid != terminal_tid && tid != marklin_tid) {
+    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
+    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    if (tid != terminal_tid && tid != marklin_task_tid) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_tid && channel != MARKLIN)) {
+    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
         return -1;
     }
     char buf[2];
@@ -44,12 +44,12 @@ int64_t putc(uint64_t tid, int channel, char c)
 
 int64_t puts(uint64_t tid, int channel, const char* buf)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
-    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
-    if (tid != terminal_tid && tid != marklin_tid) {
+    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
+    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    if (tid != terminal_tid && tid != marklin_task_tid) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_tid && channel != MARKLIN)) {
+    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
         return -1;
     }
     int len = strlen(buf);
@@ -158,7 +158,7 @@ void uart_server_task()
     int line = type;
     ASSERT(line == CONSOLE || line == MARKLIN, "invalid line");
 
-    res = register_as(line == CONSOLE ? TERMINAL_SERVER_NAME : MARKLIN_SERVER_NAME);
+    res = register_as(line == CONSOLE ? TERMINAL_TASK_NAME : MARKLIN_TASK_NAME);
     ASSERT(res >= 0, "register_as failed");
 
     char msg[32];
