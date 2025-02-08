@@ -13,9 +13,10 @@ typedef enum {
 #define TERMINAL_SERVER_NAME "uart_terminal_server"
 #define MARKLIN_SERVER_NAME "uart_marklin_server"
 #define CLOCK_SERVER_NAME "clock_server"
+#define COMMAND_SERVER_NAME "command_server"
 
 int64_t register_as(const char* name);
 int64_t who_is(const char* name);
-void k2_name_server();
+void name_server_task();
 
 #endif

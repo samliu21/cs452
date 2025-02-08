@@ -44,7 +44,7 @@ int64_t who_is(const char* name)
     return tid;
 }
 
-void k2_name_server()
+void name_server_task()
 {
     stringmap_t names = stringmap_new();
     uint64_t caller_tid, mapped_tid;

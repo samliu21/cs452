@@ -3,6 +3,7 @@
 #include "interrupt.h"
 #include "name_server.h"
 #include "syscall_func.h"
+#include <stdarg.h>
 
 int64_t getc(uint64_t tid, int channel)
 {
@@ -52,6 +53,91 @@ int64_t puts(uint64_t tid, int channel, const char* buf)
     return res;
 }
 
+int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
+{
+    char ch, buf[12];
+    int width = 0, pad_zero = 0;
+    int64_t res = 0;
+
+    while ((ch = *(fmt++))) {
+        if (ch != '%') {
+            if (putc(line, channel, ch) == -1) {
+                res = -1;
+            }
+        } else {
+            // Reset width and padding flag
+            width = 0;
+            pad_zero = 0;
+
+            // Parse width specifier (e.g., %2u, %03d)
+            ch = *(fmt++);
+            if (ch == '0') { // Zero-padding detected
+                pad_zero = 1;
+                ch = *(fmt++);
+            }
+            while (ch >= '0' && ch <= '9') { // Extract width
+                width = width * 10 + (ch - '0');
+                ch = *(fmt++);
+            }
+
+            switch (ch) {
+            case 'u':
+                ui2a(va_arg(va, unsigned int), 10, buf);
+                break;
+            case 'd':
+                i2a(va_arg(va, int), buf);
+                break;
+            case 'x':
+                ui2a(va_arg(va, unsigned int), 16, buf);
+                break;
+            case 's':
+                if (puts(line, channel, va_arg(va, char*)) == -1) {
+                    res = -1;
+                }
+                continue;
+            case '%':
+                if (putc(line, channel, '%') == -1) {
+                    res = -1;
+                }
+                continue;
+            case '\0':
+                return 0; // End of format string
+            default:
+                if (putc(line, channel, ch) == -1) {
+                    res = -1;
+                }
+                continue;
+            }
+
+            // Get length of formatted number
+            int len = strlen(buf);
+
+            // Handle padding (either '0' or ' ')
+            while (len < width) {
+                if (putc(line, channel, pad_zero ? '0' : ' ') == -1) {
+                    res = -1;
+                }
+                len++;
+            }
+
+            // Print formatted number
+            if (puts(line, channel, buf) == -1) {
+                res = -1;
+            }
+        }
+    }
+    return res;
+}
+
+int64_t printf(uint64_t line, int channel, const char* fmt, ...)
+{
+    va_list va;
+    va_start(va, fmt);
+    int64_t res = va_printf(line, channel, fmt, va);
+    va_end(va);
+    return res;
+}
+
 void k4_uart_server()
 {
     uint64_t initial_task_tid;
@@ -65,10 +151,10 @@ void k4_uart_server()
     ASSERT(res >= 0, "register_as failed");
 
     char msg[32];
-    charqueuenode writenodes[256];
+    charqueuenode writenodes[256], readertidnodes[256], writertidnodes[256];
     charqueue writequeue = charqueue_new(writenodes, 256);
-    uint64_t reader_tid = 0;
-    uint64_t writer_tid = 0;
+    charqueue readertidqueue = charqueue_new(readertidnodes, 256);
+    charqueue writertidqueue = charqueue_new(writertidnodes, 256);
     uint64_t caller_tid;
 
     int cts_flag = 1;
@@ -86,14 +172,14 @@ void k4_uart_server()
             } else {
                 // otherwise, enable read interrupts and wait for the interrupt
                 enable_uart_read_interrupts(line);
-                reader_tid = caller_tid;
+                charqueue_add(&readertidqueue, caller_tid);
             }
             break;
         }
         case REQUEST_UART_WRITE: {
             char c = msg[1];
             charqueue_add(&writequeue, c);
-            writer_tid = caller_tid;
+            charqueue_add(&writertidqueue, caller_tid);
 
             if (!uart_write_available(line)) {
                 enable_uart_write_interrupts(line);
@@ -101,13 +187,12 @@ void k4_uart_server()
             break;
         }
         case REQUEST_READ_AVAILABLE: {
-            ASSERT(reader_tid != 0, "reader_tid doesn't exist");
+            ASSERT(!charqueue_empty(&readertidqueue), "reader tid queue is empty");
 
             // respond to reader
             char c = uart_assert_getc(line);
-            int64_t res = reply(reader_tid, &c, 1);
+            int64_t res = reply(charqueue_pop(&readertidqueue), &c, 1);
             ASSERTF(res >= 0, "reply failed with code: %d", res);
-            reader_tid = 0;
 
             // respond to notifier
             res = reply_empty(caller_tid);
@@ -140,10 +225,9 @@ void k4_uart_server()
         if (can_print) {
             uart_assert_putc(line, charqueue_pop(&writequeue));
 
-            ASSERT(writer_tid != 0, "writer_tid doesn't exist");
-            int64_t res = reply_empty(writer_tid);
+            ASSERT(!charqueue_empty(&writertidqueue), "writer tid queue is empty");
+            int64_t res = reply_empty(charqueue_pop(&writertidqueue));
             ASSERT(res >= 0, "reply failed");
-            writer_tid = 0;
 
             cts_flag = 0;
         }

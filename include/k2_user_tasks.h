@@ -81,7 +81,7 @@ void k2_random_test()
 void k2_initial_user_task()
 {
     // create name server
-    create(2, &k2_name_server);
+    create(2, &name_server_task);
 
     // create RPS server
     create(2, &k2_rps_server);

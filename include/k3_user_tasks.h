@@ -24,7 +24,7 @@ void k3_client_task()
     exit();
 }
 
-void k3_idle_task()
+void idle_task()
 {
     for (;;) {
         __asm__ volatile("wfi");
@@ -33,10 +33,10 @@ void k3_idle_task()
 
 void k3_initial_user_task()
 {
-    create(100, &k2_name_server);
+    create(100, &name_server_task);
     create(100, &k3_clock_server);
     create(100, &k3_clock_notifier);
-    create(0, &k3_idle_task);
+    create(0, &idle_task);
 
     create(10, &k3_client_task);
     create(9, &k3_client_task);

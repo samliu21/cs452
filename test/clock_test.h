@@ -61,7 +61,7 @@ int _test_clock()
 
     uint64_t n_tasks = 1;
     task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &clock_task1func, &kernel_task);
-    task_t* name_server = allocator_new_task(&allocator, stack, n_tasks++, 1, &k2_name_server, &kernel_task);
+    task_t* name_server = allocator_new_task(&allocator, stack, n_tasks++, 1, &name_server_task, &kernel_task);
     task_t* clock_server = allocator_new_task(&allocator, stack, n_tasks++, 1, &k3_clock_server, &kernel_task);
     task_t* clock_notifier = allocator_new_task(&allocator, stack, n_tasks++, 1, &k3_clock_notifier, &kernel_task);
     task_t* idle_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &idletaskfunc, &kernel_task);
@@ -94,8 +94,6 @@ int _test_clock()
 
     SEND(clock_notifier);
     RECEIVE_REPLY(name_server);
-
-    // Enter test task
 
     // Test time() with invalid tid
     SEND(task1);
