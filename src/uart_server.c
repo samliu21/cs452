@@ -6,8 +6,8 @@
 
 int64_t getc(uint64_t tid, int channel)
 {
-    uint64_t terminal_tid = who_is("uart_terminal_server");
-    uint64_t marklin_tid = who_is("uart_marklin_server");
+    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
+    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
     if (tid != terminal_tid && tid != marklin_tid) {
         return -1;
     }
@@ -23,8 +23,8 @@ int64_t getc(uint64_t tid, int channel)
 
 int64_t putc(uint64_t tid, int channel, char c)
 {
-    uint64_t terminal_tid = who_is("uart_terminal_server");
-    uint64_t marklin_tid = who_is("uart_marklin_server");
+    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
+    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
     if (tid != terminal_tid && tid != marklin_tid) {
         return -1;
     }
@@ -61,7 +61,7 @@ void k4_uart_server()
     int line = type;
     ASSERT(line == CONSOLE || line == MARKLIN, "invalid line");
 
-    int64_t res = register_as(line == CONSOLE ? "uart_terminal_server" : "uart_marklin_server");
+    int64_t res = register_as(line == CONSOLE ? TERMINAL_SERVER_NAME : MARKLIN_SERVER_NAME);
     ASSERT(res >= 0, "register_as failed");
 
     char msg[32];

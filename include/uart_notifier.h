@@ -8,7 +8,7 @@
 
 void k4_terminal_notifier()
 {
-    int64_t terminal_tid = who_is("uart_terminal_server");
+    int64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
     ASSERT(terminal_tid >= 0, "who_is failed");
 
     for (;;) {
@@ -19,7 +19,7 @@ void k4_terminal_notifier()
 
 void k4_marklin_notifier()
 {
-    int64_t marklin_tid = who_is("uart_marklin_server");
+    int64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
     ASSERT(marklin_tid >= 0, "who_is failed");
 
     for (;;) {

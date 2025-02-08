@@ -8,7 +8,7 @@
 
 void k3_clock_notifier()
 {
-    uint64_t clock_server_tid = who_is("clock_server");
+    uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
     char tick_msg[2];
     tick_msg[0] = TICK;
     tick_msg[1] = 0;

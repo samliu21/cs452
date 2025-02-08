@@ -9,7 +9,7 @@ void k3_client_task()
 {
     uint64_t parent_tid = my_parent_tid();
     uint64_t tid = my_tid();
-    uint64_t clock_server_tid = who_is("clock_server");
+    uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
 
     char response[8];
     ASSERT(send(parent_tid, NULL, 0, response, 8) >= 0, "send failed");

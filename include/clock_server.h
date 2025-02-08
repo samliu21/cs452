@@ -18,7 +18,7 @@ typedef enum {
 
 int64_t time(uint64_t tid)
 {
-    uint64_t clock_server_tid = who_is("clock_server");
+    uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
     if (tid != clock_server_tid) {
         return -1;
     }
@@ -38,7 +38,7 @@ int64_t time(uint64_t tid)
 
 int64_t delay(uint64_t tid, int64_t ticks)
 {
-    uint64_t clock_server_tid = who_is("clock_server");
+    uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
     if (tid != clock_server_tid) {
         return -1;
     }
@@ -64,7 +64,7 @@ int64_t delay(uint64_t tid, int64_t ticks)
 
 int64_t delay_until(uint64_t tid, int64_t ticks)
 {
-    uint64_t clock_server_tid = who_is("clock_server");
+    uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
     if (tid != clock_server_tid) {
         return -1;
     }
@@ -89,7 +89,7 @@ int64_t delay_until(uint64_t tid, int64_t ticks)
 
 void k3_clock_server()
 {
-    register_as("clock_server");
+    register_as(CLOCK_SERVER_NAME);
 
     uintmap_t waiting_tasks = uintmap_new(); // map<tid, time>
     uint32_t cur_ticks = 0;

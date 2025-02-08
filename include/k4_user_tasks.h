@@ -10,7 +10,7 @@
 
 void k4_terminal_task()
 {
-    int64_t uart_server_tid = who_is("uart_terminal_server");
+    int64_t uart_server_tid = who_is(TERMINAL_SERVER_NAME);
     ASSERT(uart_server_tid >= 0, "who_is failed");
 
     for (;;) {
@@ -27,7 +27,7 @@ void k4_terminal_task()
 
 void k4_marklin_task()
 {
-    int64_t uart_server_tid = who_is("uart_marklin_server");
+    int64_t uart_server_tid = who_is(MARKLIN_SERVER_NAME);
     ASSERT(uart_server_tid >= 0, "who_is failed");
 
     putc(uart_server_tid, MARKLIN, 26);
