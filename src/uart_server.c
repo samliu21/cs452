@@ -138,16 +138,18 @@ int64_t printf(uint64_t line, int channel, const char* fmt, ...)
     return res;
 }
 
-void k4_uart_server()
+void uart_server_task()
 {
     uint64_t initial_task_tid;
     char type;
-    receive(&initial_task_tid, &type, 1);
-    reply_empty(initial_task_tid);
+    int64_t res = receive(&initial_task_tid, &type, 1);
+    ASSERT(res >= 0, "receive failed");
+    res = reply_empty(initial_task_tid);
+    ASSERT(res >= 0, "reply failed");
     int line = type;
     ASSERT(line == CONSOLE || line == MARKLIN, "invalid line");
 
-    int64_t res = register_as(line == CONSOLE ? TERMINAL_SERVER_NAME : MARKLIN_SERVER_NAME);
+    res = register_as(line == CONSOLE ? TERMINAL_SERVER_NAME : MARKLIN_SERVER_NAME);
     ASSERT(res >= 0, "register_as failed");
 
     char msg[32];

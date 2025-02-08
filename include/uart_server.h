@@ -15,6 +15,6 @@ int64_t getc(uint64_t tid, int channel);
 int64_t putc(uint64_t tid, int channel, char c);
 int64_t puts(uint64_t tid, int channel, const char* buf);
 int64_t printf(uint64_t line, int channel, const char* fmt, ...);
-void k4_uart_server();
+void uart_server_task();
 
 #endif

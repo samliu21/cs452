@@ -12,6 +12,6 @@ typedef struct command_result_t {
     char* error_message;
 } command_result_t;
 
-void k4_command_server();
+void command_task();
 
 #endif

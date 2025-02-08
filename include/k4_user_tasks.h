@@ -1,6 +1,7 @@
 #ifndef _k4_user_tasks_
 #define _k4_user_tasks_
 
+#include "clock_server.h"
 #include "command.h"
 #include "interrupt.h"
 #include "k3_user_tasks.h"
@@ -43,13 +44,45 @@ void terminal_task()
     exit();
 }
 
-void marklin_task()
+void train_speed_task()
 {
+    int64_t ret = register_as(TRAIN_SPEED_SERVER_NAME);
+    ASSERT(ret >= 0, "register_as failed");
     int64_t uart_server_tid = who_is(MARKLIN_SERVER_NAME);
     ASSERT(uart_server_tid >= 0, "who_is failed");
 
-    // putc(uart_server_tid, MARKLIN, 26);
-    // putc(uart_server_tid, MARKLIN, 55);
+    uint64_t caller_tid;
+    char buf[2];
+    for (;;) {
+        receive(&caller_tid, buf, 2);
+        uint64_t train = buf[0];
+        uint64_t speed = buf[1];
+
+        putc(uart_server_tid, MARKLIN, 16 + speed);
+        putc(uart_server_tid, MARKLIN, train);
+
+        reply_empty(caller_tid);
+    }
+
+    exit();
+}
+
+void train_reverse_task()
+{
+    int64_t uart_server_tid = who_is(MARKLIN_SERVER_NAME);
+    ASSERT(uart_server_tid >= 0, "who_is failed");
+    int64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
+    ASSERT(clock_server_tid >= 0, "who_is failed");
+
+    uint64_t caller_tid;
+    char train;
+    receive(&caller_tid, &train, 1);
+    reply_empty(caller_tid);
+
+    int64_t res = delay(clock_server_tid, 500); // delay for 5s
+    ASSERT(res >= 0, "delay failed");
+    putc(uart_server_tid, MARKLIN, 0x1f);
+    putc(uart_server_tid, MARKLIN, train);
 
     exit();
 }
@@ -57,23 +90,26 @@ void marklin_task()
 void k4_initial_user_task()
 {
     create(1, &name_server_task);
+    create(1, &clock_server_task);
+    create(1, &clock_notifier_task);
     create(0, &idle_task);
 
     char c;
-    uint64_t terminal_server_tid = create(1, &k4_uart_server);
+    uint64_t terminal_server_tid = create(1, &uart_server_task);
     c = CONSOLE;
     send(terminal_server_tid, &c, 1, NULL, 0);
-    uint64_t marklin_server_tid = create(1, &k4_uart_server);
+    uint64_t marklin_server_tid = create(1, &uart_server_task);
     c = MARKLIN;
     send(marklin_server_tid, &c, 1, NULL, 0);
 
-    create(1, &k4_command_server);
+    create(1, &command_task);
 
-    create(1, &k4_terminal_notifier);
-    create(1, &k4_marklin_notifier);
+    create(1, &terminal_notifier);
+    create(1, &marklin_notifier);
+
+    create(1, &train_speed_task);
 
     create(1, &terminal_task);
-    create(1, &marklin_task);
 
     exit();
 }

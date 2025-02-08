@@ -4,12 +4,14 @@
 #include "syscall_func.h"
 #include "uart_server.h"
 
-void k4_command_server()
+void train_reverse_task();
+
+void command_task()
 {
     int64_t ret = register_as(COMMAND_SERVER_NAME);
     ASSERT(ret >= 0, "register_as failed");
-    int64_t marklin_server_id = who_is(MARKLIN_SERVER_NAME);
-    ASSERT(marklin_server_id >= 0, "who_is failed");
+    int64_t train_speed_server_id = who_is(TRAIN_SPEED_SERVER_NAME);
+    ASSERT(train_speed_server_id >= 0, "who_is failed");
 
     char command[32];
     uint64_t caller_tid;
@@ -41,9 +43,36 @@ void k4_command_server()
             }
             // marklin_set_train_speed(tlist, q, train, speed);
 
-			// TODO: should this block? should we send these chars to another server?
-            putc(marklin_server_id, MARKLIN, 16 + speed);
-			putc(marklin_server_id, MARKLIN, 55);
+            char buf[2];
+            buf[0] = train;
+            buf[1] = speed;
+            send(train_speed_server_id, buf, 2, NULL, 0);
+
+            result.type = COMMAND_SUCCESS;
+        }
+
+        else if (strcmp(command_type, "rv") == 0) {
+            if (argc != 2) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "rv command expects 1 argument";
+                goto end;
+            }
+            uint64_t train = a2ui(args[1], 10);
+            if (train != 55) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "train does not exist";
+                goto end;
+            }
+            // marklin_set_train_speed(tlist, q, train, 0);
+
+            // set speed to 0
+            char buf[2];
+            buf[0] = train;
+            buf[1] = 0;
+            send(train_speed_server_id, buf, 2, NULL, 0);
+
+            int64_t reverse_task_id = create(1, &train_reverse_task);
+            send(reverse_task_id, buf, 1, NULL, 0);
 
             result.type = COMMAND_SUCCESS;
         }

@@ -6,7 +6,7 @@
 #include "syscall_asm.h"
 #include "timer.h"
 
-void k3_clock_notifier()
+void clock_notifier_task()
 {
     uint64_t clock_server_tid = who_is(CLOCK_SERVER_NAME);
     char tick_msg[2];

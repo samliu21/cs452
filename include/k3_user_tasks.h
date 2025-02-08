@@ -34,8 +34,8 @@ void idle_task()
 void k3_initial_user_task()
 {
     create(100, &name_server_task);
-    create(100, &k3_clock_server);
-    create(100, &k3_clock_notifier);
+    create(100, &clock_server_task);
+    create(100, &clock_notifier_task);
     create(0, &idle_task);
 
     create(10, &k3_client_task);

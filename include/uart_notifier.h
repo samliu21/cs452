@@ -6,7 +6,7 @@
 #include "syscall_func.h"
 #include "uart_server.h"
 
-void k4_terminal_notifier()
+void terminal_notifier()
 {
     int64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
     ASSERT(terminal_tid >= 0, "who_is failed");
@@ -17,7 +17,7 @@ void k4_terminal_notifier()
     }
 }
 
-void k4_marklin_notifier()
+void marklin_notifier()
 {
     int64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
     ASSERT(marklin_tid >= 0, "who_is failed");

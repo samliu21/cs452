@@ -87,7 +87,7 @@ int64_t delay_until(uint64_t tid, int64_t ticks)
     }
 }
 
-void k3_clock_server()
+void clock_server_task()
 {
     register_as(CLOCK_SERVER_NAME);
 
