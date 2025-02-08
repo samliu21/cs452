@@ -44,8 +44,8 @@ void command_task()
             // marklin_set_train_speed(tlist, q, train, speed);
 
             char buf[2];
-            buf[0] = train;
-            buf[1] = speed;
+            buf[0] = speed;
+            buf[1] = train;
             send(train_speed_server_id, buf, 2, NULL, 0);
 
             result.type = COMMAND_SUCCESS;
@@ -67,12 +67,12 @@ void command_task()
 
             // set speed to 0
             char buf[2];
-            buf[0] = train;
-            buf[1] = 0;
+            buf[0] = 0;
+            buf[1] = train;
             send(train_speed_server_id, buf, 2, NULL, 0);
 
             int64_t reverse_task_id = create(1, &train_reverse_task);
-            send(reverse_task_id, buf, 1, NULL, 0);
+            send(reverse_task_id, (char*)&train, 1, NULL, 0);
 
             result.type = COMMAND_SUCCESS;
         }

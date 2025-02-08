@@ -8,17 +8,17 @@
 #define NO_PLAYER 0
 
 typedef enum {
-    SIGNUP = 'S',
-    PLAY = 'P',
-    QUIT = 'Q',
+    SIGNUP = 1,
+    PLAY = 2,
+    QUIT = 3,
 } rps_server_request_t;
 
 typedef enum {
-    ABANDONED = 'A',
-    TIE = 'T',
-    WIN = 'W',
-    LOSE = 'L',
-    FAILED = 'F',
+    ABANDONED = 1,
+    TIE = 2,
+    WIN = 3,
+    LOSE = 4,
+    FAILED = 5,
 } rps_server_response_t;
 
 typedef enum {

@@ -10,10 +10,10 @@
 #include "uintmap.h"
 
 typedef enum {
-    TIME = 'T',
-    DELAY = 'D',
-    DELAY_UNTIL = 'U',
-    TICK = 'K',
+    TIME = 1,
+    DELAY = 2,
+    DELAY_UNTIL = 3,
+    TICK = 4,
 } clock_server_request_t;
 
 int64_t time(uint64_t tid)

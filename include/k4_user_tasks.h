@@ -19,6 +19,7 @@ void terminal_task()
 
     char command[32], command_result_buf[32];
     int command_pos = 0;
+    puts(uart_server_tid, CONSOLE, "> ");
     for (;;) {
         char c = getc(uart_server_tid, CONSOLE);
         command[command_pos++] = c;
@@ -36,6 +37,7 @@ void terminal_task()
             }
 
             command_pos = 0;
+            puts(uart_server_tid, CONSOLE, "> ");
         } else {
             putc(uart_server_tid, CONSOLE, c);
         }
@@ -55,11 +57,11 @@ void train_speed_task()
     char buf[2];
     for (;;) {
         receive(&caller_tid, buf, 2);
-        uint64_t train = buf[0];
-        uint64_t speed = buf[1];
-
-        putc(uart_server_tid, MARKLIN, 16 + speed);
-        putc(uart_server_tid, MARKLIN, train);
+        char sendbuf[3];
+        sendbuf[0] = buf[0] + 16;
+        sendbuf[1] = buf[1];
+        sendbuf[2] = 0;
+        puts(uart_server_tid, MARKLIN, sendbuf);
 
         reply_empty(caller_tid);
     }
@@ -81,10 +83,17 @@ void train_reverse_task()
 
     int64_t res = delay(clock_server_tid, 500); // delay for 5s
     ASSERT(res >= 0, "delay failed");
-    putc(uart_server_tid, MARKLIN, 0x1f);
-    putc(uart_server_tid, MARKLIN, train);
+    char sendbuf[3];
+    sendbuf[0] = 0x1f;
+    sendbuf[1] = train;
+    sendbuf[2] = 0;
+    puts(uart_server_tid, MARKLIN, sendbuf);
 
     exit();
+}
+
+void k4_state_task()
+{
 }
 
 void k4_initial_user_task()

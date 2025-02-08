@@ -5,6 +5,8 @@
 #include "syscall_func.h"
 #include <stdarg.h>
 
+#define WRITER_QUEUE_DUMMY_TID 0
+
 int64_t getc(uint64_t tid, int channel)
 {
     uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
@@ -42,15 +44,22 @@ int64_t putc(uint64_t tid, int channel, char c)
 
 int64_t puts(uint64_t tid, int channel, const char* buf)
 {
-    int64_t res = 0;
-    while (buf[res] != '\0') {
-        if (putc(tid, channel, buf[res]) == -1) {
-            res = -1;
-            break;
-        }
-        res++;
+    uint64_t terminal_tid = who_is(TERMINAL_SERVER_NAME);
+    uint64_t marklin_tid = who_is(MARKLIN_SERVER_NAME);
+    if (tid != terminal_tid && tid != marklin_tid) {
+        return -1;
     }
-    return res;
+    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_tid && channel != MARKLIN)) {
+        return -1;
+    }
+    int len = strlen(buf);
+    char sendbuf[len + 2];
+    sendbuf[0] = REQUEST_UART_WRITE_STRING;
+    strcpy(sendbuf + 1, buf);
+    sendbuf[len + 1] = 0;
+    int64_t ret = send(tid, sendbuf, len + 2, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+    return 0;
 }
 
 int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
@@ -183,9 +192,19 @@ void uart_server_task()
             charqueue_add(&writequeue, c);
             charqueue_add(&writertidqueue, caller_tid);
 
-            if (!uart_write_available(line)) {
-                enable_uart_write_interrupts(line);
+            break;
+        }
+        case REQUEST_UART_WRITE_STRING: {
+            char* s = msg + 1;
+            while (*s) {
+                charqueue_add(&writequeue, *s);
+                s++;
+                if (*s) {
+                    charqueue_add(&writertidqueue, WRITER_QUEUE_DUMMY_TID);
+                }
             }
+            charqueue_add(&writertidqueue, caller_tid);
+
             break;
         }
         case REQUEST_READ_AVAILABLE: {
@@ -219,17 +238,28 @@ void uart_server_task()
         }
         }
 
-        int tx_flag = uart_write_available(line);
-        int can_print = tx_flag && !charqueue_empty(&writequeue);
-        if (line == MARKLIN) {
-            can_print = can_print && cts_flag;
-        }
-        if (can_print) {
+        for (;;) {
+            int tx_flag = uart_write_available(line);
+            int channel_ready = tx_flag;
+            if (line == MARKLIN) {
+                channel_ready = channel_ready && cts_flag;
+            }
+
+            if (charqueue_empty(&writequeue)) {
+                break;
+            } else if (!channel_ready) {
+                enable_uart_write_interrupts(line);
+                break;
+            }
+
             uart_assert_putc(line, charqueue_pop(&writequeue));
 
             ASSERT(!charqueue_empty(&writertidqueue), "writer tid queue is empty");
-            int64_t res = reply_empty(charqueue_pop(&writertidqueue));
-            ASSERT(res >= 0, "reply failed");
+            uint64_t tid = charqueue_pop(&writertidqueue);
+            if (tid != WRITER_QUEUE_DUMMY_TID) {
+                int64_t res = reply_empty(tid);
+                ASSERT(res >= 0, "reply failed");
+            }
 
             cts_flag = 0;
         }
