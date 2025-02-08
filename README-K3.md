@@ -29,4 +29,3 @@ Important: You must call `make clean` before re-building with different Make Var
 - `receive(tid, msg, msglen)`: receives a message. The sender's ID is placed in `tid` and the sender's message in placed in `msg`. Returns the size of the sender's message
 - `reply(tid, reply, rplen)`: replies to the task specified by `tid`. Returns the size of the reply message, `-1` if the task doesn't exist, and `-2` if the task exists but isn't reply-blocked
 - `await_event(eventid)`: the active task blocks until the event specified by `eventid` fires. Returns event-specific data if the call succeeds and `-1` if the event is invalid
-- `cpu_usage()`: returns the CPU usage stats. The CPU's percent usage can be obtained by `return value % 100`, and the idle task's percent usage can be obtained by `return_value / 100`

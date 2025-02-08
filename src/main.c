@@ -69,8 +69,9 @@ int kmain()
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
 
     // performance metrics
-    uintmap_t performance_map = uintmap_new();
+    uint64_t total_time = 0, kernel_time = 0, idle_time = 0;
     uint64_t kernel_time_start = timer_get_us(), kernel_time_duration, kernel_time_end, user_time_duration;
+    uint64_t last_perf_print = timer_get_ms();
 
     // kernel context
     main_context_t context;
@@ -85,10 +86,6 @@ int kmain()
     context.tasks_waiting_for_terminal = &tasks_waiting_for_terminal;
     context.tasks_waiting_for_marklin = &tasks_waiting_for_marklin;
     context.next_tick = next_tick;
-    context.performance_map = &performance_map;
-
-    uint64_t last_perf_print = timer_get_ms();
-    uint64_t idle_tid = 0;
 
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
@@ -96,47 +93,27 @@ int kmain()
 
         kernel_time_end = timer_get_us();
         kernel_time_duration = kernel_time_end - kernel_time_start;
-        uintmap_increment(&performance_map, kernel_task.tid, kernel_time_duration);
+        total_time += kernel_time_duration;
+        kernel_time += kernel_time_duration;
 
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 
         kernel_time_start = timer_get_us();
         user_time_duration = kernel_time_start - kernel_time_end;
-        uintmap_increment(&performance_map, context.active_task->tid, user_time_duration);
+        total_time += user_time_duration;
+        if (context.active_task->priority == 0) {
+            idle_time += user_time_duration;
+        }
 
         int should_print_perf = timer_get_ms() - last_perf_print > PRINT_PERF_AFTER_MS;
         if (should_print_perf) {
-            // get idle task's tid if we haven't set it yet
-            if (!idle_tid) {
-                task_t* idle_task = allocator.alloc_list;
-                while (idle_task != NULL && idle_task->priority != 0) {
-                    idle_task = idle_task->next_slab;
-                }
-                if (idle_task) {
-                    idle_tid = idle_task->tid;
-                }
-            }
-
-            // get perf stats
-            uint64_t total_time = 0, kernel_time = 0, idle_time = 0, user_time = 0;
-            for (int i = 0; i < performance_map.num_keys; ++i) {
-                total_time += performance_map.values[i];
-                if (performance_map.keys[i] == idle_tid) {
-                    idle_time = performance_map.values[i];
-                } else if (performance_map.keys[i] == kernel_task.tid) {
-                    kernel_time = performance_map.values[i];
-                }
-            }
-
-            // convert to percentage
-            if (total_time > 0) {
-                kernel_time = kernel_time * 100 / total_time;
-                idle_time = idle_time * 100 / total_time;
-                user_time = 100 - kernel_time - idle_time;
-            }
+            uint64_t kernel_percentage = kernel_time * 100 / total_time;
+            uint64_t idle_percentage = idle_time * 100 / total_time;
+            uint64_t user_percentage = 100 - kernel_percentage - idle_percentage;
 
             // print
-            uart_printf(CONSOLE, "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u", kernel_time, idle_time, user_time);
+            char* format = "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u";
+            uart_printf(CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
 
             // update last print time
             last_perf_print = timer_get_ms();
@@ -178,10 +155,6 @@ int kmain()
         }
         case SYSCALL_AWAIT_EVENT: {
             await_event_handler(&context);
-            break;
-        }
-        case SYSCALL_CPUUSAGE: {
-            cpu_usage_handler(&context);
             break;
         }
         case INTERRUPT_CODE: {

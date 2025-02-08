@@ -20,7 +20,6 @@ typedef struct main_context_t {
     queue_t* tasks_waiting_for_marklin;
     task_t* active_task;
     uint32_t next_tick;
-    uintmap_t* performance_map;
 } main_context_t;
 
 void create_handler(main_context_t* context);
@@ -31,6 +30,5 @@ void send_handler(main_context_t* context);
 void receive_handler(main_context_t* context);
 void reply_handler(main_context_t* context);
 void await_event_handler(main_context_t* context);
-void cpu_usage_handler(main_context_t* context);
 
 #endif
