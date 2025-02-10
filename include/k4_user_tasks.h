@@ -60,10 +60,11 @@ void display_state_task()
     for (;;) {
         char sensors[32];
         state_get_recent_sensors(state_task_tid, sensors);
-        // printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Ksensors: %s\r\n\033[u", sensors);
+
+        // puts(CONSOLE, CONSOLE, "\033[s\033[2;1H\033[2Ksensors\033[u");
         uart_printf(CONSOLE, "\033[s\033[2;1H\033[2Ksensors: %s\r\n\033[u", sensors);
 
-        delay(clock_task_tid, 20);
+        delay(clock_task_tid, 5);
     }
 }
 

@@ -21,20 +21,16 @@ void sensor_task()
 
     char sensordata[10];
     memset(sensordata, 0, 10);
-    uint64_t last_time;
 
     for (;;) {
-        // uart_puts(CONSOLE, "sending char\r\n");
         int64_t res = putc(marklin_task_tid, MARKLIN, 0x85);
         ASSERT(res >= 0, "putc failed");
 
-        // uart_puts(CONSOLE, "reading char\r\n");
         for (int i = 0; i < 10; ++i) {
             res = getc(marklin_task_tid, MARKLIN);
             ASSERT(res >= 0, "getc failed");
             sensordata[i] = res;
         }
-        // uart_puts(CONSOLE, "char has been read\r\n");
 
         for (int bank = 0; bank < NUM_BANKS; ++bank) {
             for (int i = 0; i < NUM_SENSORS_PER_BANK; ++i) {
@@ -42,14 +38,12 @@ void sensor_task()
                 char byte = sensordata[byte_index];
                 unsigned int bit = byte & (1 << (7 - (i % 8)));
                 if (bit) {
-                    state_set_recent_sensor(state_task_tid, bank, i);
+                    state_set_recent_sensor(state_task_tid, bank, i + 1);
                 }
             }
         }
-        // uart_puts(CONSOLE, "sensor task done\r\n");
 
-        last_time = timer_get_ms();
-        while (timer_get_ms() - last_time < 100) { }
+        delay(clock_task_tid, 20);
     }
 }
 

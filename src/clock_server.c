@@ -105,6 +105,7 @@ void clock_server_task()
                 reply_num(caller_tid, cur_ticks);
                 break;
             }
+            // uart_printf(CONSOLE, "delay_until: %d\n", delay_until);
             uintmap_set(&waiting_tasks, caller_tid, delay_until);
             break;
         }
@@ -125,9 +126,10 @@ void clock_server_task()
             ASSERT(caller_tid == 4, "tick not called by clock notifier");
             cur_ticks++;
 
-            for (int i = 0; i < waiting_tasks.num_keys; ++i) {
+            for (int i = waiting_tasks.num_keys - 1; i >= 0; --i) {
                 uint64_t tid = waiting_tasks.keys[i];
                 uint64_t delay_until = waiting_tasks.values[i];
+                ASSERT(delay_until >= cur_ticks, "delay_until < cur_ticks");
                 if (delay_until == cur_ticks) {
                     reply_num(tid, delay_until);
                     uintmap_remove(&waiting_tasks, tid);
