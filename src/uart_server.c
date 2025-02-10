@@ -62,7 +62,7 @@ int64_t puts(uint64_t tid, int channel, const char* buf)
     return 0;
 }
 
-int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
+int64_t va_printf(uint64_t tid, int channel, const char* fmt, va_list va)
 {
     char ch, buf[12];
     int width = 0, pad_zero = 0;
@@ -112,7 +112,6 @@ int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
                 output[pos++] = '%';
                 continue;
             case '\0':
-                puts(line, channel, output);
                 return 0; // End of format string
             default:
                 output[pos++] = ch;
@@ -136,15 +135,15 @@ int64_t va_printf(size_t line, int channel, const char* fmt, va_list va)
             }
         }
     }
-    puts(line, channel, output);
+    puts(tid, channel, output);
     return res;
 }
 
-int64_t printf(uint64_t line, int channel, const char* fmt, ...)
+int64_t printf(uint64_t tid, int channel, const char* fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    int64_t res = va_printf(line, channel, fmt, va);
+    int64_t res = va_printf(tid, channel, fmt, va);
     va_end(va);
     return res;
 }
