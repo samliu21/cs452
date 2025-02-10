@@ -59,12 +59,23 @@ void display_state_task()
     ASSERT(terminal_task_tid >= 0, "who_is failed");
 
     for (;;) {
+        int64_t ret;
+
+        // clock
+        unsigned int time = 2222;
+        unsigned int minutes = time / 60000;
+        unsigned int seconds = (time % 60000) / 1000;
+        unsigned int tenths = (time % 1000) / 100;
+
+        printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Kminutes: %d, seconds: %d, tenths: %d\033[u", minutes, seconds, tenths);
+        ret = delay(clock_task_tid, 5);
+
+        // sensors
         char sensors[32];
         state_get_recent_sensors(state_task_tid, sensors);
+        printf(terminal_task_tid, CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
 
-        printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Ksensors: [ %s]\033[u", sensors);
-
-        int64_t ret = delay(clock_task_tid, 5);
+        ret = delay(clock_task_tid, 5);
         ASSERT(ret >= 0, "delay failed");
     }
 }

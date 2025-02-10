@@ -37,7 +37,7 @@ int kmain()
     }
 
     // clear screen
-    uart_puts(CONSOLE, "\033[2J\r\n\r\n");
+    uart_puts(CONSOLE, "\033[2J\033[999;1H");
 
     // create kernel task
     task_t kernel_task;

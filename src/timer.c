@@ -1,5 +1,6 @@
 #include "timer.h"
 #include "rpi.h"
+#include "uart_server.h"
 
 uint32_t timer_get_us()
 {
