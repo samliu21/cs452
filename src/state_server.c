@@ -11,7 +11,8 @@ void state_set_speed(uint64_t state_task_tid, uint64_t train, uint64_t speed)
     buf[0] = SET_TRAIN_SPEED;
     buf[1] = speed;
     buf[2] = train;
-    send(state_task_tid, buf, 3, NULL, 0);
+    int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
 }
 
 uint64_t state_get_speed(uint64_t state_task_tid, uint64_t train)
@@ -19,7 +20,8 @@ uint64_t state_get_speed(uint64_t state_task_tid, uint64_t train)
     char buf[2], response[2];
     buf[0] = GET_TRAIN_SPEED;
     buf[1] = train;
-    send(state_task_tid, buf, 2, response, 2);
+    int64_t ret = send(state_task_tid, buf, 2, response, 2);
+    ASSERT(ret >= 0, "send failed");
     return response[1];
 }
 
@@ -29,7 +31,8 @@ void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor)
     buf[0] = SET_RECENT_SENSOR;
     buf[1] = bank;
     buf[2] = sensor;
-    send(state_task_tid, buf, 3, NULL, 0);
+    int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
 }
 
 void state_get_recent_sensors(uint64_t state_task_tid, char* response)
@@ -54,18 +57,21 @@ void state_task()
     uint64_t caller_tid;
     char buf[3];
     for (;;) {
-        receive(&caller_tid, buf, 3);
+        res = receive(&caller_tid, buf, 3);
+        ASSERT(res >= 0, "receive failed");
+
         switch (buf[0]) {
         case SET_TRAIN_SPEED: {
             uint64_t speed = buf[1];
             uint64_t train = buf[2];
             train_t* t = train_find(&trainlist, train);
             if (t == NULL) {
-                reply_num(caller_tid, 1);
+                res = reply_num(caller_tid, 1);
             } else {
                 t->speed = speed;
-                reply_num(caller_tid, 0);
+                res = reply_num(caller_tid, 0);
             }
+            ASSERT(res >= 0, "reply failed");
             break;
         }
         case GET_TRAIN_SPEED: {
@@ -78,7 +84,8 @@ void state_task()
                 response[0] = 0;
                 response[1] = t->speed;
             }
-            reply(caller_tid, response, 2);
+            res = reply(caller_tid, response, 2);
+            ASSERT(res >= 0, "reply failed");
             break;
         }
         case SET_RECENT_SENSOR: {
@@ -93,12 +100,13 @@ void state_task()
             charqueue_add(&sensorqueue, '0' + (sensor / 10));
             charqueue_add(&sensorqueue, '0' + (sensor % 10));
             charqueue_add(&sensorqueue, ' ');
-            reply_empty(caller_tid);
+            res = reply_empty(caller_tid);
+            ASSERT(res >= 0, "reply failed");
             break;
         }
         case GET_RECENT_SENSORS: {
             char response[32];
-            memset(response, 0, 32);
+            int sz = 0;
             charqueuenode* head = sensorqueue.head;
             for (int i = 0; i < 4 * NUM_RECENT_SENSORS; ++i) {
                 if (head == NULL) {
@@ -106,8 +114,11 @@ void state_task()
                 }
                 response[i] = head->data;
                 head = head->next;
+                sz++;
             }
-            reply(caller_tid, response, 32);
+            response[sz] = 0;
+            res = reply(caller_tid, response, sz + 1);
+            ASSERT(res >= 0, "reply failed");
             break;
         }
         default:

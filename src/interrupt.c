@@ -80,6 +80,7 @@ void handle_interrupt(main_context_t* context)
     case INTERRUPT_ID_UART: {
         uint32_t terminal_mis = UART_REG(CONSOLE, UART_MIS);
         uint32_t marklin_mis = UART_REG(MARKLIN, UART_MIS);
+        // TODO: it is possible for both terminals to have interrupts, handle this
         ASSERT(!terminal_mis || !marklin_mis, "both terminals have interrupts");
 
         queue_t* waiting_queue;

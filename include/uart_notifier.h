@@ -13,7 +13,8 @@ void terminal_notifier()
 
     for (;;) {
         char c = await_event(EVENT_UART_TERMINAL);
-        send(terminal_tid, &c, 1, NULL, 0);
+        int64_t ret = send(terminal_tid, &c, 1, NULL, 0);
+        ASSERT(ret >= 0, "send failed");
     }
 }
 
@@ -24,7 +25,8 @@ void marklin_notifier()
 
     for (;;) {
         char c = await_event(EVENT_UART_MARKLIN);
-        send(marklin_task_tid, &c, 1, NULL, 0);
+        int64_t ret = send(marklin_task_tid, &c, 1, NULL, 0);
+        ASSERT(ret >= 0, "send failed");
     }
 }
 

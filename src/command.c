@@ -71,7 +71,8 @@ void command_task()
             marklin_set_speed(marklin_task_tid, train, 0);
 
             int64_t reverse_task_id = create(1, &train_reverse_task);
-            send(reverse_task_id, (char*)&train, 1, NULL, 0);
+            int64_t ret = send(reverse_task_id, (char*)&train, 1, NULL, 0);
+            ASSERT(ret >= 0, "send failed");
 
             result.type = COMMAND_SUCCESS;
         }

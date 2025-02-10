@@ -29,7 +29,8 @@ void terminal_task()
             puts(uart_task_tid, CONSOLE, "\r\n");
 
             command[command_pos] = 0;
-            send(command_task_tid, command, command_pos + 1, command_result_buf, 32);
+            int64_t ret = send(command_task_tid, command, command_pos + 1, command_result_buf, 32);
+            ASSERT(ret >= 0, "send failed");
 
             command_result_t* command_result = (command_result_t*)command_result_buf;
             if (command_result->type == COMMAND_QUIT) {
@@ -61,10 +62,10 @@ void display_state_task()
         char sensors[32];
         state_get_recent_sensors(state_task_tid, sensors);
 
-        // printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Ksensors: [ %s]\r\n\033[u", sensors);
-        uart_printf(CONSOLE, "\033[s\033[2;1H\033[2Ksensors: [ %s]\r\n\033[u", sensors);
+        printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Ksensors: [ %s]\033[u", sensors);
 
-        delay(clock_task_tid, 5);
+        int64_t ret = delay(clock_task_tid, 5);
+        ASSERT(ret >= 0, "delay failed");
     }
 }
 
@@ -80,10 +81,12 @@ void k4_initial_user_task()
     char c;
     uint64_t terminal_task_tid = create(1, &uart_server_task);
     c = CONSOLE;
-    send(terminal_task_tid, &c, 1, NULL, 0);
+    int64_t ret = send(terminal_task_tid, &c, 1, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
     uint64_t marklin_task_tid = create(1, &uart_server_task);
     c = MARKLIN;
-    send(marklin_task_tid, &c, 1, NULL, 0);
+    ret = send(marklin_task_tid, &c, 1, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
     create(1, &terminal_notifier);
     create(1, &marklin_notifier);
 

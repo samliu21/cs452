@@ -43,7 +43,8 @@ void sensor_task()
             }
         }
 
-        delay(clock_task_tid, 20);
+        res = delay(clock_task_tid, 20);
+        ASSERT(res >= 0, "delay failed");
     }
 }
 

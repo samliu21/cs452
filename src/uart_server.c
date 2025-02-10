@@ -135,6 +135,7 @@ int64_t va_printf(uint64_t tid, int channel, const char* fmt, va_list va)
             }
         }
     }
+    output[pos] = 0;
     puts(tid, channel, output);
     return res;
 }
@@ -143,9 +144,9 @@ int64_t printf(uint64_t tid, int channel, const char* fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    int64_t res = va_printf(tid, channel, fmt, va);
+    va_printf(tid, channel, fmt, va);
     va_end(va);
-    return res;
+    return 0;
 }
 
 void uart_server_task()
@@ -162,7 +163,7 @@ void uart_server_task()
     res = register_as(line == CONSOLE ? TERMINAL_TASK_NAME : MARKLIN_TASK_NAME);
     ASSERT(res >= 0, "register_as failed");
 
-    char msg[32];
+    char msg[128];
     charqueuenode writenodes[256], readertidnodes[256], writertidnodes[256];
     charqueue writequeue = charqueue_new(writenodes, 256);
     charqueue readertidqueue = charqueue_new(readertidnodes, 256);
@@ -172,7 +173,7 @@ void uart_server_task()
     int cts_flag = 1;
 
     for (;;) {
-        int64_t ret = receive(&caller_tid, msg, 32);
+        int64_t ret = receive(&caller_tid, msg, 128);
         ASSERT(ret >= 0, "receive failed");
 
         switch (msg[0]) {
