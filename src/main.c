@@ -145,6 +145,9 @@ int kmain()
             cpu_usage_handler(&context);
             break;
         }
+        case SYSCALL_TERMINATE: {
+            return 0;
+        }
         case INTERRUPT_CODE: {
             handle_interrupt(&context);
             break;

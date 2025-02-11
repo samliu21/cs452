@@ -35,7 +35,7 @@ void terminal_task()
 
             command_result_t* command_result = (command_result_t*)command_result_buf;
             if (command_result->type == COMMAND_QUIT) {
-                // return 0;
+                terminate();
             } else if (command_result->type == COMMAND_FAIL) {
                 printf(uart_task_tid, CONSOLE, "error: %s\r\n", command_result->error_message);
             }

@@ -100,6 +100,10 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "q") == 0) {
+            result.type = COMMAND_QUIT;
+        }
+
         else {
             result.type = COMMAND_FAIL;
             result.error_message = "invalid command";
