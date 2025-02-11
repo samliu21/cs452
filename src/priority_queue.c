@@ -64,12 +64,3 @@ int pq_empty(priority_queue_t* pq)
     return pq->size == 0;
 }
 
-void pq_debug(priority_queue_t* pq)
-{
-    task_t* t = pq->head;
-    while (t) {
-        uart_printf(CONSOLE, "%u ", t->tid);
-        t = t->next_task;
-    }
-    uart_puts(CONSOLE, "\r\n");
-}

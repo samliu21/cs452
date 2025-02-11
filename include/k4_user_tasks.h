@@ -61,6 +61,14 @@ void display_state_task()
     for (;;) {
         int64_t ret;
 
+        // perf
+        uint64_t usage = cpu_usage();
+        uint64_t kernel_percentage = usage % 100;
+        uint64_t idle_percentage = usage / 100;
+        uint64_t user_percentage = 100 - kernel_percentage - idle_percentage;
+        char* format = "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u";
+        uart_printf(CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
+
         // clock
         uint64_t ticks = time(clock_task_tid);
         uint64_t minutes = ticks / 6000;
@@ -110,6 +118,9 @@ void k4_initial_user_task()
     ASSERT(ret >= 0, "send failed");
     create(1, &terminal_notifier);
     create(1, &marklin_notifier);
+
+    // clear screen
+    puts(terminal_task_tid, CONSOLE, "\033[2J\033[999;1H");
 
     // train setup tasks
     create(1, &state_task);

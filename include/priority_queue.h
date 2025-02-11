@@ -14,6 +14,5 @@ void pq_add(priority_queue_t* pq, task_t* task);
 task_t* pq_pop(priority_queue_t* pq);
 task_t* pq_peek(priority_queue_t* pq);
 int pq_empty(priority_queue_t* pq);
-void pq_debug(priority_queue_t* pq);
 
 #endif

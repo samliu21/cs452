@@ -7,7 +7,7 @@ typedef long long int64_t;
 
 typedef void (*func_t)();
 
-#define NUM_TASKS 16
+#define NUM_TASKS 32
 #define STACK_SIZE NUM_TASKS * 1024
 #define MAX_RAND 32767
 

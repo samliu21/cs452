@@ -139,3 +139,10 @@ void await_event_handler(main_context_t* context)
         context->active_task->registers[0] = -1;
     }
 }
+
+void cpu_usage_handler(main_context_t* context)
+{
+    uint64_t kernel_percentage = *context->kernel_time * 100 / *context->total_time;
+    uint64_t idle_percentage = *context->idle_time * 100 / *context->total_time;
+    context->active_task->registers[0] = kernel_percentage + 100 * idle_percentage;
+}

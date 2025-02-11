@@ -105,7 +105,6 @@ void clock_server_task()
                 reply_num(caller_tid, cur_ticks);
                 break;
             }
-            // uart_printf(CONSOLE, "delay_until: %d\n", delay_until);
             uintmap_set(&waiting_tasks, caller_tid, delay_until);
             break;
         }

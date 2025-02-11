@@ -26,7 +26,6 @@ int kmain()
     gpio_init();
     uart_config_and_enable(CONSOLE);
     uart_config_and_enable(MARKLIN);
-    uart_puts(CONSOLE, "\r\nconsole loaded!\r\n");
 
     // run tests and initialize exception vector
     init_interrupts();
@@ -35,9 +34,6 @@ int kmain()
     if (failed) {
         for (;;) { }
     }
-
-    // clear screen
-    uart_puts(CONSOLE, "\033[2J\033[999;1H");
 
     // create kernel task
     task_t kernel_task;
@@ -71,7 +67,6 @@ int kmain()
     // performance metrics
     uint64_t total_time = 0, kernel_time = 0, idle_time = 0;
     uint64_t kernel_time_start = timer_get_us(), kernel_time_duration, kernel_time_end, user_time_duration;
-    uint64_t last_perf_print = timer_get_ms();
 
     // kernel context
     main_context_t context;
@@ -86,6 +81,9 @@ int kmain()
     context.tasks_waiting_for_terminal = &tasks_waiting_for_terminal;
     context.tasks_waiting_for_marklin = &tasks_waiting_for_marklin;
     context.next_tick = next_tick;
+    context.total_time = &total_time;
+    context.kernel_time = &kernel_time;
+    context.idle_time = &idle_time;
 
     while (!pq_empty(&scheduler)) {
         context.active_task = pq_pop(&scheduler);
@@ -103,20 +101,6 @@ int kmain()
         total_time += user_time_duration;
         if (context.active_task->priority == 0) {
             idle_time += user_time_duration;
-        }
-
-        int should_print_perf = timer_get_ms() - last_perf_print > PRINT_PERF_AFTER_MS;
-        if (should_print_perf) {
-            uint64_t kernel_percentage = kernel_time * 100 / total_time;
-            uint64_t idle_percentage = idle_time * 100 / total_time;
-            uint64_t user_percentage = 100 - kernel_percentage - idle_percentage;
-
-            // print
-            char* format = "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u";
-            uart_printf(CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
-
-            // update last print time
-            last_perf_print = timer_get_ms();
         }
 
         uint64_t syndrome = esr & 0xFFFF;
@@ -155,6 +139,10 @@ int kmain()
         }
         case SYSCALL_AWAIT_EVENT: {
             await_event_handler(&context);
+            break;
+        }
+        case SYSCALL_CPU_USAGE: {
+            cpu_usage_handler(&context);
             break;
         }
         case INTERRUPT_CODE: {
