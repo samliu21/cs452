@@ -163,7 +163,7 @@ void uart_server_task()
     res = register_as(line == CONSOLE ? TERMINAL_TASK_NAME : MARKLIN_TASK_NAME);
     ASSERT(res >= 0, "register_as failed");
 
-    char msg[128];
+    char msg[256];
     charqueuenode writenodes[256], readertidnodes[256], writertidnodes[256];
     charqueue writequeue = charqueue_new(writenodes, 256);
     charqueue readertidqueue = charqueue_new(readertidnodes, 256);
@@ -173,7 +173,7 @@ void uart_server_task()
     int cts_flag = 1;
 
     for (;;) {
-        int64_t ret = receive(&caller_tid, msg, 128);
+        int64_t ret = receive(&caller_tid, msg, 256);
         ASSERT(ret >= 0, "receive failed");
 
         switch (msg[0]) {

@@ -62,7 +62,10 @@ void init_interrupts()
 
 void handle_interrupt(main_context_t* context)
 {
-    uint64_t iar = *(volatile uint32_t*)GICC_IAR;
+    uint32_t iar = *(volatile uint32_t*)GICC_IAR;
+
+    // stop interrupt
+    *(volatile uint32_t*)GICC_EOIR = iar;
 
     uint64_t interrupt_id = iar & INTERRUPT_ID_MASK;
     switch (interrupt_id) {
@@ -116,14 +119,6 @@ void handle_interrupt(main_context_t* context)
         }
         if (mis & UART_MIS_CTSMMIS) {
             ASSERT(line == MARKLIN, "CTS from console");
-            // if (line == CONSOLE) {
-            //     uart_puts(CONSOLE, "CTS from console\r\n");
-            // } else {
-            //     uart_puts(CONSOLE, "CTS from marklin\r\n");
-            // }
-            // uint32_t fr = UART_REG(line, UART_FR);
-            // uart_putc(CONSOLE, fr & UART_FR_CTS ? '1' : '0');
-            // uart_puts(CONSOLE, "\r\n");
             clear_uart_cts_interrupts(line);
             uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
         }
@@ -131,11 +126,8 @@ void handle_interrupt(main_context_t* context)
         break;
     }
     default: {
-        ASSERT(0, "unrecognized interrupt\r\n");
+        ASSERTF(0, "unrecognized interrupt: %u\r\n", interrupt_id);
         for (;;) { }
     }
     }
-
-    // stop interrupt
-    *(volatile uint32_t*)GICC_EOIR = iar;
 }

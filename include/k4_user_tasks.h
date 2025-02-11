@@ -62,13 +62,15 @@ void display_state_task()
         int64_t ret;
 
         // clock
-        unsigned int time = 2222;
-        unsigned int minutes = time / 60000;
-        unsigned int seconds = (time % 60000) / 1000;
-        unsigned int tenths = (time % 1000) / 100;
+        uint64_t ticks = time(clock_task_tid);
+        uint64_t minutes = ticks / 6000;
+        uint64_t seconds = (ticks % 6000) / 100;
+        uint64_t tenths = (ticks % 100) / 10;
+        printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
 
-        printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2Kminutes: %d, seconds: %d, tenths: %d\033[u", minutes, seconds, tenths);
+        // NOTE: interrupt 1023 when this is commented out - putc happens too fast and we can't handle all the interrupts??
         ret = delay(clock_task_tid, 5);
+        ASSERT(ret >= 0, "delay failed");
 
         // sensors
         char sensors[32];
