@@ -83,44 +83,54 @@ void handle_interrupt(main_context_t* context)
     case INTERRUPT_ID_UART: {
         uint32_t terminal_mis = UART_REG(CONSOLE, UART_MIS);
         uint32_t marklin_mis = UART_REG(MARKLIN, UART_MIS);
-        // TODO: it is possible for both terminals to have interrupts, handle this
-        ASSERT(!terminal_mis || !marklin_mis, "both terminals have interrupts");
+        if (terminal_mis && marklin_mis) {
+            // TODO: remove this once we confirm it is handled correctly
+            uart_puts(CONSOLE, "handling both interrupts\r\n");
+        }
 
         queue_t* waiting_queue;
         int line;
         uint32_t mis;
-        if (terminal_mis) {
-            waiting_queue = context->tasks_waiting_for_terminal;
-            line = CONSOLE;
-            mis = terminal_mis;
-        } else {
-            waiting_queue = context->tasks_waiting_for_marklin;
-            line = MARKLIN;
-            mis = marklin_mis;
-        }
+        for (int i = 0; i < 2; ++i) {
+            if (i == 0) {
+                // console interrupt
+                waiting_queue = context->tasks_waiting_for_terminal;
+                line = CONSOLE;
+                mis = terminal_mis;
+            } else {
+                // terminal interrupt
+                waiting_queue = context->tasks_waiting_for_marklin;
+                line = MARKLIN;
+                mis = marklin_mis;
+            }
+            if (!mis) {
+                continue;
+            }
+            if (waiting_queue->size == 0) {
+                ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
+                clear_uart_cts_interrupts(line);
+            }
+            ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
 
-        if (queue_empty(waiting_queue)) {
-            UART_REG(line, UART_ICR) |= UART_ICR_RXIC | UART_ICR_TXIC | UART_ICR_RTIM | UART_ICR_CTSMIC;
-            break;
-        }
-        ASSERT(waiting_queue->size == 1, "more than one task waiting for uart");
+            // reschedule the task
+            task_t* uart_task = queue_pop(waiting_queue);
+            pq_add(context->scheduler, uart_task);
+            uart_task->state = READY;
 
-        task_t* uart_task = queue_pop(waiting_queue);
-        pq_add(context->scheduler, uart_task);
-        uart_task->state = READY;
-
-        if ((mis & UART_MIS_RXMIS) || (mis & UART_MIS_RTIM)) {
-            disable_uart_read_interrupts(line);
-            uart_task->registers[0] = REQUEST_READ_AVAILABLE;
-        }
-        if (mis & UART_MIS_TXMIS) {
-            disable_uart_write_interrupts(line);
-            uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
-        }
-        if (mis & UART_MIS_CTSMMIS) {
-            ASSERT(line == MARKLIN, "CTS from console");
-            clear_uart_cts_interrupts(line);
-            uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
+            // handle the interrupt
+            if ((mis & UART_MIS_RXMIS) || (mis & UART_MIS_RTIM)) {
+                disable_uart_read_interrupts(line);
+                uart_task->registers[0] = REQUEST_READ_AVAILABLE;
+            }
+            if (mis & UART_MIS_TXMIS) {
+                disable_uart_write_interrupts(line);
+                uart_task->registers[0] = REQUEST_WRITE_AVAILABLE;
+            }
+            if (mis & UART_MIS_CTSMMIS) {
+                ASSERT(line == MARKLIN, "CTS from console");
+                clear_uart_cts_interrupts(line);
+                uart_task->registers[0] = REQUEST_CTS_AVAILABLE;
+            }
         }
 
         break;

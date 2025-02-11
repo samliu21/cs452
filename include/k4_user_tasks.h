@@ -8,6 +8,7 @@
 #include "name_server.h"
 #include "sensor.h"
 #include "state_server.h"
+#include "switch.h"
 #include "syscall_func.h"
 #include "uart_notifier.h"
 #include "uart_server.h"
@@ -57,17 +58,30 @@ void display_state_task()
     ASSERT(clock_task_tid >= 0, "who_is failed");
     int64_t terminal_task_tid = who_is(TERMINAL_TASK_NAME);
     ASSERT(terminal_task_tid >= 0, "who_is failed");
+    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
+    // show loading text while switches are being set
+    puts(terminal_task_tid, CONSOLE, "\033[s\033[1;1H\033[2KSetting up trains...\033[u");
+
+    // set switches to straight
+    tswitch_t switch_buf[64];
+    switchlist_t switchlist = switch_createlist(switch_buf);
+    for (int i = 0; i < switchlist.n_switches; ++i) {
+        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, 'S');
+    }
+    int64_t ret = create(1, &deactivate_solenoid_task);
+    ASSERT(ret >= 0, "create failed");
+
+    int64_t ticks = time(clock_task_tid);
     for (;;) {
-        int64_t ret;
-
         // perf
         uint64_t usage = cpu_usage();
         uint64_t kernel_percentage = usage % 100;
         uint64_t idle_percentage = usage / 100;
         uint64_t user_percentage = 100 - kernel_percentage - idle_percentage;
         char* format = "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u";
-        uart_printf(CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
+        printf(terminal_task_tid, CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
 
         // clock
         uint64_t ticks = time(clock_task_tid);
@@ -76,24 +90,19 @@ void display_state_task()
         uint64_t tenths = (ticks % 100) / 10;
         printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
 
-        // NOTE: interrupt 1023 when this is commented out - putc happens too fast and we can't handle all the interrupts??
-        ret = delay(clock_task_tid, 5);
-        ASSERT(ret >= 0, "delay failed");
-
         // sensors
         char sensors[32];
         state_get_recent_sensors(state_task_tid, sensors);
         printf(terminal_task_tid, CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
-
-        ret = delay(clock_task_tid, 5);
-        ASSERT(ret >= 0, "delay failed");
 
         // switches
         char switches[128];
         state_get_switches(state_task_tid, switches);
         printf(terminal_task_tid, CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
 
-        ret = delay(clock_task_tid, 5);
+        // print every 50ms
+        ticks += 5;
+        ret = delay_until(clock_task_tid, ticks);
         ASSERT(ret >= 0, "delay failed");
     }
 }

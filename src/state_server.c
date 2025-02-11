@@ -76,11 +76,6 @@ void state_task()
 
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
-    for (int i = 0; i < switchlist.n_switches; ++i) {
-        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, 'S');
-    }
-    ret = create(1, &deactivate_solenoid_task);
-    ASSERT(ret >= 0, "create failed");
 
     charqueuenode sensornodes[32];
     charqueue sensorqueue = charqueue_new(sensornodes, 32);

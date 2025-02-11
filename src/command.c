@@ -86,6 +86,8 @@ void command_task()
             unsigned int num = a2ui(args[1], 10);
             char d = args[2][0];
 
+            state_set_switch(state_task_tid, num, d);
+
             marklin_set_switch(marklin_task_tid, num, d);
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
