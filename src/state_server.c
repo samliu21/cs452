@@ -40,7 +40,7 @@ void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor)
 void state_get_recent_sensors(uint64_t state_task_tid, char* response)
 {
     char c = GET_RECENT_SENSORS;
-    int64_t ret = send(state_task_tid, &c, 1, response, 32);
+    int64_t ret = send(state_task_tid, &c, 1, response, 4 * NUM_RECENT_SENSORS + 1);
     ASSERT(ret >= 0, "send failed");
 }
 
@@ -77,8 +77,8 @@ void state_task()
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
 
-    charqueuenode sensornodes[32];
-    charqueue sensorqueue = charqueue_new(sensornodes, 32);
+    charqueuenode sensornodes[4 * NUM_RECENT_SENSORS + 1];
+    charqueue sensorqueue = charqueue_new(sensornodes, 4 * NUM_RECENT_SENSORS + 1);
 
     uint64_t caller_tid;
     char buf[3];
@@ -131,7 +131,7 @@ void state_task()
             break;
         }
         case GET_RECENT_SENSORS: {
-            char response[32];
+            char response[4 * NUM_RECENT_SENSORS + 1];
             int sz = 0;
             charqueuenode* head = sensorqueue.head;
             for (int i = 0; i < 4 * NUM_RECENT_SENSORS; ++i) {

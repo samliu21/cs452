@@ -91,7 +91,7 @@ void display_state_task()
         printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
 
         // sensors
-        char sensors[32];
+        char sensors[128];
         state_get_recent_sensors(state_task_tid, sensors);
         printf(terminal_task_tid, CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
 

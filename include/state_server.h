@@ -12,7 +12,7 @@ typedef enum {
     GET_SWITCHES = 6,
 } state_server_request_t;
 
-#define NUM_RECENT_SENSORS 5
+#define NUM_RECENT_SENSORS 10
 
 void state_task();
 
