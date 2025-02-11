@@ -10,6 +10,8 @@ typedef enum {
     GET_RECENT_SENSORS = 4,
     SET_SWITCH = 5,
     GET_SWITCHES = 6,
+    TRAIN_EXISTS = 7,
+    SWITCH_EXISTS = 8
 } state_server_request_t;
 
 #define NUM_RECENT_SENSORS 10
@@ -22,5 +24,7 @@ void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor);
 void state_get_recent_sensors(uint64_t state_task_tid, char* response);
 void state_set_switch(uint64_t state_task_tid, uint64_t sw, char d);
 void state_get_switches(uint64_t state_task_tid, char* response);
+int state_train_exists(uint64_t state_task_tid, uint64_t train);
+int state_switch_exists(uint64_t state_task_tid, uint64_t sw);
 
 #endif

@@ -36,7 +36,7 @@ void command_task()
             }
             uint64_t train = a2ui(args[1], 10);
             uint64_t speed = a2ui(args[2], 10);
-            if (train != 55) {
+            if (!state_train_exists(state_task_tid, train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -62,7 +62,7 @@ void command_task()
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
-            if (train != 55) {
+            if (!state_train_exists(state_task_tid, train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -85,6 +85,11 @@ void command_task()
             }
             unsigned int num = a2ui(args[1], 10);
             char d = args[2][0];
+            if (!state_switch_exists(state_task_tid, num)) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "switch does not exist";
+                goto end;
+            }
 
             state_set_switch(state_task_tid, num, d);
 

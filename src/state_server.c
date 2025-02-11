@@ -61,6 +61,28 @@ void state_get_switches(uint64_t state_task_tid, char* response)
     ASSERT(ret >= 0, "send failed");
 }
 
+int state_train_exists(uint64_t state_task_tid, uint64_t train)
+{
+    char buf[2];
+    buf[0] = TRAIN_EXISTS;
+    buf[1] = train;
+    char response;
+    int64_t ret = send(state_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
+}
+
+int state_switch_exists(uint64_t state_task_tid, uint64_t sw)
+{
+    char buf[2];
+    buf[0] = SWITCH_EXISTS;
+    buf[1] = sw;
+    char response;
+    int64_t ret = send(state_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
+}
+
 void state_task()
 {
     int64_t ret;
@@ -172,6 +194,20 @@ void state_task()
             }
             buf[sz] = 0;
             ret = reply(caller_tid, buf, sz + 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case TRAIN_EXISTS: {
+            uint64_t train = buf[1];
+            train_t* t = train_find(&trainlist, train);
+            ret = reply_char(caller_tid, t == NULL ? 0 : 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SWITCH_EXISTS: {
+            uint64_t sw = buf[1];
+            tswitch_t* s = switch_find(&switchlist, sw);
+            ret = reply_char(caller_tid, s == NULL ? 0 : 1);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
