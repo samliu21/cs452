@@ -1,7 +1,9 @@
 #include "state_server.h"
 #include "charqueue.h"
+#include "marklin.h"
 #include "name_server.h"
 #include "rpi.h"
+#include "switch.h"
 #include "syscall_func.h"
 #include "train.h"
 
@@ -42,14 +44,43 @@ void state_get_recent_sensors(uint64_t state_task_tid, char* response)
     ASSERT(ret >= 0, "send failed");
 }
 
+void state_set_switch(uint64_t state_task_tid, uint64_t sw, char d)
+{
+    char buf[3];
+    buf[0] = SET_SWITCH;
+    buf[1] = sw;
+    buf[2] = d;
+    int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+void state_get_switches(uint64_t state_task_tid, char* response)
+{
+    char c = GET_SWITCHES;
+    int64_t ret = send(state_task_tid, &c, 1, response, 128);
+    ASSERT(ret >= 0, "send failed");
+}
+
 void state_task()
 {
-    int64_t res = register_as(STATE_TASK_NAME);
-    ASSERT(res >= 0, "register_as failed");
+    int64_t ret;
+
+    ret = register_as(STATE_TASK_NAME);
+    ASSERT(ret >= 0, "register_as failed");
+    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
     train_t trains[5];
     trainlist_t trainlist = train_createlist(trains);
     train_add(&trainlist, 55);
+
+    tswitch_t switch_buf[64];
+    switchlist_t switchlist = switch_createlist(switch_buf);
+    for (int i = 0; i < switchlist.n_switches; ++i) {
+        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, 'S');
+    }
+    ret = create(1, &deactivate_solenoid_task);
+    ASSERT(ret >= 0, "create failed");
 
     charqueuenode sensornodes[32];
     charqueue sensorqueue = charqueue_new(sensornodes, 32);
@@ -57,8 +88,8 @@ void state_task()
     uint64_t caller_tid;
     char buf[3];
     for (;;) {
-        res = receive(&caller_tid, buf, 3);
-        ASSERT(res >= 0, "receive failed");
+        ret = receive(&caller_tid, buf, 3);
+        ASSERT(ret >= 0, "receive failed");
 
         switch (buf[0]) {
         case SET_TRAIN_SPEED: {
@@ -66,12 +97,12 @@ void state_task()
             uint64_t train = buf[2];
             train_t* t = train_find(&trainlist, train);
             if (t == NULL) {
-                res = reply_num(caller_tid, 1);
+                ret = reply_num(caller_tid, 1);
             } else {
                 t->speed = speed;
-                res = reply_num(caller_tid, 0);
+                ret = reply_num(caller_tid, 0);
             }
-            ASSERT(res >= 0, "reply failed");
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         case GET_TRAIN_SPEED: {
@@ -84,8 +115,8 @@ void state_task()
                 response[0] = 0;
                 response[1] = t->speed;
             }
-            res = reply(caller_tid, response, 2);
-            ASSERT(res >= 0, "reply failed");
+            ret = reply(caller_tid, response, 2);
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         case SET_RECENT_SENSOR: {
@@ -100,8 +131,8 @@ void state_task()
             charqueue_add(&sensorqueue, '0' + (sensor / 10));
             charqueue_add(&sensorqueue, '0' + (sensor % 10));
             charqueue_add(&sensorqueue, ' ');
-            res = reply_empty(caller_tid);
-            ASSERT(res >= 0, "reply failed");
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         case GET_RECENT_SENSORS: {
@@ -117,8 +148,36 @@ void state_task()
                 sz++;
             }
             response[sz] = 0;
-            res = reply(caller_tid, response, sz + 1);
-            ASSERT(res >= 0, "reply failed");
+            ret = reply(caller_tid, response, sz + 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_SWITCH: {
+            uint64_t sw = buf[1];
+            char d = buf[2];
+            switch_set_state(&switchlist, sw, d);
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_SWITCHES: {
+            char buf[128];
+            int sz = 0;
+            for (int i = 0; i < switchlist.n_switches; ++i) {
+                tswitch_t s = switchlist.switches[i];
+
+                char numbuf[5];
+                ui2a(s.id, 10, numbuf);
+                strcpy(buf + sz, numbuf);
+                sz += strlen(numbuf);
+                buf[sz++] = ':';
+                buf[sz++] = s.state;
+                buf[sz++] = ';';
+                buf[sz++] = ' ';
+            }
+            buf[sz] = 0;
+            ret = reply(caller_tid, buf, sz + 1);
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         default:

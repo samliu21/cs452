@@ -14,6 +14,15 @@ void marklin_set_speed(uint64_t marklin_task_tid, uint64_t train, uint64_t speed
     puts(marklin_task_tid, MARKLIN, buf);
 }
 
+void marklin_set_switch(uint64_t marklin_task_tid, uint64_t sw, char d)
+{
+    char buf[3];
+    buf[0] = d == 'S' ? 0x21 : 0x22;
+    buf[1] = sw;
+    buf[2] = 0;
+    puts(marklin_task_tid, MARKLIN, buf);
+}
+
 void train_reverse_task()
 {
     int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
@@ -30,8 +39,8 @@ void train_reverse_task()
     reply_empty(caller_tid);
 
     // delay
-    int64_t res = delay(clock_task_tid, 350);
-    ASSERT(res >= 0, "delay failed");
+    int64_t ret = delay(clock_task_tid, 350);
+    ASSERT(ret >= 0, "delay failed");
 
     // reverse train
     char sendbuf[3];
@@ -43,6 +52,21 @@ void train_reverse_task()
     // set train speed
     uint64_t speed = state_get_speed(state_task_tid, train);
     marklin_set_speed(marklin_task_tid, train, speed);
+
+    exit();
+}
+
+void deactivate_solenoid_task()
+{
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
+    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
+    ASSERT(marklin_task_tid >= 0, "who_is failed");
+
+    int64_t ret = delay(clock_task_tid, 1000);
+    ASSERT(ret >= 0, "delay failed");
+
+    putc(marklin_task_tid, MARKLIN, 0x20);
 
     exit();
 }

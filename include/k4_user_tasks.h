@@ -79,6 +79,14 @@ void display_state_task()
 
         ret = delay(clock_task_tid, 5);
         ASSERT(ret >= 0, "delay failed");
+
+        // switches
+        char switches[128];
+        state_get_switches(state_task_tid, switches);
+        printf(terminal_task_tid, CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
+
+        ret = delay(clock_task_tid, 5);
+        ASSERT(ret >= 0, "delay failed");
     }
 }
 

@@ -77,6 +77,22 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "sw") == 0) {
+            if (argc != 3) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "sw command expects 2 arguments";
+                goto end;
+            }
+            unsigned int num = a2ui(args[1], 10);
+            char d = args[2][0];
+
+            marklin_set_switch(marklin_task_tid, num, d);
+            int64_t ret = create(1, &deactivate_solenoid_task);
+            ASSERT(ret >= 0, "create failed");
+
+            result.type = COMMAND_SUCCESS;
+        }
+
         else {
             result.type = COMMAND_FAIL;
             result.error_message = "invalid command";
