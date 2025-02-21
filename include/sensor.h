@@ -23,6 +23,10 @@ void sensor_task()
     char sensordata[10];
     memset(sensordata, 0, 10);
 
+    // wait for display server to init switches
+    display_lazy();
+
+    int64_t ticks = 0;
     for (;;) {
         int64_t res = putc(marklin_task_tid, MARKLIN, 0x85);
         ASSERT(res >= 0, "putc failed");
@@ -31,6 +35,10 @@ void sensor_task()
             res = getc(marklin_task_tid, MARKLIN);
             ASSERT(res >= 0, "getc failed");
             sensordata[i] = res;
+        }
+
+        if (ticks == 0) {
+            ticks = time(clock_task_tid);
         }
 
         for (int bank = 0; bank < NUM_BANKS; ++bank) {
@@ -46,8 +54,9 @@ void sensor_task()
 
         display_lazy();
 
-        res = delay(clock_task_tid, 10);
-        ASSERT(res >= 0, "delay failed");
+        ticks += 10;
+        res = delay_until(clock_task_tid, ticks);
+        ASSERTF(res >= 0, "delay failed, %d", res);
     }
 }
 

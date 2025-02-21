@@ -52,6 +52,8 @@ void display_state_task()
     uint64_t old_ticks = 0;
     char old_sensors[128];
     memset(&old_sensors, 0, 128);
+    // initialize to be different from the initial sensor data
+    old_sensors[0] = 255;
     char old_switches[128];
     memset(&old_switches, 0, 128);
 
@@ -89,7 +91,6 @@ void display_state_task()
             printf(terminal_task_tid, CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
             strcpy(old_sensors, sensors);
         }
-        
 
         // switches
         char switches[128];
@@ -98,23 +99,24 @@ void display_state_task()
             printf(terminal_task_tid, CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
             strcpy(old_switches, switches);
         }
+        
     }
 }
 
 void display_state_notifier()
 {
-    int64_t display_task_tid = who_is(DISPLAY_STATE_TASK_NAME);
-    ASSERT(display_task_tid >= 0, "who_is failed");
     int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
     ASSERT(clock_task_tid >= 0, "who_is failed");
+    
+    // wait for display server to finish initializing switches
+    display_lazy();
 
-    char c = LAZY;
     int64_t ret;
     int64_t ticks = time(clock_task_tid);
     for (;;) {
-        send(display_task_tid, &c, 1, NULL, 0);
         ticks += 5;
-        ret = delay(clock_task_tid, 5);
+        ret = delay_until(clock_task_tid, ticks);
         ASSERTF(ret >= 0, "delay failed %d", ret);
+        display_lazy();
     }
 }

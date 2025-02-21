@@ -46,7 +46,7 @@ void terminal_task()
 
             command_pos = 0;
             puts(uart_task_tid, CONSOLE, "> ");
-            display_lazy();
+            display_force();
         } else {
             putc(uart_task_tid, CONSOLE, c);
         }
@@ -89,6 +89,7 @@ void k4_initial_user_task()
     // client tasks
     create(1, &command_task);
     create(1, &terminal_task);
+
 
     exit();
 }
