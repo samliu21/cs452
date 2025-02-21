@@ -3,6 +3,7 @@
 #include "name_server.h"
 #include "rpi.h"
 #include "state_server.h"
+#include "switch.h"
 #include "syscall_func.h"
 #include "uart_server.h"
 
@@ -25,8 +26,10 @@ void command_task()
         ASSERT(ret >= 0, "receive failed");
 
         char args[4][32];
-        char* command_type = args[0];
+        memset(args[0], 0, 128);
+        
         int argc = split(command, args);
+        char* command_type = args[0];
         command_result_t result;
         if (strcmp(command_type, "tr") == 0) {
             if (argc != 3) {
@@ -85,9 +88,16 @@ void command_task()
             }
             unsigned int num = a2ui(args[1], 10);
             char d = args[2][0];
+
             if (!state_switch_exists(state_task_tid, num)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "switch does not exist";
+                goto end;
+            }
+
+            if (d != S && d != C) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "switch direction must be S or C";
                 goto end;
             }
 
