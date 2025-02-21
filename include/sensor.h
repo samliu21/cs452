@@ -2,6 +2,7 @@
 #define _sensor_h_
 
 #include "common.h"
+#include "display_state_server.h"
 #include "name_server.h"
 #include "rpi.h"
 #include "state_server.h"
@@ -42,6 +43,8 @@ void sensor_task()
                 }
             }
         }
+
+        display_lazy();
 
         res = delay(clock_task_tid, 10);
         ASSERT(res >= 0, "delay failed");
