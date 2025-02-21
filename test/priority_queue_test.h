@@ -70,5 +70,5 @@ int run_pq_tests()
 {
     TEST_RUN(_test_pq_add);
     TEST_RUN(_test_pq_pop);
-	return 1;
+    return 1;
 }

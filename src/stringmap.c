@@ -44,7 +44,7 @@ void stringmap_remove(stringmap_t* map, char* key)
     int key_index = _stringmap_key_index(map, key);
     ASSERT(key_index != -1, "string key not found");
     map->num_keys--;
-    if (key_index < map->num_keys){
+    if (key_index < map->num_keys) {
         strcpy(map->keys[key_index], map->keys[map->num_keys]);
         map->values[key_index] = map->values[map->num_keys];
     }

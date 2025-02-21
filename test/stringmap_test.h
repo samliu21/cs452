@@ -38,7 +38,7 @@ int _test_stringmap()
 int run_stringmap_tests()
 {
     TEST_RUN(_test_stringmap);
-	return 1;
+    return 1;
 }
 
 #endif

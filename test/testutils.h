@@ -24,7 +24,7 @@
     context.active_task = x;                         \
     syndrome = enter_task(&kernel_task, x) & 0xFFFF; \
     TEST_ASSERT(syndrome == SYSCALL_SEND);           \
-    send_handler(&context);                          
+    send_handler(&context);
 #define RECEIVE_REPLY(x)                             \
     context.active_task = x;                         \
     syndrome = enter_task(&kernel_task, x) & 0xFFFF; \
@@ -32,6 +32,6 @@
     receive_handler(&context);                       \
     syndrome = enter_task(&kernel_task, x) & 0xFFFF; \
     TEST_ASSERT(syndrome == SYSCALL_REPLY);          \
-    reply_handler(&context);                         
+    reply_handler(&context);
 
 #endif

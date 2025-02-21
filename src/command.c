@@ -27,7 +27,7 @@ void command_task()
 
         char args[4][32];
         memset(args[0], 0, 128);
-        
+
         int argc = split(command, args);
         char* command_type = args[0];
         command_result_t result;

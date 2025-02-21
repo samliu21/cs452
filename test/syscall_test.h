@@ -85,7 +85,7 @@ int _test_syscall()
 int run_syscall_tests()
 {
     TEST_RUN(_test_syscall);
-	return 1;
+    return 1;
 }
 
 #endif /* syscall_test.h */

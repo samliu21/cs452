@@ -63,4 +63,3 @@ int pq_empty(priority_queue_t* pq)
 {
     return pq->size == 0;
 }
-

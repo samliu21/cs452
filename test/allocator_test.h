@@ -33,5 +33,5 @@ int _test_allocator()
 int run_allocator_tests()
 {
     TEST_RUN(_test_allocator);
-	return 1;
+    return 1;
 }

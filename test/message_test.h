@@ -161,7 +161,7 @@ int _test_message()
 int run_message_tests()
 {
     TEST_RUN(_test_message);
-	return 1;
+    return 1;
 }
 
 #endif

@@ -85,11 +85,10 @@ void k4_initial_user_task()
 
     create(1, &display_state_notifier);
     create(1, &sensor_task);
-    
+
     // client tasks
     create(1, &command_task);
     create(1, &terminal_task);
-
 
     exit();
 }

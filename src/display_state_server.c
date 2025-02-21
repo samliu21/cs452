@@ -8,7 +8,8 @@
 #include "syscall_func.h"
 #include "uart_server.h"
 
-void display(char type) {
+void display(char type)
+{
     int64_t display_state_task_tid = who_is(DISPLAY_STATE_TASK_NAME);
     ASSERT(display_state_task_tid >= 0, "who_is failed");
 
@@ -16,11 +17,13 @@ void display(char type) {
     ASSERT(ret >= 0, "send failed");
 }
 
-void display_lazy() {
+void display_lazy()
+{
     display(LAZY);
 }
 
-void display_force() {
+void display_force()
+{
     display(FORCE);
 }
 
@@ -83,7 +86,7 @@ void display_state_task()
             printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
             old_ticks = ticks;
         }
-        
+
         // sensors
         char sensors[128];
         state_get_recent_sensors(state_task_tid, sensors);
@@ -99,7 +102,6 @@ void display_state_task()
             printf(terminal_task_tid, CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
             strcpy(old_switches, switches);
         }
-        
     }
 }
 
@@ -107,7 +109,7 @@ void display_state_notifier()
 {
     int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
     ASSERT(clock_task_tid >= 0, "who_is failed");
-    
+
     // wait for display server to finish initializing switches
     display_lazy();
 
