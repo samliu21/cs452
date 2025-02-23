@@ -1,7 +1,7 @@
 #include "priority_queue_task.h"
 #include "testutils.h"
 
-int _test_pq_add()
+int _test_pq_task_add()
 {
     task_t kernel, t1, t2, t3;
     kernel.tid = 0;
@@ -38,7 +38,7 @@ int _test_pq_add()
     return 1;
 }
 
-int _test_pq_pop()
+int _test_pq_task_pop()
 {
     task_t kernel, t1, t2, t3;
     kernel.tid = 0;
@@ -68,7 +68,7 @@ int _test_pq_pop()
 
 int run_pq_task_tests()
 {
-    TEST_RUN(_test_pq_add);
-    TEST_RUN(_test_pq_pop);
+    TEST_RUN(_test_pq_task_add);
+    TEST_RUN(_test_pq_task_pop);
     return 1;
 }
