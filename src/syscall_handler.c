@@ -22,7 +22,7 @@ void create_handler(main_context_t* context)
     func_t entry_point = (func_t)context->active_task->registers[1];
     if (context->allocator->n_free > 0) {
         task_t* new_task = allocator_new_task(context->allocator, context->stack, (*context->n_tasks)++, priority, entry_point, context->active_task);
-        pq_task_new(context->scheduler, new_task);
+        pq_task_add(context->scheduler, new_task);
         context->active_task->registers[0] = new_task->tid;
     } else {
         context->active_task->registers[0] = -2;
@@ -110,7 +110,7 @@ void reply_handler(main_context_t* context)
 
     // unblock sender
     queue_delete(context->tasks_waiting_for_reply, sender);
-    pq_task_new(context->scheduler, sender);
+    pq_task_add(context->scheduler, sender);
     sender->state = READY;
 }
 

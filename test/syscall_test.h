@@ -2,6 +2,7 @@
 #define _syscall_test_h_
 
 #include "allocator.h"
+#include "priority_queue_task.h"
 #include "syscall_asm.h"
 #include "syscall_handler.h"
 #include "testutils.h"
@@ -66,6 +67,7 @@ int _test_syscall()
     TEST_ASSERT(task1->registers[0] == 2);
     TEST_ASSERT(task1->registers[1] == (uint64_t)&syscall_task2func);
     create_handler(&context);
+    TEST_ASSERT(scheduler.size > 0);
     task_t* task2 = pq_task_pop(&scheduler);
     TEST_ASSERT(task2->priority == 2);
     TEST_ASSERT(task2->elr == (uint64_t)&syscall_task2func);

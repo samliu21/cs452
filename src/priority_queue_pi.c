@@ -23,7 +23,7 @@ void pq_pi_add(priority_queue_pi_t* pq, pi_t* pi)
     pq->size++;
     pi_t* t = pq->head;
     pi_t* pv = NULL;
-    while (t && pi->f <= t->f) {
+    while (t && pi->f >= t->f) {
         pv = t;
         t = t->next;
     }
@@ -41,7 +41,7 @@ void pq_pi_add(priority_queue_pi_t* pq, pi_t* pi)
 
 pi_t* pq_pi_pop(priority_queue_pi_t* pq)
 {
-    ASSERT(pq->size > 0, "pop from empty priority queue");
+    ASSERT(pq->size > 0, "pop from empty pi priority queue");
     pq->size--;
 
     pi_t* t = pq->head;
@@ -55,7 +55,7 @@ pi_t* pq_pi_pop(priority_queue_pi_t* pq)
 
 pi_t* pq_pi_peek(priority_queue_pi_t* pq)
 {
-    ASSERT(pq->size > 0, "peek from empty priority queue");
+    ASSERT(pq->size > 0, "peek from empty pi priority queue");
     return pq->head;
 }
 

@@ -41,7 +41,7 @@ void pq_task_add(priority_queue_task_t* pq, task_t* task)
 
 task_t* pq_task_pop(priority_queue_task_t* pq)
 {
-    ASSERT(pq->size > 0, "pop from empty priority queue");
+    ASSERT(pq->size > 0, "pop from empty task priority queue");
     pq->size--;
 
     task_t* t = pq->head;
@@ -55,7 +55,7 @@ task_t* pq_task_pop(priority_queue_task_t* pq)
 
 task_t* pq_task_peek(priority_queue_task_t* pq)
 {
-    ASSERT(pq->size > 0, "peek from empty priority queue");
+    ASSERT(pq->size > 0, "peek from empty task priority queue");
     return pq->head;
 }
 
