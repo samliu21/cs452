@@ -1,17 +1,17 @@
-#include "priority_queue.h"
+#include "priority_queue_task.h"
 #include "rpi.h"
 #include <stdlib.h>
 
-priority_queue_t pq_new()
+priority_queue_task_t pq_task_new()
 {
-    priority_queue_t pq;
+    priority_queue_task_t pq;
     pq.head = NULL;
     pq.tail = NULL;
     pq.size = 0;
     return pq;
 }
 
-void pq_add(priority_queue_t* pq, task_t* task)
+void pq_task_add(priority_queue_task_t* pq, task_t* task)
 {
     if (pq->size == 0) {
         pq->head = task;
@@ -39,7 +39,7 @@ void pq_add(priority_queue_t* pq, task_t* task)
     }
 }
 
-task_t* pq_pop(priority_queue_t* pq)
+task_t* pq_task_pop(priority_queue_task_t* pq)
 {
     ASSERT(pq->size > 0, "pop from empty priority queue");
     pq->size--;
@@ -53,13 +53,13 @@ task_t* pq_pop(priority_queue_t* pq)
     return t;
 }
 
-task_t* pq_peek(priority_queue_t* pq)
+task_t* pq_task_peek(priority_queue_task_t* pq)
 {
     ASSERT(pq->size > 0, "peek from empty priority queue");
     return pq->head;
 }
 
-int pq_empty(priority_queue_t* pq)
+int pq_task_empty(priority_queue_task_t* pq)
 {
     return pq->size == 0;
 }

@@ -5,7 +5,7 @@
 #include "clock_test.h"
 #include "context_switch_test.h"
 #include "message_test.h"
-#include "priority_queue_test.h"
+#include "priority_queue_task_test.h"
 #include "queue_test.h"
 #include "stringmap_test.h"
 #include "syscall_test.h"
@@ -23,7 +23,7 @@ int tests()
     int failed = 0;
     uart_puts(CONSOLE, "\r\n\r\n-------------------------\r\nRunning tests...\r\n");
     execute(run_allocator_tests, failed);
-    execute(run_pq_tests, failed);
+    execute(run_pq_task_tests, failed);
     execute(run_queue_tests, failed);
     execute(run_stringmap_tests, failed);
     execute(run_uintmap_tests, failed);

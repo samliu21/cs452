@@ -2,7 +2,7 @@
 #define _syscall_handler_h_
 
 #include "allocator.h"
-#include "priority_queue.h"
+#include "priority_queue_task.h"
 #include "queue.h"
 #include "task.h"
 #include "uintmap.h"
@@ -12,7 +12,7 @@ typedef struct main_context_t {
     allocator_t* allocator;
     char* stack;
     uint64_t* n_tasks;
-    priority_queue_t* scheduler;
+    priority_queue_task_t* scheduler;
     queue_t* tasks_waiting_for_send;
     queue_t* tasks_waiting_for_reply;
     queue_t* tasks_waiting_for_timer;

@@ -41,7 +41,7 @@ int _test_syscall()
     uint64_t n_tasks = 500;
     task_t* task1 = allocator_new_task(&allocator, stack, n_tasks++, 1, &syscall_task1func, &kernel_task);
 
-    priority_queue_t scheduler = pq_new();
+    priority_queue_task_t scheduler = pq_task_new();
 
     main_context_t context;
     context.kernel_task = &kernel_task;
@@ -66,7 +66,7 @@ int _test_syscall()
     TEST_ASSERT(task1->registers[0] == 2);
     TEST_ASSERT(task1->registers[1] == (uint64_t)&syscall_task2func);
     create_handler(&context);
-    task_t* task2 = pq_pop(&scheduler);
+    task_t* task2 = pq_task_pop(&scheduler);
     TEST_ASSERT(task2->priority == 2);
     TEST_ASSERT(task2->elr == (uint64_t)&syscall_task2func);
 

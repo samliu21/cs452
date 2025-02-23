@@ -6,7 +6,7 @@
 #include "k2_user_tasks.h"
 #include "k3_user_tasks.h"
 #include "k4_user_tasks.h"
-#include "priority_queue.h"
+#include "priority_queue_task.h"
 #include "rpi.h"
 #include "syscall_asm.h"
 #include "syscall_handler.h"
@@ -51,8 +51,8 @@ int kmain()
     task_t* initial_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &k4_initial_user_task, &kernel_task);
 #endif
     // create PQ with initial task in it
-    priority_queue_t scheduler = pq_new();
-    pq_add(&scheduler, initial_task);
+    priority_queue_task_t scheduler = pq_task_new();
+    pq_task_add(&scheduler, initial_task);
 
     // blocked queues
     queue_t tasks_waiting_for_send = queue_new();
@@ -85,8 +85,8 @@ int kmain()
     context.kernel_time = &kernel_time;
     context.idle_time = &idle_time;
 
-    while (!pq_empty(&scheduler)) {
-        context.active_task = pq_pop(&scheduler);
+    while (!pq_task_empty(&scheduler)) {
+        context.active_task = pq_task_pop(&scheduler);
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
 
         kernel_time_end = timer_get_us();
@@ -159,7 +159,7 @@ int kmain()
         }
 
         if (syndrome != SYSCALL_EXIT && context.active_task->state == READY) {
-            pq_add(&scheduler, context.active_task);
+            pq_task_add(&scheduler, context.active_task);
         }
     }
 

@@ -72,7 +72,7 @@ void handle_interrupt(main_context_t* context)
     case INTERRUPT_ID_TIMER: {
         while (!queue_empty(context->tasks_waiting_for_timer)) {
             task_t* task = queue_pop(context->tasks_waiting_for_timer);
-            pq_add(context->scheduler, task);
+            pq_task_add(context->scheduler, task);
             task->state = READY;
         }
 
@@ -114,7 +114,7 @@ void handle_interrupt(main_context_t* context)
 
             // reschedule the task
             task_t* uart_task = queue_pop(waiting_queue);
-            pq_add(context->scheduler, uart_task);
+            pq_task_add(context->scheduler, uart_task);
             uart_task->state = READY;
 
             // handle the interrupt

@@ -66,7 +66,7 @@ int _test_clock()
     task_t* clock_notifier = allocator_new_task(&allocator, stack, n_tasks++, 1, &clock_notifier_task, &kernel_task);
     task_t* idle_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &idletaskfunc, &kernel_task);
 
-    priority_queue_t scheduler = pq_new();
+    priority_queue_task_t scheduler = pq_task_new();
     queue_t tasks_waiting_for_send = queue_new();
     queue_t tasks_waiting_for_reply = queue_new();
     queue_t tasks_waiting_for_timer = queue_new();
