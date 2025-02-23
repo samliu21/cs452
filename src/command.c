@@ -5,6 +5,8 @@
 #include "state_server.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "track_algo.h"
+#include "track_data.h"
 #include "uart_server.h"
 
 void train_reverse_task();
@@ -17,6 +19,9 @@ void command_task()
     ASSERT(state_task_tid >= 0, "who_is failed");
     int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
     ASSERT(marklin_task_tid >= 0, "who_is failed");
+
+    track_node track[TRACK_MAX];
+    init_tracka(track);
 
     char command[32];
     uint64_t caller_tid;
@@ -108,6 +113,38 @@ void command_task()
             ASSERT(ret >= 0, "create failed");
 
             result.type = COMMAND_SUCCESS;
+        }
+
+        else if (strcmp(command_type, "go") == 0) {
+            if (argc != 3) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "go command expects 2 arguments";
+                goto end;
+            }
+            int src = name_to_node_index(track, args[1]);
+            int dest = name_to_node_index(track, args[2]);
+            if (src == -1) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "invalid source node";
+                goto end;
+            }
+            if (dest == -1) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "invalid destination node";
+                goto end;
+            }
+
+            track_path_t path = get_shortest_path(track, src, dest);
+            for (int i = 0; i < path.path_length - 1; ++i) {
+                track_node node = track[path.nodes[i]];
+                if (node.type == NODE_BRANCH) {
+                    char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? 'S' : 'C';
+
+                    state_set_switch(state_task_tid, node.num, switch_type);
+
+                    marklin_set_switch(marklin_task_tid, node.num, switch_type);
+                }
+            }
         }
 
         else if (strcmp(command_type, "q") == 0) {

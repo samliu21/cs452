@@ -9,6 +9,16 @@ static void* memset(void* s, int c, unsigned int n)
     return s;
 }
 
+int name_to_node_index(track_node* track, char* name)
+{
+    for (int i = 0; i < TRACK_MAX; i++) {
+        if (track[i].name == name) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 void init_tracka(track_node* track)
 {
     memset(track, 0, TRACK_MAX * sizeof(track_node));
