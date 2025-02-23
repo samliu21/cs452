@@ -13,6 +13,7 @@ priority_queue_pi_t pq_pi_new()
 
 void pq_pi_add(priority_queue_pi_t* pq, pi_t* pi)
 {
+    pi->next = NULL;
     if (pq->size == 0) {
         pq->head = pi;
         pq->tail = pi;
@@ -62,4 +63,13 @@ pi_t* pq_pi_peek(priority_queue_pi_t* pq)
 int pq_pi_empty(priority_queue_pi_t* pq)
 {
     return pq->size == 0;
+}
+
+void pq_pi_debug(priority_queue_pi_t* pq) 
+{
+    pi_t * pi = pq->head;
+    while (pi != NULL) {
+        uart_printf(CONSOLE, "{%d, %d}\r\n", pi->weight, pi->id);
+        pi = pi->next;
+    }
 }

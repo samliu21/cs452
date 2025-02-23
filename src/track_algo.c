@@ -11,12 +11,11 @@ int get_node_index(track_node* track_begin, track_node* node)
 
 void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, int* nodes_pos, int prev_node, int cur_node, int weight)
 {
-    // int node_straight = get_node_index(track, track[node].edge[DIR_STRAIGHT].dest);
     int dist_cand = dist[prev_node] + weight;
     if (dist_cand < dist[cur_node]) {
         nodes[*nodes_pos].weight = dist_cand;
         nodes[*nodes_pos].id = cur_node;
-        pq_pi_add(pq, &nodes[*nodes_pos++]);
+        pq_pi_add(pq, &nodes[(*nodes_pos)++]);
         dist[cur_node] = dist_cand;
         prev[cur_node] = prev_node;
     }
@@ -28,10 +27,12 @@ void get_shortest_path(track_node* track, int src, int dest)
     pi_t nodes[2000];
     int nodes_pos = 0;
     int prev[TRACK_MAX], dist[TRACK_MAX];
-    memset(dist, __INT_MAX__, TRACK_MAX);
+    for (int i = 0; i < TRACK_MAX; ++i) {
+        dist[i] = __INT_MAX__;
+    }
 
     nodes[nodes_pos].weight = 0;
-    prev[nodes_pos] = -1;
+    nodes[nodes_pos].id = src;
     pq_pi_add(&pq, &nodes[nodes_pos++]);
     dist[src] = 0;
     prev[src] = -1;
@@ -40,10 +41,9 @@ void get_shortest_path(track_node* track, int src, int dest)
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
         if (node == dest) {
-            int n = dest;
-            while (n != -1) {
-                uart_printf(CONSOLE, "%d ", n);
-                n = prev[n];
+            while (node != -1) {
+                uart_printf(CONSOLE, "%d \r\n", node);
+                node = prev[node];
             }
             break;
         }

@@ -5,11 +5,8 @@ int _test_pq_pi_add()
 {
     pi_t p1, p2, p3;
     p1.weight = 7;
-    p1.next = NULL;
     p2.weight = 3;
-    p2.next = NULL;
     p3.weight = 5;
-    p3.next = NULL;
 
     priority_queue_pi_t pq = pq_pi_new();
     TEST_ASSERT(pq.size == 0);
@@ -41,11 +38,8 @@ int _test_pq_pi_pop()
 {
     pi_t p1, p2, p3;
     p1.weight = 7;
-    p1.next = NULL;
     p2.weight = 3;
-    p2.next = NULL;
     p3.weight = 5;
-    p3.next = NULL;
 
     priority_queue_pi_t pq = pq_pi_new();
     pq_pi_add(&pq, &p1);

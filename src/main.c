@@ -12,6 +12,8 @@
 #include "syscall_handler.h"
 #include "task.h"
 #include "test.h"
+#include "track_algo.h"
+#include "track_data.h"
 
 extern void setup_mmu();
 
@@ -33,6 +35,14 @@ int kmain()
     int failed = tests();
     if (failed) {
         for (;;) { }
+    }
+
+    track_node track[TRACK_MAX];
+    init_tracka(track);
+    uart_printf(CONSOLE, "done initializing track a\r\n");
+    get_shortest_path(track, 2, 73);
+    uart_printf(CONSOLE, "done getting shortest path\r\n");
+    for (;;) {
     }
 
     // create kernel task

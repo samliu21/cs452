@@ -17,5 +17,6 @@ void pq_pi_add(priority_queue_pi_t* pq, pi_t* pi);
 pi_t* pq_pi_pop(priority_queue_pi_t* pq);
 pi_t* pq_pi_peek(priority_queue_pi_t* pq);
 int pq_pi_empty(priority_queue_pi_t* pq);
+void pq_pi_debug(priority_queue_pi_t* pq);
 
 #endif
