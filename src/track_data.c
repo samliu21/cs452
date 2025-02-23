@@ -1,18 +1,10 @@
 #include "track_data.h"
-
-static void* memset(void* s, int c, unsigned int n)
-{
-    unsigned char* p = s;
-    while (n-- > 0) {
-        *p++ = (unsigned char)c;
-    }
-    return s;
-}
+#include "common.h"
 
 int name_to_node_index(track_node* track, char* name)
 {
     for (int i = 0; i < TRACK_MAX; i++) {
-        if (track[i].name == name) {
+        if (strcmp(track[i].name, name) == 0) {
             return i;
         }
     }
