@@ -2,7 +2,9 @@
 #define _track_algo_h_
 
 #include "track_node.h"
+#include "track_path.h"
 
-void get_shortest_path(track_node* track, int src, int dest);
+int get_node_index(track_node* track_begin, track_node* node);
+track_path_t get_shortest_path(track_node* track, int src, int dest);
 
 #endif

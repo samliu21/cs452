@@ -39,9 +39,20 @@ int kmain()
 
     track_node track[TRACK_MAX];
     init_tracka(track);
-    uart_printf(CONSOLE, "done initializing track a\r\n");
-    get_shortest_path(track, 2, 73);
-    uart_printf(CONSOLE, "done getting shortest path\r\n");
+    track_path_t path = get_shortest_path(track, 2, 73);
+    for (int i = 0; i < path.path_length; ++i) {
+        uart_printf(CONSOLE, "%d ", path.nodes[i]);
+    }
+    uart_puts(CONSOLE, "\r\n");
+    for (int i = 0; i < path.path_length - 1; ++i) {
+        track_node node = track[path.nodes[i]];
+        if (node.type == NODE_BRANCH) {
+            char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? 'S' : 'C';
+            uart_putc(CONSOLE, switch_type);
+            uart_printf(CONSOLE, "%d ", node.num);
+        }
+    }
+    uart_puts(CONSOLE, "\r\n");
     for (;;) {
     }
 

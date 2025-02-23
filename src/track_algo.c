@@ -1,3 +1,4 @@
+#include "track_algo.h"
 #include "priority_queue_pi.h"
 #include "rpi.h"
 #include "track_data.h"
@@ -21,7 +22,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-void get_shortest_path(track_node* track, int src, int dest)
+track_path_t get_shortest_path(track_node* track, int src, int dest)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[2000];
@@ -37,13 +38,20 @@ void get_shortest_path(track_node* track, int src, int dest)
     dist[src] = 0;
     prev[src] = -1;
 
+    track_path_t path = track_path_new();
+
     while (!pq_pi_empty(&pq)) {
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
         if (node == dest) {
+            int path_reverse[TRACK_MAX];
+            int path_length = 0;
             while (node != -1) {
-                uart_printf(CONSOLE, "%d \r\n", node);
+                path_reverse[path_length++] = node;
                 node = prev[node];
+            }
+            for (int i = path_length - 1; i >= 0; --i) {
+                track_path_add(&path, path_reverse[i]);
             }
             break;
         }
@@ -80,4 +88,5 @@ void get_shortest_path(track_node* track, int src, int dest)
             ASSERTF(0, "Invalid Node");
         }
     }
+    return path;
 }
