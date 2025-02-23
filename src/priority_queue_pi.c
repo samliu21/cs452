@@ -23,7 +23,7 @@ void pq_pi_add(priority_queue_pi_t* pq, pi_t* pi)
     pq->size++;
     pi_t* t = pq->head;
     pi_t* pv = NULL;
-    while (t && pi->f >= t->f) {
+    while (t && pi->weight >= t->weight) {
         pv = t;
         t = t->next;
     }

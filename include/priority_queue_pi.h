@@ -2,7 +2,7 @@
 #define _priority_queue_pi_h_
 
 typedef struct pi_t {
-    int f, s;
+    int weight, id;
     struct pi_t* next;
 } pi_t;
 
