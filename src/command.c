@@ -10,8 +10,6 @@
 #include "train.h"
 #include "uart_server.h"
 
-void train_reverse_task();
-
 void command_task()
 {
     int64_t ret = register_as(COMMAND_TASK_NAME);

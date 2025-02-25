@@ -90,3 +90,78 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     }
     return path;
 }
+
+reachable_sensors_t reachable_sensors_new()
+{
+    reachable_sensors_t rs;
+    rs.size = 0;
+    return rs;
+}
+
+void reachable_sensors_add(reachable_sensors_t* rs, int sensor, int distance)
+{
+    rs->sensors[rs->size] = sensor;
+    rs->distances[rs->size] = distance;
+    rs->size++;
+}
+
+reachable_sensors_t get_reachable_sensors(track_node* track, int src_sensor)
+{
+    priority_queue_pi_t pq = pq_pi_new();
+    pi_t nodes[2000];
+    int nodes_pos = 0;
+    int prev[TRACK_MAX], dist[TRACK_MAX];
+    for (int i = 0; i < TRACK_MAX; ++i) {
+        dist[i] = __INT_MAX__;
+    }
+
+    nodes[nodes_pos].weight = 0;
+    nodes[nodes_pos].id = src_sensor;
+    pq_pi_add(&pq, &nodes[nodes_pos++]);
+    dist[src_sensor] = 0;
+    prev[src_sensor] = -1;
+
+    reachable_sensors_t reachable_sensors = reachable_sensors_new();
+
+    while (!pq_pi_empty(&pq)) {
+        pi_t* pi = pq_pi_pop(&pq);
+        int node = pi->id;
+        if (track[node].type == NODE_SENSOR && node != src_sensor) {
+            reachable_sensors_add(&reachable_sensors, node, dist[node]);
+            continue;
+        }
+        if (dist[node] < pi->weight) {
+            continue;
+        }
+
+        switch (track[node].type) {
+        case NODE_BRANCH: {
+            // two edges
+            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
+            track_edge curved_edge = track[node].edge[DIR_CURVED];
+            int node_straight = get_node_index(track, straight_edge.dest);
+            int node_curved = get_node_index(track, curved_edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            break;
+        }
+
+        case NODE_SENSOR:
+        case NODE_MERGE:
+        case NODE_ENTER: {
+            // one edge
+            track_edge edge = track[node].edge[DIR_AHEAD];
+            int node_ahead = get_node_index(track, edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            break;
+        }
+
+        case NODE_EXIT:
+            break;
+
+        default:
+            ASSERTF(0, "Invalid Node");
+        }
+    }
+    return reachable_sensors;
+}
