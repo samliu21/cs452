@@ -7,25 +7,13 @@
 #include "syscall_func.h"
 #include "train.h"
 
-void state_set_speed(uint64_t state_task_tid, uint64_t train, uint64_t speed)
-{
-    char buf[3];
-    buf[0] = SET_TRAIN_SPEED;
-    buf[1] = speed;
-    buf[2] = train;
-    int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
-}
-
-uint64_t state_get_speed(uint64_t state_task_tid, uint64_t train)
-{
-    char buf[2], response[2];
-    buf[0] = GET_TRAIN_SPEED;
-    buf[1] = train;
-    int64_t ret = send(state_task_tid, buf, 2, response, 2);
-    ASSERT(ret >= 0, "send failed");
-    return response[1];
-}
+typedef enum {
+    SET_RECENT_SENSOR = 1,
+    GET_RECENT_SENSORS = 2,
+    SET_SWITCH = 3,
+    GET_SWITCHES = 4,
+    SWITCH_EXISTS = 5
+} state_server_request_t;
 
 void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor)
 {
@@ -61,17 +49,6 @@ void state_get_switches(uint64_t state_task_tid, char* response)
     ASSERT(ret >= 0, "send failed");
 }
 
-int state_train_exists(uint64_t state_task_tid, uint64_t train)
-{
-    char buf[2];
-    buf[0] = TRAIN_EXISTS;
-    buf[1] = train;
-    char response;
-    int64_t ret = send(state_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
-    return response;
-}
-
 int state_switch_exists(uint64_t state_task_tid, uint64_t sw)
 {
     char buf[2];
@@ -92,10 +69,6 @@ void state_task()
     int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
     ASSERT(marklin_task_tid >= 0, "who_is failed");
 
-    train_t trains[5];
-    trainlist_t trainlist = train_createlist(trains);
-    train_add(&trainlist, 55);
-
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
 
@@ -109,33 +82,6 @@ void state_task()
         ASSERT(ret >= 0, "receive failed");
 
         switch (buf[0]) {
-        case SET_TRAIN_SPEED: {
-            uint64_t speed = buf[1];
-            uint64_t train = buf[2];
-            train_t* t = train_find(&trainlist, train);
-            if (t == NULL) {
-                ret = reply_num(caller_tid, 1);
-            } else {
-                t->speed = speed;
-                ret = reply_num(caller_tid, 0);
-            }
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case GET_TRAIN_SPEED: {
-            uint64_t train = buf[1];
-            train_t* t = train_find(&trainlist, train);
-            char response[2];
-            if (t == NULL) {
-                response[0] = 1;
-            } else {
-                response[0] = 0;
-                response[1] = t->speed;
-            }
-            ret = reply(caller_tid, response, 2);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
         case SET_RECENT_SENSOR: {
             if (sensorqueue.size >= NUM_RECENT_SENSORS * 4) {
                 for (int i = 0; i < 4; ++i) {
@@ -194,13 +140,6 @@ void state_task()
             }
             buf[sz] = 0;
             ret = reply(caller_tid, buf, sz + 1);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case TRAIN_EXISTS: {
-            uint64_t train = buf[1];
-            train_t* t = train_find(&trainlist, train);
-            ret = reply_char(caller_tid, t == NULL ? 0 : 1);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

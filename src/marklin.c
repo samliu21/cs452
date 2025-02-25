@@ -3,6 +3,7 @@
 #include "name_server.h"
 #include "state_server.h"
 #include "syscall_func.h"
+#include "train.h"
 #include "uart_server.h"
 
 void marklin_set_speed(uint64_t marklin_task_tid, uint64_t train, uint64_t speed)
@@ -31,6 +32,8 @@ void train_reverse_task()
     ASSERT(clock_task_tid >= 0, "who_is failed");
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
 
     // get train tid
     uint64_t caller_tid;
@@ -50,7 +53,7 @@ void train_reverse_task()
     puts(marklin_task_tid, MARKLIN, sendbuf);
 
     // set train speed
-    uint64_t speed = state_get_speed(state_task_tid, train);
+    uint64_t speed = state_get_speed(train_task_tid, train);
     marklin_set_speed(marklin_task_tid, train, speed);
 
     exit();

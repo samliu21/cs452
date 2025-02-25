@@ -1,5 +1,14 @@
 #include "train.h"
+#include "name_server.h"
+#include "syscall_asm.h"
+#include "syscall_func.h"
 #include <stdlib.h>
+
+typedef enum {
+    SET_TRAIN_SPEED = 1,
+    GET_TRAIN_SPEED = 2,
+    TRAIN_EXISTS = 3,
+} train_task_request_t;
 
 trainlist_t train_createlist(train_t* trains)
 {
@@ -30,4 +39,94 @@ train_t* train_find(trainlist_t* tlist, uint64_t id)
         }
     }
     return NULL;
+}
+
+void state_set_speed(uint64_t train_task_tid, uint64_t train, uint64_t speed)
+{
+    char buf[3];
+    buf[0] = SET_TRAIN_SPEED;
+    buf[1] = speed;
+    buf[2] = train;
+    int64_t ret = send(train_task_tid, buf, 3, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+uint64_t state_get_speed(uint64_t train_task_tid, uint64_t train)
+{
+    char buf[2], response[2];
+    buf[0] = GET_TRAIN_SPEED;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, response, 2);
+    ASSERT(ret >= 0, "send failed");
+    return response[1];
+}
+
+int state_train_exists(uint64_t train_task_tid, uint64_t train)
+{
+    char buf[2];
+    buf[0] = TRAIN_EXISTS;
+    buf[1] = train;
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
+}
+
+void train_task()
+{
+    int64_t ret;
+
+    ret = register_as(TRAIN_TASK_NAME);
+    ASSERT(ret >= 0, "register_as failed");
+
+    train_t trains[5];
+    trainlist_t trainlist = train_createlist(trains);
+    train_add(&trainlist, 55);
+    train_add(&trainlist, 54);
+
+    uint64_t caller_tid;
+    char buf[3];
+    for (;;) {
+        ret = receive(&caller_tid, buf, 3);
+        ASSERT(ret >= 0, "receive failed");
+
+        switch (buf[0]) {
+        case SET_TRAIN_SPEED: {
+            uint64_t speed = buf[1];
+            uint64_t train = buf[2];
+            train_t* t = train_find(&trainlist, train);
+            if (t == NULL) {
+                ret = reply_num(caller_tid, 1);
+            } else {
+                t->speed = speed;
+                ret = reply_num(caller_tid, 0);
+            }
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_TRAIN_SPEED: {
+            uint64_t train = buf[1];
+            train_t* t = train_find(&trainlist, train);
+            char response[2];
+            if (t == NULL) {
+                response[0] = 1;
+            } else {
+                response[0] = 0;
+                response[1] = t->speed;
+            }
+            ret = reply(caller_tid, response, 2);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case TRAIN_EXISTS: {
+            uint64_t train = buf[1];
+            train_t* t = train_find(&trainlist, train);
+            ret = reply_char(caller_tid, t == NULL ? 0 : 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        default:
+            ASSERT(0, "invalid request");
+        }
+    }
 }

@@ -11,6 +11,7 @@
 #include "state_server.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "train.h"
 #include "uart_notifier.h"
 #include "uart_server.h"
 
@@ -80,6 +81,7 @@ void k4_initial_user_task()
     puts(terminal_task_tid, CONSOLE, "\033[2J\033[999;1H");
 
     // train setup tasks
+    create(1, &train_task);
     create(1, &state_task);
     create(1, &display_state_task);
 

@@ -16,6 +16,7 @@ typedef enum {
 #define COMMAND_TASK_NAME "command_task"
 #define STATE_TASK_NAME "state_task"
 #define DISPLAY_STATE_TASK_NAME "display_task"
+#define TRAIN_TASK_NAME "train_task"
 
 int64_t register_as(const char* name);
 int64_t who_is(const char* name);

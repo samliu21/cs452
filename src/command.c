@@ -7,6 +7,7 @@
 #include "syscall_func.h"
 #include "track_algo.h"
 #include "track_data.h"
+#include "train.h"
 #include "uart_server.h"
 
 void train_reverse_task();
@@ -17,6 +18,8 @@ void command_task()
     ASSERT(ret >= 0, "register_as failed");
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
     int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
     ASSERT(marklin_task_tid >= 0, "who_is failed");
 
@@ -44,7 +47,7 @@ void command_task()
             }
             uint64_t train = a2ui(args[1], 10);
             uint64_t speed = a2ui(args[2], 10);
-            if (!state_train_exists(state_task_tid, train)) {
+            if (!state_train_exists(train_task_tid, train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -55,7 +58,7 @@ void command_task()
             }
 
             // update state
-            state_set_speed(state_task_tid, train, speed);
+            state_set_speed(train_task_tid, train, speed);
 
             // set speed on marklin
             marklin_set_speed(marklin_task_tid, train, speed);
@@ -70,7 +73,7 @@ void command_task()
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
-            if (!state_train_exists(state_task_tid, train)) {
+            if (!state_train_exists(train_task_tid, train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -125,7 +128,7 @@ void command_task()
             int dest = name_to_node_index(track, args[2]);
             uint64_t train = a2ui(args[3], 10);
             uint64_t speed = a2ui(args[4], 10);
-            if (!state_train_exists(state_task_tid, train)) {
+            if (!state_train_exists(train_task_tid, train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -159,11 +162,11 @@ void command_task()
             }
 
             // update state
-            state_set_speed(state_task_tid, train, speed);
+            state_set_speed(train_task_tid, train, speed);
 
             // set speed on marklin
             marklin_set_speed(marklin_task_tid, train, speed);
-            
+
             result.type = COMMAND_SUCCESS;
         }
 
