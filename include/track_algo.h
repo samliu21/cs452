@@ -7,7 +7,8 @@
 int get_node_index(track_node* track_begin, track_node* node);
 track_path_t get_shortest_path(track_node* track, int src, int dest);
 
-// get reachable sensors from a given sensor
+////////////////////////////////////////////////////////////////////////////////
+
 #define MAX_REACHABLE_SENSORS 32
 
 typedef struct reachable_sensors_t {
