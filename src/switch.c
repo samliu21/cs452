@@ -6,7 +6,7 @@ switchlist_t switch_createlist(tswitch_t* switches)
     // default switch states
     char default_states[256];
     memset(default_states, S, 256);
-    // default_states[7] = default_states[18] = C;
+    default_states[7] = default_states[18] = C;
 
     // create switchlist
     switchlist_t tlist;
