@@ -3,16 +3,22 @@
 
 switchlist_t switch_createlist(tswitch_t* switches)
 {
+    // default switch states
+    char default_states[256];
+    memset(default_states, S, 256);
+    default_states[7] = default_states[18] = C;
+
+    // create switchlist
     switchlist_t tlist;
     int cnt = 0;
     for (int i = 1; i <= 18; ++i) {
         switches[cnt].id = i;
-        switches[cnt].state = S;
+        switches[cnt].state = default_states[i];
         cnt++;
     }
     for (int i = 153; i <= 156; ++i) {
         switches[cnt].id = i;
-        switches[cnt].state = S;
+        switches[cnt].state = default_states[i];
         cnt++;
     }
     tlist.switches = switches;

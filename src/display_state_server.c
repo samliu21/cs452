@@ -46,7 +46,7 @@ void display_state_task()
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
     for (int i = 0; i < switchlist.n_switches; ++i) {
-        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, 'S');
+        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, switchlist.switches[i].state);
     }
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERT(ret >= 0, "create failed");
