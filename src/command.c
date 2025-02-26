@@ -111,33 +111,30 @@ void command_task()
         }
 
         else if (strcmp(command_type, "go") == 0) {
-            if (argc != 5) {
+            if (argc != 3) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "go command expects 4 arguments";
+                result.error_message = "go command expects 2 arguments";
                 goto end;
             }
-            int src = name_to_node_index(track, args[1]);
+            uint64_t train = a2ui(args[1], 10);
             int dest = name_to_node_index(track, args[2]);
-            uint64_t train = a2ui(args[3], 10);
-            uint64_t speed = a2ui(args[4], 10);
+            
             if (!state_train_exists(train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
             }
-            if (speed > 15) {
-                result.type = COMMAND_FAIL;
-                result.error_message = "speed must be between 0 and 14";
-                goto end;
-            }
-            if (src == -1) {
-                result.type = COMMAND_FAIL;
-                result.error_message = "invalid source node";
-                goto end;
-            }
             if (dest == -1) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "invalid destination node";
+                goto end;
+            }
+
+            int src = train_loop_next(train);
+
+            if (src == -1) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "train is not ready to go";
                 goto end;
             }
 
@@ -152,12 +149,6 @@ void command_task()
                     marklin_set_switch(node.num, switch_type);
                 }
             }
-
-            // update state
-            state_set_speed(train, speed);
-
-            // set speed on marklin
-            marklin_set_speed(train, speed);
 
             result.type = COMMAND_SUCCESS;
         }

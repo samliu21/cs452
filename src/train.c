@@ -10,6 +10,8 @@
 #include "uart_server.h"
 #include <stdlib.h>
 
+#define NUM_LOOP_SENSORS 8
+
 trainlist_t train_createlist(train_t* trains)
 {
     trainlist_t tlist;
@@ -47,6 +49,7 @@ typedef enum {
     GET_TRAIN_SPEED = 2,
     TRAIN_EXISTS = 3,
     SENSOR_READING = 4,
+    TRAIN_LOOP_NEXT = 5,
 } train_task_request_t;
 
 void state_set_speed(uint64_t train, uint64_t speed)
@@ -103,6 +106,22 @@ void state_sensor_reading(track_node* track, char* sensor)
     ASSERT(ret >= 0, "send failed");
 }
 
+int train_loop_next(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = TRAIN_LOOP_NEXT;
+    buf[1] = train;
+    char response[4];
+    int64_t ret = send(train_task_tid, buf, 2, response, 4);
+    if (ret == 0) {
+        return -1;
+    }
+    return a2ui(response, 10);
+}
+
 void train_task()
 {
     int64_t ret;
@@ -118,6 +137,9 @@ void train_task()
 
     track_node track[TRACK_MAX];
     init_tracka(track);
+
+    // A3 C13 E7 D7 D9 E12 C6 B15
+    int loop_sensors[NUM_LOOP_SENSORS] = { 2, 44, 70, 54, 56, 75, 37, 30 };
 
     uint64_t caller_tid;
     char buf[3];
@@ -170,7 +192,7 @@ void train_task()
                 has_received_initial_sensor = 1;
                 trainlist.trains[0].sensors = get_reachable_sensors(track, node_index);
                 last_time = timer_get_ms();
-                goto end;
+                goto sensor_reading_end;
             }
 
             for (int i = 0; i < trainlist.size; ++i) {
@@ -186,13 +208,43 @@ void train_task()
                         last_time = timer_get_ms();
 
                         train->sensors = get_reachable_sensors(track, node_index);
-                        goto end;
+                        goto sensor_reading_end;
                     }
                 }
             }
 
-        end:
+        sensor_reading_end:
             reply_empty(caller_tid);
+            break;
+        }
+        case TRAIN_LOOP_NEXT: {
+            uint64_t train = buf[1];
+            train_t* t = train_find(&trainlist, train);
+            if (t->sensors.size == 0) {
+                // train has not hit a sensor yet.
+                
+                ret = reply_empty(caller_tid);
+                ASSERT(ret >= 0, "reply failed");
+                break;
+            }
+            int sensor = -1;
+            for (int i = 0; i < t->sensors.size; ++i) {
+                for (int j = 0; j < NUM_LOOP_SENSORS; ++j) {
+                    if (t->sensors.sensors[i] == loop_sensors[j]) {
+                        sensor = loop_sensors[j];
+                    }
+                }
+            }
+            if (sensor >= 0) {
+                char response[4];
+                ui2a(sensor, 10, response);
+                ret = reply(caller_tid, response, 4);
+                ASSERT(ret >= 0, "reply failed");
+                break;
+            }
+            // train is not in the loop.
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         default:
