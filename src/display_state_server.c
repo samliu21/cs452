@@ -8,6 +8,11 @@
 #include "syscall_func.h"
 #include "uart_server.h"
 
+typedef enum {
+    LAZY = 1,
+    FORCE = 2,
+} display_request_t;
+
 void display(char type)
 {
     int64_t display_state_task_tid = who_is(DISPLAY_STATE_TASK_NAME);
@@ -52,6 +57,10 @@ void display_state_task()
     char old_switches[128];
     memset(&old_switches, 0, 128);
 
+    char old_train_times[256];
+    memset(&old_train_times, 0, 256);
+    old_train_times[0] = 255;
+
     char c;
     uint64_t notifier_tid;
     for (;;) {
@@ -93,6 +102,18 @@ void display_state_task()
         if (c == FORCE || strcmp(switches, old_switches)) {
             printf(CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
             strcpy(old_switches, switches);
+        }
+
+        // train times
+        char train_times[256];
+        state_get_train_times(train_times);
+        if (c == FORCE || strcmp(train_times, old_train_times)) {
+            if (strlen(train_times) == 0) {
+                puts(CONSOLE, "\033[s\033[5;1H\033[2Ktime difference: N/A\033[u");
+            } else {
+                printf(CONSOLE, "\033[s\033[5;1H\033[2K%s ms\033[u", train_times);
+            }
+            strcpy(old_train_times, train_times);
         }
     }
 }

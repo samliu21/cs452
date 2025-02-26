@@ -1,5 +1,7 @@
 #include "train.h"
+#include "common.h"
 #include "name_server.h"
+#include "state_server.h"
 #include "syscall_asm.h"
 #include "syscall_func.h"
 #include "timer.h"
@@ -178,7 +180,9 @@ void train_task()
                         // print predicted and actual times
                         int t_pred = train->sensors.distances[j] * 1000 / TRAIN_SPEED;
                         int t_actual = timer_get_ms() - last_time;
-                        printf(CONSOLE, "predicted time: %d, actual time: %d\r\n", t_pred, t_actual);
+                        char buf[64];
+                        sprintf(buf, "time difference: %d", t_actual - t_pred);
+                        state_set_train_times(buf);
                         last_time = timer_get_ms();
 
                         train->sensors = get_reachable_sensors(track, node_index);

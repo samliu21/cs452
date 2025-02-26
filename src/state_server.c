@@ -13,14 +13,16 @@ typedef enum {
     GET_RECENT_SENSORS = 2,
     SET_SWITCH = 3,
     GET_SWITCHES = 4,
-    SWITCH_EXISTS = 5
+    SWITCH_EXISTS = 5,
+    SET_TRAIN_TIMES = 6,
+    GET_TRAIN_TIMES = 7,
 } state_server_request_t;
 
 void state_set_recent_sensor(char bank, char sensor)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
-   
+
     char buf[3];
     buf[0] = SET_RECENT_SENSOR;
     buf[1] = bank;
@@ -33,7 +35,7 @@ void state_get_recent_sensors(char* response)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
-    
+
     char c = GET_RECENT_SENSORS;
     int64_t ret = send(state_task_tid, &c, 1, response, 4 * NUM_RECENT_SENSORS + 1);
     ASSERT(ret >= 0, "send failed");
@@ -43,7 +45,7 @@ void state_set_switch(uint64_t sw, char d)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
-    
+
     char buf[3];
     buf[0] = SET_SWITCH;
     buf[1] = sw;
@@ -76,6 +78,28 @@ int state_switch_exists(uint64_t sw)
     return response;
 }
 
+void state_set_train_times(char* times)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char buf[2 + strlen(times)];
+    buf[0] = SET_TRAIN_TIMES;
+    strcpy(buf + 1, times);
+    int64_t ret = send(state_task_tid, buf, 2 + strlen(times), NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+void state_get_train_times(char* response)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char c = GET_TRAIN_TIMES;
+    int64_t ret = send(state_task_tid, &c, 1, response, 256);
+    ASSERT(ret >= 0, "send failed");
+}
+
 void state_task()
 {
     int64_t ret;
@@ -89,10 +113,13 @@ void state_task()
     charqueuenode sensornodes[4 * NUM_RECENT_SENSORS + 1];
     charqueue sensorqueue = charqueue_new(sensornodes, 4 * NUM_RECENT_SENSORS + 1);
 
+    char train_times[256];
+    memset(&train_times, 0, 256);
+
     uint64_t caller_tid;
-    char buf[3];
+    char buf[256];
     for (;;) {
-        ret = receive(&caller_tid, buf, 3);
+        ret = receive(&caller_tid, buf, 256);
         ASSERT(ret >= 0, "receive failed");
 
         switch (buf[0]) {
@@ -161,6 +188,18 @@ void state_task()
             uint64_t sw = buf[1];
             tswitch_t* s = switch_find(&switchlist, sw);
             ret = reply_char(caller_tid, s == NULL ? 0 : 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_TRAIN_TIMES: {
+            char* times = buf + 1;
+            strcpy(train_times, times);
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_TRAIN_TIMES: {
+            ret = reply(caller_tid, train_times, strlen(train_times) + 1);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
