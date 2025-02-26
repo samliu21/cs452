@@ -47,7 +47,7 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     while (!pq_pi_empty(&pq)) {
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
-        uart_printf(CONSOLE, "node: %d\r\n", node);
+        printf(CONSOLE, "node: %d\r\n", node);
         if (node == dest) {
             int path_reverse[TRACK_MAX];
             int path_length = 0;

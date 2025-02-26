@@ -146,6 +146,7 @@ void command_task()
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? 'S' : 'C';
 
                     state_set_switch(node.num, switch_type);
+                    printf(CONSOLE, "switch %d set\r\n", node.num);
 
                     marklin_set_switch(node.num, switch_type);
                 }
