@@ -8,7 +8,8 @@
 
 void clock_notifier_task()
 {
-    uint64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
     char tick_msg[2];
     tick_msg[0] = TICK;
     tick_msg[1] = 0;

@@ -17,21 +17,17 @@
 
 void terminal_task()
 {
-    int64_t uart_task_tid = who_is(TERMINAL_TASK_NAME);
-    ASSERT(uart_task_tid >= 0, "who_is failed");
     int64_t command_task_tid = who_is(COMMAND_TASK_NAME);
     ASSERT(command_task_tid >= 0, "who_is failed");
-    int64_t display_state_task_tid = who_is(DISPLAY_STATE_TASK_NAME);
-    ASSERT(display_state_task_tid >= 0, "who_is failed");
-
+    
     char command[32], command_result_buf[32];
     int command_pos = 0;
-    puts(uart_task_tid, CONSOLE, "> ");
+    puts(CONSOLE, "> ");
     for (;;) {
-        char c = getc(uart_task_tid, CONSOLE);
+        char c = getc(CONSOLE);
         command[command_pos++] = c;
         if (c == '\r' || c == '\n') {
-            puts(uart_task_tid, CONSOLE, "\r\n");
+            puts(CONSOLE, "\r\n");
             display_force();
 
             command[command_pos] = 0;
@@ -42,14 +38,14 @@ void terminal_task()
             if (command_result->type == COMMAND_QUIT) {
                 terminate();
             } else if (command_result->type == COMMAND_FAIL) {
-                printf(uart_task_tid, CONSOLE, "error: %s\r\n", command_result->error_message);
+                printf(CONSOLE, "error: %s\r\n", command_result->error_message);
             }
 
             command_pos = 0;
-            puts(uart_task_tid, CONSOLE, "> ");
+            puts(CONSOLE, "> ");
             display_force();
         } else {
-            putc(uart_task_tid, CONSOLE, c);
+            putc(CONSOLE, c);
         }
     }
 
@@ -78,7 +74,7 @@ void k4_initial_user_task()
     create(1, &marklin_notifier);
 
     // clear screen
-    puts(terminal_task_tid, CONSOLE, "\033[2J\033[999;1H");
+    puts(CONSOLE, "\033[2J\033[999;1H");
 
     // train setup tasks
     create(1, &train_task);

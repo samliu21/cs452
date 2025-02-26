@@ -20,29 +20,26 @@ void idletaskfunc()
 
 void clock_task1func()
 {
-    int64_t invalid_input = time(50);
-    TEST_TASK_ASSERT(invalid_input == -1);
-
     uint32_t real_start_time = timer_get_ticks();
-    uint64_t clock_start_time = time(3);
+    uint64_t clock_start_time = time();
     int diff = (int)(real_start_time - clock_start_time);
 
-    invalid_input = delay(3, -50);
+    int invalid_input = delay(-50);
     TEST_TASK_ASSERT(invalid_input == -2);
 
-    delay(3, 10);
+    delay(10);
     uint32_t real_time = timer_get_ticks();
-    uint64_t clock_time = time(3);
+    uint64_t clock_time = time();
     TEST_TASK_ASSERT((int)(real_time - clock_time) - diff <= 1);
     TEST_TASK_ASSERT((int)(real_time - clock_time) - diff >= 0);
     TEST_TASK_ASSERT(clock_time == clock_start_time + 10);
 
-    invalid_input = delay_until(3, 5);
+    invalid_input = delay_until(5);
     TEST_TASK_ASSERT(invalid_input == -2);
 
-    delay_until(3, clock_start_time + 20);
+    delay_until(clock_start_time + 20);
     real_time = timer_get_ticks();
-    clock_time = time(3);
+    clock_time = time();
     TEST_TASK_ASSERT((int)(real_time - clock_time) - diff <= 1);
     TEST_TASK_ASSERT((int)(real_time - clock_time) - diff >= 0);
     TEST_TASK_ASSERT(clock_time == clock_start_time + 20);
@@ -93,10 +90,6 @@ int _test_clock()
     RECEIVE_REPLY(name_server);
 
     SEND(clock_notifier);
-    RECEIVE_REPLY(name_server);
-
-    // Test time() with invalid tid
-    SEND(task1);
     RECEIVE_REPLY(name_server);
 
     // Test time()

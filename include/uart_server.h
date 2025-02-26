@@ -12,10 +12,10 @@ typedef enum {
     REQUEST_CTS_AVAILABLE = 6,
 } uart_request_t;
 
-int64_t getc(uint64_t tid, int channel);
-int64_t putc(uint64_t tid, int channel, char c);
-int64_t puts(uint64_t tid, int channel, const char* buf);
-int64_t printf(uint64_t line, int channel, const char* fmt, ...);
+int64_t getc(int channel);
+int64_t putc(int channel, char c);
+int64_t puts(int channel, const char* buf);
+int64_t printf(int channel, const char* fmt, ...);
 void uart_server_task();
 
 #endif

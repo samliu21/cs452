@@ -30,23 +30,15 @@ void display_force()
 void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
-    int64_t state_task_tid = who_is(STATE_TASK_NAME);
-    ASSERT(state_task_tid >= 0, "who_is failed");
-    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
-    ASSERT(clock_task_tid >= 0, "who_is failed");
-    int64_t terminal_task_tid = who_is(TERMINAL_TASK_NAME);
-    ASSERT(terminal_task_tid >= 0, "who_is failed");
-    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
     // show loading text while switches are being set
-    puts(terminal_task_tid, CONSOLE, "\033[s\033[1;1H\033[2KSetting up trains...\033[u");
+    puts(CONSOLE, "\033[s\033[1;1H\033[2KSetting up trains...\033[u");
 
     // set switches to straight
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
     for (int i = 0; i < switchlist.n_switches; ++i) {
-        marklin_set_switch(marklin_task_tid, switchlist.switches[i].id, switchlist.switches[i].state);
+        marklin_set_switch(switchlist.switches[i].id, switchlist.switches[i].state);
     }
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERT(ret >= 0, "create failed");
@@ -73,33 +65,33 @@ void display_state_task()
             uint64_t idle_percentage = usage / 100;
             uint64_t user_percentage = 100 - kernel_percentage - idle_percentage;
             char* format = "\033[s\033[1;1H\033[2Kkernel: %02u%%, idle: %02u%%, user: %02u%%\033[u";
-            printf(terminal_task_tid, CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
+            printf(CONSOLE, format, kernel_percentage, idle_percentage, user_percentage);
             old_usage = usage;
         }
 
         // clock
-        uint64_t ticks = time(clock_task_tid);
+        uint64_t ticks = time();
         if (c == FORCE || ticks != old_ticks) {
             uint64_t minutes = ticks / 6000;
             uint64_t seconds = (ticks % 6000) / 100;
             uint64_t tenths = (ticks % 100) / 10;
-            printf(terminal_task_tid, CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
+            printf(CONSOLE, "\033[s\033[2;1H\033[2K%02d:%02d:%02d\033[u", minutes, seconds, tenths);
             old_ticks = ticks;
         }
 
         // sensors
         char sensors[128];
-        state_get_recent_sensors(state_task_tid, sensors);
+        state_get_recent_sensors(sensors);
         if (c == FORCE || strcmp(sensors, old_sensors)) {
-            printf(terminal_task_tid, CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
+            printf(CONSOLE, "\033[s\033[3;1H\033[2Ksensors: [ %s]\033[u", sensors);
             strcpy(old_sensors, sensors);
         }
 
         // switches
         char switches[128];
-        state_get_switches(state_task_tid, switches);
+        state_get_switches(switches);
         if (c == FORCE || strcmp(switches, old_switches)) {
-            printf(terminal_task_tid, CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
+            printf(CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
             strcpy(old_switches, switches);
         }
     }
@@ -107,17 +99,14 @@ void display_state_task()
 
 void display_state_notifier()
 {
-    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
-    ASSERT(clock_task_tid >= 0, "who_is failed");
-
     // wait for display server to finish initializing switches
     display_lazy();
 
     int64_t ret;
-    int64_t ticks = time(clock_task_tid);
+    int64_t ticks = time();
     for (;;) {
         ticks += 5;
-        ret = delay_until(clock_task_tid, ticks);
+        ret = delay_until(ticks);
         ASSERTF(ret >= 0, "delay failed %d", ret);
         display_lazy();
     }

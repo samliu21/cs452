@@ -35,7 +35,7 @@ void stringmap_set(stringmap_t* map, char* key, uint64_t value)
 uint64_t stringmap_get(stringmap_t* map, char* key)
 {
     int key_index = _stringmap_key_index(map, key);
-    ASSERT(key_index != -1, "string key not found");
+    ASSERTF(key_index != -1, "string key \"%s\" not found", key);
     return map->values[key_index];
 }
 

@@ -14,12 +14,6 @@ void command_task()
 {
     int64_t ret = register_as(COMMAND_TASK_NAME);
     ASSERT(ret >= 0, "register_as failed");
-    int64_t state_task_tid = who_is(STATE_TASK_NAME);
-    ASSERT(state_task_tid >= 0, "who_is failed");
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
     track_node track[TRACK_MAX];
     init_tracka(track);
@@ -45,7 +39,7 @@ void command_task()
             }
             uint64_t train = a2ui(args[1], 10);
             uint64_t speed = a2ui(args[2], 10);
-            if (!state_train_exists(train_task_tid, train)) {
+            if (!state_train_exists(train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -56,10 +50,10 @@ void command_task()
             }
 
             // update state
-            state_set_speed(train_task_tid, train, speed);
+            state_set_speed(train, speed);
 
             // set speed on marklin
-            marklin_set_speed(marklin_task_tid, train, speed);
+            marklin_set_speed(train, speed);
 
             result.type = COMMAND_SUCCESS;
         }
@@ -71,13 +65,13 @@ void command_task()
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
-            if (!state_train_exists(train_task_tid, train)) {
+            if (!state_train_exists(train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
             }
 
-            marklin_set_speed(marklin_task_tid, train, 0);
+            marklin_set_speed(train, 0);
 
             int64_t reverse_task_id = create(1, &train_reverse_task);
             int64_t ret = send(reverse_task_id, (char*)&train, 1, NULL, 0);
@@ -95,7 +89,7 @@ void command_task()
             unsigned int num = a2ui(args[1], 10);
             char d = args[2][0];
 
-            if (!state_switch_exists(state_task_tid, num)) {
+            if (!state_switch_exists(num)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "switch does not exist";
                 goto end;
@@ -107,9 +101,9 @@ void command_task()
                 goto end;
             }
 
-            state_set_switch(state_task_tid, num, d);
+            state_set_switch(num, d);
 
-            marklin_set_switch(marklin_task_tid, num, d);
+            marklin_set_switch(num, d);
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
@@ -126,7 +120,7 @@ void command_task()
             int dest = name_to_node_index(track, args[2]);
             uint64_t train = a2ui(args[3], 10);
             uint64_t speed = a2ui(args[4], 10);
-            if (!state_train_exists(train_task_tid, train)) {
+            if (!state_train_exists(train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
                 goto end;
@@ -153,17 +147,17 @@ void command_task()
                 if (node.type == NODE_BRANCH) {
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? 'S' : 'C';
 
-                    state_set_switch(state_task_tid, node.num, switch_type);
+                    state_set_switch(node.num, switch_type);
 
-                    marklin_set_switch(marklin_task_tid, node.num, switch_type);
+                    marklin_set_switch(node.num, switch_type);
                 }
             }
 
             // update state
-            state_set_speed(train_task_tid, train, speed);
+            state_set_speed(train, speed);
 
             // set speed on marklin
-            marklin_set_speed(marklin_task_tid, train, speed);
+            marklin_set_speed(train, speed);
 
             result.type = COMMAND_SUCCESS;
         }

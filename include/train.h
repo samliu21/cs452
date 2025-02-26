@@ -21,10 +21,10 @@ void train_add(trainlist_t* tlist, uint64_t id);
 void train_set_speed(trainlist_t* tlist, uint64_t id, uint64_t speed);
 train_t* train_find(trainlist_t* tlist, uint64_t id);
 
-void state_set_speed(uint64_t train_task_tid, uint64_t train, uint64_t speed);
-uint64_t state_get_speed(uint64_t train_task_tid, uint64_t train);
-int state_train_exists(uint64_t train_task_tid, uint64_t train);
-void state_sensor_reading(uint64_t train_task_tid, track_node* track, char* sensor);
+void state_set_speed(uint64_t train, uint64_t speed);
+uint64_t state_get_speed(uint64_t train);
+int state_train_exists(uint64_t train);
+void state_sensor_reading(track_node* track, char* sensor);
 
 void train_task();
 

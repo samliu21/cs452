@@ -9,7 +9,6 @@ void k3_client_task()
 {
     uint64_t parent_tid = my_parent_tid();
     uint64_t tid = my_tid();
-    uint64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
 
     char response[8];
     ASSERT(send(parent_tid, NULL, 0, response, 8) >= 0, "send failed");
@@ -17,7 +16,7 @@ void k3_client_task()
     uint64_t num_intervals = a2ui(response + 4, 10);
 
     for (uint64_t i = 0; i < num_intervals; ++i) {
-        delay(clock_task_tid, delay_interval);
+        delay(delay_interval);
         uart_printf(CONSOLE, "tid: %u, delay: %u, intervals completed: %u\r\n", tid, delay_interval, i + 1);
     }
 

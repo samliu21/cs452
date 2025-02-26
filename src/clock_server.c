@@ -6,12 +6,11 @@
 #include "timer.h"
 #include "uintmap.h"
 
-int64_t time(uint64_t tid)
+int64_t time()
 {
-    uint64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
-    if (tid != clock_task_tid) {
-        return -1;
-    }
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
+
     char request[2];
     request[0] = TIME;
     request[1] = 0;
@@ -26,12 +25,11 @@ int64_t time(uint64_t tid)
     }
 }
 
-int64_t delay(uint64_t tid, int64_t ticks)
+int64_t delay(int64_t ticks)
 {
-    uint64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
-    if (tid != clock_task_tid) {
-        return -1;
-    }
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
+
     if (ticks < 0) {
         return -2;
     }
@@ -52,12 +50,10 @@ int64_t delay(uint64_t tid, int64_t ticks)
     }
 }
 
-int64_t delay_until(uint64_t tid, int64_t ticks)
+int64_t delay_until(int64_t ticks)
 {
-    uint64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
-    if (tid != clock_task_tid) {
-        return -1;
-    }
+    int64_t clock_task_tid = who_is(CLOCK_TASK_NAME);
+    ASSERT(clock_task_tid >= 0, "who_is failed");
 
     char request[16];
     memset(request, 0, 16);

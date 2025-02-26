@@ -10,9 +10,9 @@ typedef enum {
     TICK = 4,
 } clock_server_request_t;
 
-int64_t time(uint64_t tid);
-int64_t delay(uint64_t tid, int64_t ticks);
-int64_t delay_until(uint64_t tid, int64_t ticks);
+int64_t time();
+int64_t delay(int64_t ticks);
+int64_t delay_until(int64_t ticks);
 
 void clock_server_task();
 

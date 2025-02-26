@@ -7,16 +7,14 @@
 
 #define WRITER_QUEUE_DUMMY_TID 0
 
-int64_t getc(uint64_t tid, int channel)
+int64_t getc(int channel)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
-    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    if (tid != terminal_tid && tid != marklin_task_tid) {
+    if (channel != CONSOLE && channel != MARKLIN) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
-        return -1;
-    }
+    int64_t tid = (channel == CONSOLE) ? who_is(TERMINAL_TASK_NAME) : who_is(MARKLIN_TASK_NAME);
+    ASSERT(tid >= 0, "who_is failed");
+
     char c;
     char msg = REQUEST_UART_READ;
     int64_t ret = send(tid, &msg, 1, &c, 1);
@@ -24,16 +22,14 @@ int64_t getc(uint64_t tid, int channel)
     return c;
 }
 
-int64_t putc(uint64_t tid, int channel, char c)
+int64_t putc(int channel, char c)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
-    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    if (tid != terminal_tid && tid != marklin_task_tid) {
+    if (channel != CONSOLE && channel != MARKLIN) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
-        return -1;
-    }
+    int64_t tid = (channel == CONSOLE) ? who_is(TERMINAL_TASK_NAME) : who_is(MARKLIN_TASK_NAME);
+    ASSERT(tid >= 0, "who_is failed");
+
     char buf[2];
     buf[0] = REQUEST_UART_WRITE;
     buf[1] = c;
@@ -42,16 +38,14 @@ int64_t putc(uint64_t tid, int channel, char c)
     return 0;
 }
 
-int64_t puts(uint64_t tid, int channel, const char* buf)
+int64_t puts(int channel, const char* buf)
 {
-    uint64_t terminal_tid = who_is(TERMINAL_TASK_NAME);
-    uint64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    if (tid != terminal_tid && tid != marklin_task_tid) {
+    if (channel != CONSOLE && channel != MARKLIN) {
         return -1;
     }
-    if ((tid == terminal_tid && channel != CONSOLE) || (tid == marklin_task_tid && channel != MARKLIN)) {
-        return -1;
-    }
+    int64_t tid = (channel == CONSOLE) ? who_is(TERMINAL_TASK_NAME) : who_is(MARKLIN_TASK_NAME);
+    ASSERT(tid >= 0, "who_is failed");
+
     int len = strlen(buf);
     char sendbuf[len + 2];
     sendbuf[0] = REQUEST_UART_WRITE_STRING;
@@ -62,7 +56,7 @@ int64_t puts(uint64_t tid, int channel, const char* buf)
     return 0;
 }
 
-int64_t va_printf(uint64_t tid, int channel, const char* fmt, va_list va)
+int64_t va_printf(int channel, const char* fmt, va_list va)
 {
     char ch, buf[12];
     int width = 0, pad_zero = 0;
@@ -136,15 +130,15 @@ int64_t va_printf(uint64_t tid, int channel, const char* fmt, va_list va)
         }
     }
     output[pos] = 0;
-    puts(tid, channel, output);
+    puts(channel, output);
     return res;
 }
 
-int64_t printf(uint64_t tid, int channel, const char* fmt, ...)
+int64_t printf(int channel, const char* fmt, ...)
 {
     va_list va;
     va_start(va, fmt);
-    va_printf(tid, channel, fmt, va);
+    va_printf(channel, fmt, va);
     va_end(va);
     return 0;
 }

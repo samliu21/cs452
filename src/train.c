@@ -45,8 +45,11 @@ typedef enum {
     SENSOR_READING = 4,
 } train_task_request_t;
 
-void state_set_speed(uint64_t train_task_tid, uint64_t train, uint64_t speed)
+void state_set_speed(uint64_t train, uint64_t speed)
 {
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
     char buf[3];
     buf[0] = SET_TRAIN_SPEED;
     buf[1] = speed;
@@ -55,8 +58,11 @@ void state_set_speed(uint64_t train_task_tid, uint64_t train, uint64_t speed)
     ASSERT(ret >= 0, "send failed");
 }
 
-uint64_t state_get_speed(uint64_t train_task_tid, uint64_t train)
+uint64_t state_get_speed(uint64_t train)
 {
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+    
     char buf[2], response[2];
     buf[0] = GET_TRAIN_SPEED;
     buf[1] = train;
@@ -65,8 +71,11 @@ uint64_t state_get_speed(uint64_t train_task_tid, uint64_t train)
     return response[1];
 }
 
-int state_train_exists(uint64_t train_task_tid, uint64_t train)
+int state_train_exists(uint64_t train)
 {
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+    
     char buf[2];
     buf[0] = TRAIN_EXISTS;
     buf[1] = train;
@@ -76,8 +85,11 @@ int state_train_exists(uint64_t train_task_tid, uint64_t train)
     return response;
 }
 
-void state_sensor_reading(uint64_t train_task_tid, track_node* track, char* sensor)
+void state_sensor_reading(track_node* track, char* sensor)
 {
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+    
     int node_index = name_to_node_index(track, sensor);
     ASSERTF(node_index >= 0, "invalid sensor name: '%s'", sensor);
     char buf[2];
@@ -152,6 +164,7 @@ void train_task()
             if (!has_received_initial_sensor) {
                 has_received_initial_sensor = 1;
                 trainlist.trains[0].sensors = get_reachable_sensors(track, node_index);
+                reply_empty(caller_tid);
                 break;
             }
 
@@ -165,6 +178,7 @@ void train_task()
                 }
             }
         end:
+            reply_empty(caller_tid);
             break;
         }
         default:

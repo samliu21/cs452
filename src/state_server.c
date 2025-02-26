@@ -6,6 +6,7 @@
 #include "switch.h"
 #include "syscall_func.h"
 #include "train.h"
+#include "uart_server.h"
 
 typedef enum {
     SET_RECENT_SENSOR = 1,
@@ -15,8 +16,11 @@ typedef enum {
     SWITCH_EXISTS = 5
 } state_server_request_t;
 
-void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor)
+void state_set_recent_sensor(char bank, char sensor)
 {
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+   
     char buf[3];
     buf[0] = SET_RECENT_SENSOR;
     buf[1] = bank;
@@ -25,15 +29,21 @@ void state_set_recent_sensor(uint64_t state_task_tid, char bank, char sensor)
     ASSERT(ret >= 0, "send failed");
 }
 
-void state_get_recent_sensors(uint64_t state_task_tid, char* response)
+void state_get_recent_sensors(char* response)
 {
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+    
     char c = GET_RECENT_SENSORS;
     int64_t ret = send(state_task_tid, &c, 1, response, 4 * NUM_RECENT_SENSORS + 1);
     ASSERT(ret >= 0, "send failed");
 }
 
-void state_set_switch(uint64_t state_task_tid, uint64_t sw, char d)
+void state_set_switch(uint64_t sw, char d)
 {
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+    
     char buf[3];
     buf[0] = SET_SWITCH;
     buf[1] = sw;
@@ -42,15 +52,21 @@ void state_set_switch(uint64_t state_task_tid, uint64_t sw, char d)
     ASSERT(ret >= 0, "send failed");
 }
 
-void state_get_switches(uint64_t state_task_tid, char* response)
+void state_get_switches(char* response)
 {
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
     char c = GET_SWITCHES;
     int64_t ret = send(state_task_tid, &c, 1, response, 128);
     ASSERT(ret >= 0, "send failed");
 }
 
-int state_switch_exists(uint64_t state_task_tid, uint64_t sw)
+int state_switch_exists(uint64_t sw)
 {
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
     char buf[2];
     buf[0] = SWITCH_EXISTS;
     buf[1] = sw;
@@ -66,8 +82,6 @@ void state_task()
 
     ret = register_as(STATE_TASK_NAME);
     ASSERT(ret >= 0, "register_as failed");
-    int64_t marklin_task_tid = who_is(MARKLIN_TASK_NAME);
-    ASSERT(marklin_task_tid >= 0, "who_is failed");
 
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
