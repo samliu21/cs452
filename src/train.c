@@ -2,8 +2,10 @@
 #include "name_server.h"
 #include "syscall_asm.h"
 #include "syscall_func.h"
+#include "timer.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "uart_server.h"
 #include <stdlib.h>
 
 trainlist_t train_createlist(train_t* trains)
@@ -62,7 +64,7 @@ uint64_t state_get_speed(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
-    
+
     char buf[2], response[2];
     buf[0] = GET_TRAIN_SPEED;
     buf[1] = train;
@@ -75,7 +77,7 @@ int state_train_exists(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
-    
+
     char buf[2];
     buf[0] = TRAIN_EXISTS;
     buf[1] = train;
@@ -89,7 +91,7 @@ void state_sensor_reading(track_node* track, char* sensor)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
-    
+
     int node_index = name_to_node_index(track, sensor);
     ASSERTF(node_index >= 0, "invalid sensor name: '%s'", sensor);
     char buf[2];
@@ -109,6 +111,7 @@ void train_task()
     train_t trains[5];
     trainlist_t trainlist = train_createlist(trains);
     train_add(&trainlist, 55);
+    int last_time;
     // train_add(&trainlist, 54);
 
     track_node track[TRACK_MAX];
@@ -164,19 +167,26 @@ void train_task()
             if (!has_received_initial_sensor) {
                 has_received_initial_sensor = 1;
                 trainlist.trains[0].sensors = get_reachable_sensors(track, node_index);
-                reply_empty(caller_tid);
-                break;
+                last_time = timer_get_ms();
+                goto end;
             }
 
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* train = &trainlist.trains[i];
                 for (int j = 0; j < train->sensors.size; ++j) {
                     if (train->sensors.sensors[j] == node_index) {
+                        // print predicted and actual times
+                        int t_pred = train->sensors.distances[j] * 1000 / TRAIN_SPEED;
+                        int t_actual = timer_get_ms() - last_time;
+                        printf(CONSOLE, "predicted time: %d, actual time: %d\r\n", t_pred, t_actual);
+                        last_time = timer_get_ms();
+
                         train->sensors = get_reachable_sensors(track, node_index);
                         goto end;
                     }
                 }
             }
+
         end:
             reply_empty(caller_tid);
             break;

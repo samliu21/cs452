@@ -5,6 +5,8 @@
 #include "track_algo.h"
 #include "track_node.h"
 
+#define TRAIN_SPEED 274
+
 typedef struct train_t {
     uint64_t id;
     uint64_t speed;
