@@ -37,16 +37,6 @@ int kmain()
         for (;;) { }
     }
 
-    // track_node track[TRACK_MAX];
-    // init_tracka(track);
-    // reachable_sensors_t sensors = get_reachable_sensors(track, 39); // C8
-    // uart_printf(CONSOLE, "size: %d\r\n", sensors.size);
-    // for (int i = 0; i < sensors.size; ++i) {
-    //     uart_printf(CONSOLE, "sensor %d: %d\r\n", sensors.sensors[i], sensors.distances[i]);
-    // }
-    // for (;;) {
-    // }
-
     // create kernel task
     task_t kernel_task;
     kernel_task.tid = 0;

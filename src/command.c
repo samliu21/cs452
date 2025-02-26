@@ -118,7 +118,7 @@ void command_task()
             }
             uint64_t train = a2ui(args[1], 10);
             int dest = name_to_node_index(track, args[2]);
-            
+
             if (!state_train_exists(train)) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train does not exist";
@@ -139,6 +139,7 @@ void command_task()
             }
 
             track_path_t path = get_shortest_path(track, src, dest);
+            puts(CONSOLE, "got shortest path\r\n");
             for (int i = 0; i < path.path_length - 1; ++i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
@@ -149,6 +150,7 @@ void command_task()
                     marklin_set_switch(node.num, switch_type);
                 }
             }
+            puts(CONSOLE, "finished setting switches\r\n");
 
             result.type = COMMAND_SUCCESS;
         }

@@ -3,6 +3,7 @@
 #include "rpi.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "uart_server.h"
 #include <stdlib.h>
 
 int get_node_index(track_node* track_begin, track_node* node)
@@ -39,20 +40,27 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     prev[src] = -1;
 
     track_path_t path = track_path_new();
+    pi_t* t = pq_pi_peek(&pq);
+    printf(CONSOLE, "src: %d, dest: %d\r\n", src, dest);
+    printf(CONSOLE, "peek: %d\r\n", t->id);
 
     while (!pq_pi_empty(&pq)) {
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
+        uart_printf(CONSOLE, "node: %d\r\n", node);
         if (node == dest) {
             int path_reverse[TRACK_MAX];
             int path_length = 0;
+            puts(CONSOLE, "before anything\r\n");
             while (node != -1) {
                 path_reverse[path_length++] = node;
                 node = prev[node];
             }
+            printf(CONSOLE, "path_length: %d\r\n", path_length);
             for (int i = path_length - 1; i >= 0; --i) {
                 track_path_add(&path, path_reverse[i]);
             }
+            puts(CONSOLE, "added to path\r\n");
             break;
         }
         if (dist[node] < pi->weight) {
@@ -88,6 +96,7 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
             ASSERTF(0, "Invalid Node");
         }
     }
+
     return path;
 }
 
