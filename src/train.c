@@ -114,12 +114,13 @@ int train_loop_next(uint64_t train)
     char buf[2];
     buf[0] = TRAIN_LOOP_NEXT;
     buf[1] = train;
-    char response[4];
-    int64_t ret = send(train_task_tid, buf, 2, response, 4);
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
     if (ret == 0) {
         return -1;
     }
-    return a2ui(response, 10);
+    return response;
 }
 
 void train_task()
@@ -221,8 +222,6 @@ void train_task()
             uint64_t train = buf[1];
             train_t* t = train_find(&trainlist, train);
             if (t->sensors.size == 0) {
-                // train has not hit a sensor yet.
-                
                 ret = reply_empty(caller_tid);
                 ASSERT(ret >= 0, "reply failed");
                 break;
@@ -236,12 +235,12 @@ void train_task()
                 }
             }
             if (sensor >= 0) {
-                char response[4];
-                ui2a(sensor, 10, response);
-                ret = reply(caller_tid, response, 4);
+                char sensor_byte = sensor;
+                ret = reply(caller_tid, &sensor_byte, 1);
                 ASSERT(ret >= 0, "reply failed");
                 break;
             }
+
             // train is not in the loop.
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
