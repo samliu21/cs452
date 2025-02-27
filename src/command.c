@@ -149,6 +149,7 @@ void command_task()
                     marklin_set_switch(node.num, switch_type);
                 }
             }
+            printf(CONSOLE, "stop node: %d, time offset: %d\r\n", path.stop_node, path.stop_time_offset);
             set_stop_node(train, path.stop_node, path.stop_time_offset);
 
             result.type = COMMAND_SUCCESS;

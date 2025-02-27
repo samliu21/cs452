@@ -6,7 +6,7 @@
 #include "track_node.h"
 
 #define TRAIN_SPEED 274 // mm/s
-#define TRAIN_STOPPING_DISTANCE 315 // 315mm
+#define TRAIN_STOPPING_DISTANCE 335 // mm
 
 typedef struct train_t {
     uint64_t id;
