@@ -26,11 +26,11 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
 track_path_t get_shortest_path(track_node* track, int src, int dest)
 {
     priority_queue_pi_t pq = pq_pi_new();
-    pi_t nodes[2000];
+    pi_t nodes[256];
     int nodes_pos = 0;
     int prev[TRACK_MAX], dist[TRACK_MAX];
     for (int i = 0; i < TRACK_MAX; ++i) {
-        dist[i] = __INT_MAX__;
+        dist[i] = 1e9;
     }
 
     nodes[nodes_pos].weight = 0;
@@ -40,30 +40,24 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     prev[src] = -1;
 
     track_path_t path = track_path_new();
-    pi_t* t = pq_pi_peek(&pq);
-    printf(CONSOLE, "src: %d, dest: %d\r\n", src, dest);
-    printf(CONSOLE, "peek: %d\r\n", t->id);
 
     while (!pq_pi_empty(&pq)) {
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
-        printf(CONSOLE, "node: %d\r\n", node);
+        int weight = pi->weight;
         if (node == dest) {
             int path_reverse[TRACK_MAX];
             int path_length = 0;
-            puts(CONSOLE, "before anything\r\n");
             while (node != -1) {
                 path_reverse[path_length++] = node;
                 node = prev[node];
             }
-            printf(CONSOLE, "path_length: %d\r\n", path_length);
             for (int i = path_length - 1; i >= 0; --i) {
                 track_path_add(&path, path_reverse[i]);
             }
-            puts(CONSOLE, "added to path\r\n");
             break;
         }
-        if (dist[node] < pi->weight) {
+        if (dist[node] < weight) {
             continue;
         }
 
@@ -93,7 +87,7 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
             break;
 
         default:
-            ASSERTF(0, "Invalid Node");
+            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
         }
     }
 
@@ -121,7 +115,7 @@ reachable_sensors_t get_reachable_sensors(track_node* track, int src_sensor)
     int nodes_pos = 0;
     int prev[TRACK_MAX], dist[TRACK_MAX];
     for (int i = 0; i < TRACK_MAX; ++i) {
-        dist[i] = __INT_MAX__;
+        dist[i] = 1e9;
     }
 
     nodes[nodes_pos].weight = 0;

@@ -139,19 +139,16 @@ void command_task()
             }
 
             track_path_t path = get_shortest_path(track, src, dest);
-            puts(CONSOLE, "got shortest path\r\n");
             for (int i = 0; i < path.path_length - 1; ++i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? 'S' : 'C';
 
                     state_set_switch(node.num, switch_type);
-                    printf(CONSOLE, "switch %d set\r\n", node.num);
 
                     marklin_set_switch(node.num, switch_type);
                 }
             }
-            puts(CONSOLE, "finished setting switches\r\n");
 
             result.type = COMMAND_SUCCESS;
         }

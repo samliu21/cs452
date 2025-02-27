@@ -83,10 +83,6 @@ void handle_interrupt(main_context_t* context)
     case INTERRUPT_ID_UART: {
         uint32_t terminal_mis = UART_REG(CONSOLE, UART_MIS);
         uint32_t marklin_mis = UART_REG(MARKLIN, UART_MIS);
-        if (terminal_mis && marklin_mis) {
-            // TODO: remove this once we confirm it is handled correctly
-            uart_puts(CONSOLE, "handling both interrupts\r\n");
-        }
 
         queue_t* waiting_queue;
         int line;
@@ -109,6 +105,14 @@ void handle_interrupt(main_context_t* context)
             if (waiting_queue->size == 0) {
                 ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
                 clear_uart_cts_interrupts(line);
+            }
+            if (waiting_queue->size >= 2) {
+                uart_puts(CONSOLE, line == CONSOLE ? "console has more than two tasks waiting\r\n" : "marklin has more than two tasks waiting\r\n");
+                task_t* t = waiting_queue->head;
+                while (t) {
+                    uart_printf(CONSOLE, "task %d\r\n", t->tid);
+                    t = t->next_task;
+                }
             }
             ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
 
