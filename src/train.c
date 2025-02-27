@@ -256,8 +256,9 @@ void train_task()
                         // print predicted and actual times
                         int t_pred = train->sensors.distances[j] * 1000 / TRAIN_SPEED;
                         int t_actual = timer_get_ms() - last_time;
+                        int t_diff = t_actual - t_pred;
                         char buf[64];
-                        sprintf(buf, "time difference: %d", t_actual - t_pred);
+                        sprintf(buf, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * TRAIN_SPEED / 1000);
                         state_set_train_times(buf);
                         last_time = timer_get_ms();
 
