@@ -111,7 +111,7 @@ void display_state_task()
             if (strlen(train_times) == 0) {
                 puts(CONSOLE, "\033[s\033[5;1H\033[2Ktime difference: N/A\033[u");
             } else {
-                printf(CONSOLE, "\033[s\033[5;1H\033[2K%s ms\033[u", train_times);
+                printf(CONSOLE, "\033[s\033[5;1H\033[2K%sms\033[u", train_times);
             }
             strcpy(old_train_times, train_times);
         }

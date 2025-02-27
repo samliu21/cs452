@@ -3,6 +3,7 @@
 #include "rpi.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "train.h"
 #include "uart_server.h"
 #include <stdlib.h>
 
@@ -52,6 +53,21 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
                 path_reverse[path_length++] = node;
                 node = prev[node];
             }
+
+            // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
+            for (int i = 1; i < path_length; ++i) {
+                int cur_node = path_reverse[i];
+                int distance_from_end = dist[dest] - dist[cur_node];
+                if (track[cur_node].type == NODE_SENSOR && distance_from_end >= TRAIN_STOPPING_DISTANCE) {
+                    path.stop_node = cur_node;
+                    path.stop_time_offset = (distance_from_end - TRAIN_STOPPING_DISTANCE) * 1000 / TRAIN_SPEED;
+                    break;
+                }
+                if (i == path_length - 1) {
+                    ASSERT(0, "could not find stop node");
+                }
+            }
+
             for (int i = path_length - 1; i >= 0; --i) {
                 track_path_add(&path, path_reverse[i]);
             }

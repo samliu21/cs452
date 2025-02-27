@@ -6,6 +6,8 @@
 typedef struct track_path_t {
     int nodes[TRACK_MAX];
     int path_length;
+	int stop_node;
+	int stop_time_offset;
 } track_path_t;
 
 track_path_t track_path_new();

@@ -1,5 +1,7 @@
 #include "train.h"
+#include "clock_server.h"
 #include "common.h"
+#include "marklin.h"
 #include "name_server.h"
 #include "state_server.h"
 #include "syscall_asm.h"
@@ -25,6 +27,7 @@ void train_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
     tlist->trains[tlist->size].sensors.size = 0;
+    tlist->trains[tlist->size].stop_node = -1;
     tlist->size++;
 }
 
@@ -50,6 +53,7 @@ typedef enum {
     TRAIN_EXISTS = 3,
     SENSOR_READING = 4,
     TRAIN_LOOP_NEXT = 5,
+    SET_STOP_NODE = 6,
 } train_task_request_t;
 
 void state_set_speed(uint64_t train, uint64_t speed)
@@ -123,6 +127,40 @@ int train_loop_next(uint64_t train)
     return response;
 }
 
+void set_stop_node(uint64_t train, int node, int time_offset)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[32];
+    buf[0] = SET_STOP_NODE;
+    buf[1] = train;
+    buf[2] = node;
+    ui2a(time_offset, 10, buf + 3);
+    int64_t ret = send(train_task_tid, buf, 32, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+void train_stop_task()
+{
+    int64_t ret;
+    uint64_t caller_tid;
+    char buf[32];
+
+    ret = receive(&caller_tid, buf, 32);
+    ASSERT(ret >= 0, "receive failed");
+    ret = reply_empty(caller_tid);
+    ASSERT(ret >= 0, "reply failed");
+
+    uint64_t train = buf[0];
+    uint64_t delay_ms = a2ui(buf + 1, 10);
+    ret = delay(delay_ms / 10); // delay is in ms
+    ASSERT(ret >= 0, "delay failed");
+
+    marklin_set_speed(train, 0);
+    state_set_speed(train, 0);
+}
+
 void train_task()
 {
     int64_t ret;
@@ -143,10 +181,10 @@ void train_task()
     int loop_sensors[NUM_LOOP_SENSORS] = { 2, 44, 70, 54, 56, 75, 37, 30 };
 
     uint64_t caller_tid;
-    char buf[3];
+    char buf[32];
     int has_received_initial_sensor = 0;
     for (;;) {
-        ret = receive(&caller_tid, buf, 3);
+        ret = receive(&caller_tid, buf, 32);
         ASSERT(ret >= 0, "receive failed");
 
         switch (buf[0]) {
@@ -186,6 +224,21 @@ void train_task()
         }
         case SENSOR_READING: {
             int node_index = buf[1];
+
+            for (int i = 0; i < trainlist.size; ++i) {
+                if (node_index == trainlist.trains[i].stop_node) {
+                    int64_t stop_task_tid = create(1, &train_stop_task);
+                    ASSERT(stop_task_tid >= 0, "create failed");
+
+                    char buf[32];
+                    buf[0] = trainlist.trains[i].id;
+                    ui2a(trainlist.trains[i].stop_time_offset, 10, buf + 1);
+                    ret = send(stop_task_tid, buf, 32, NULL, 0);
+                    ASSERT(ret >= 0, "send failed");
+
+                    trainlist.trains[i].stop_node = -1;
+                }
+            }
 
             // if the train has not received a sensor reading yet, set the reachable sensors from the initial reading
             // otherwise, find the train expecting this sensor reading and update its reachable sensors
@@ -242,6 +295,18 @@ void train_task()
             }
 
             // train is not in the loop.
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_STOP_NODE: {
+            uint64_t train = buf[1];
+            int node = buf[2];
+            int time_offset = a2ui(buf + 3, 10);
+            train_t* t = train_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            t->stop_node = node;
+            t->stop_time_offset = time_offset;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
