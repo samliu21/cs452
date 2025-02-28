@@ -1,4 +1,8 @@
 #include "switch.h"
+#include "marklin.h"
+#include "state_server.h"
+#include "syscall_asm.h"
+#include "syscall_func.h"
 #include <stdlib.h>
 
 switchlist_t switch_createlist(tswitch_t* switches)
@@ -53,4 +57,57 @@ tswitch_t* switch_find(switchlist_t* tlist, uint64_t id)
         }
     }
     return NULL;
+}
+
+void fix_middle_switches(int switch_num, switchstate_t dir)
+{
+    if (dir == C) {
+        int corresponding_switch_num = 0;
+        if (switch_num == 153) {
+            corresponding_switch_num = 154;
+        } else if (switch_num == 154) {
+            corresponding_switch_num = 153;
+        } else if (switch_num == 155) {
+            corresponding_switch_num = 156;
+        } else if (switch_num == 156) {
+            corresponding_switch_num = 155;
+        }
+        if (corresponding_switch_num) {
+            state_set_switch(corresponding_switch_num, S);
+
+            marklin_set_switch(corresponding_switch_num, S);
+        }
+    }
+}
+
+void set_switch_task()
+{
+    int64_t ret;
+    char buf[2];
+    uint64_t caller_tid;
+
+    ret = receive(&caller_tid, buf, 2);
+    ASSERT(ret >= 0, "receive failed");
+    ret = reply_empty(caller_tid);
+    ASSERT(ret >= 0, "reply_empty failed");
+
+    uint64_t switch_num = buf[0];
+    char switch_type = buf[1];
+
+    fix_middle_switches(switch_num, switch_type);
+    state_set_switch(switch_num, switch_type);
+    marklin_set_switch(switch_num, switch_type);
+
+    syscall_exit();
+}
+
+void create_switch_task(int switch_num, char switch_type)
+{
+    int64_t task_tid = create(1, &set_switch_task);
+    ASSERT(task_tid >= 0, "create failed");
+    char buf[2];
+    buf[0] = switch_num;
+    buf[1] = switch_type;
+    int64_t ret = send(task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
 }

@@ -13,27 +13,6 @@
 #define NUM_LOOP_SENSORS 8
 #define NUM_LOOP_SWITCHES 4
 
-void fix_middle_switches(int switch_num, switchstate_t dir)
-{
-    if (dir == C) {
-        int corresponding_switch_num = 0;
-        if (switch_num == 153) {
-            corresponding_switch_num = 154;
-        } else if (switch_num == 154) {
-            corresponding_switch_num = 153;
-        } else if (switch_num == 155) {
-            corresponding_switch_num = 156;
-        } else if (switch_num == 156) {
-            corresponding_switch_num = 155;
-        }
-        if (corresponding_switch_num) {
-            state_set_switch(corresponding_switch_num, S);
-
-            marklin_set_switch(corresponding_switch_num, S);
-        }
-    }
-}
-
 void command_task()
 {
     int64_t ret = register_as(COMMAND_TASK_NAME);
@@ -134,9 +113,7 @@ void command_task()
                 goto end;
             }
 
-            fix_middle_switches(num, d);
-            state_set_switch(num, d);
-            marklin_set_switch(num, d);
+            create_switch_task(num, d);
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
@@ -185,14 +162,12 @@ void command_task()
             }
 
             track_path_t path = get_shortest_path(track, src, dest, speed_level);
-            for (int i = 0; i < path.path_length - 1; ++i) {
+            for (int i = path.path_length - 2; i >= 0; --i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? S : C;
 
-                    fix_middle_switches(node.num, switch_type);
-                    state_set_switch(node.num, switch_type);
-                    marklin_set_switch(node.num, switch_type);
+                    create_switch_task(node.num, switch_type);
                 }
             }
             int64_t ret = create(1, &deactivate_solenoid_task);
@@ -259,16 +234,15 @@ void command_task()
                 if (node.type == NODE_BRANCH) {
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? S : C;
 
-                    fix_middle_switches(node.num, switch_type);
-                    state_set_switch(node.num, switch_type);
-                    marklin_set_switch(node.num, switch_type);
+                    create_switch_task(node.num, switch_type);
                 }
             }
 
             for (int i = 0; i < NUM_LOOP_SWITCHES; ++i) {
-                state_set_switch(loop_switches[i], loop_switch_states[i]);
-                marklin_set_switch(loop_switches[i], loop_switch_states[i]);
+                create_switch_task(loop_switches[i], loop_switch_states[i]);
             }
+            int64_t ret = create(1, &deactivate_solenoid_task);
+            ASSERT(ret >= 0, "create failed");
 
             if (rv == 1) {
                 marklin_reverse(train);

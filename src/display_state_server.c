@@ -37,14 +37,11 @@ void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
 
-    // show loading text while switches are being set
-    puts(CONSOLE, "\033[s\033[1;1H\033[2KSetting up trains...\033[u");
-
     // set switches to straight
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
     for (int i = 0; i < switchlist.n_switches; ++i) {
-        marklin_set_switch(switchlist.switches[i].id, switchlist.switches[i].state);
+        create_switch_task(switchlist.switches[i].id, switchlist.switches[i].state);
     }
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERT(ret >= 0, "create failed");

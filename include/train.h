@@ -10,8 +10,8 @@
 #define TRAIN_SPEED_HIGH 274 // mm/s
 #define TRAIN_SPEED_LOW 89
 
-#define TRAIN_STOPPING_DISTANCE_HIGH 335 // mm
-#define TRAIN_STOPPING_DISTANCE_LOW 75 // mm
+#define TRAIN_STOPPING_DISTANCE_HIGH 340 // mm
+#define TRAIN_STOPPING_DISTANCE_LOW 75
 
 typedef struct train_t {
     uint64_t id;

@@ -22,4 +22,6 @@ switchlist_t switch_createlist(tswitch_t* switches);
 void switch_set_state(switchlist_t* tlist, uint64_t id, switchstate_t state);
 tswitch_t* switch_find(switchlist_t* tlist, uint64_t id);
 
+void create_switch_task(int switch_num, char switch_type);
+
 #endif
