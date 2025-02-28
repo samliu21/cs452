@@ -181,7 +181,11 @@ void train_task()
     // trainlist_add(&trainlist, 54);
 
     track_node track[TRACK_MAX];
+#ifdef TRACKA
     init_tracka(track);
+#else
+    init_trackb(track);
+#endif
 
     uint64_t caller_tid;
     char buf[32];
@@ -259,12 +263,13 @@ void train_task()
                 train_t* train = &trainlist.trains[i];
                 for (int j = 0; j < train->sensors.size; ++j) {
                     if (train->sensors.sensors[j] == node_index) {
+                        int speed = (train->speed == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_SPEED_LOW : TRAIN_SPEED_HIGH;
                         // print predicted and actual times
-                        int t_pred = train->sensors.distances[j] * 1000 / TRAIN_SPEED;
+                        int t_pred = train->sensors.distances[j] * 1000 / speed;
                         int t_actual = timer_get_ms() - last_time;
                         int t_diff = t_actual - t_pred;
 
-                        sprintf(train_times, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * TRAIN_SPEED / 1000);
+                        sprintf(train_times, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * speed / 1000);
 
                         last_time = timer_get_ms();
 

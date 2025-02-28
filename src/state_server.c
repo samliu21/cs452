@@ -90,7 +90,8 @@ int state_next_sensor(int sensor)
     char response;
     int64_t ret = send(state_task_tid, buf, 2, &response, 1);
     ASSERT(ret >= 0, "send failed");
-    if (ret == 0) return -1;
+    if (ret == 0)
+        return -1;
     return response;
 }
 
@@ -108,7 +109,11 @@ void state_task()
     charqueue sensorqueue = charqueue_new(sensornodes, 4 * NUM_RECENT_SENSORS + 1);
 
     track_node track[TRACK_MAX];
+#ifdef TRACKA
     init_tracka(track);
+#else
+    init_trackb(track);
+#endif
 
     uint64_t caller_tid;
     char buf[256];

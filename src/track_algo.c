@@ -24,7 +24,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-track_path_t get_shortest_path(track_node* track, int src, int dest)
+track_path_t get_shortest_path(track_node* track, int src, int dest, int speed_level)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -39,6 +39,9 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     pq_pi_add(&pq, &nodes[nodes_pos++]);
     dist[src] = 0;
     prev[src] = -1;
+
+    int speed = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_SPEED_LOW : TRAIN_SPEED_HIGH;
+    int stopping_distance = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_STOPPING_DISTANCE_LOW : TRAIN_STOPPING_DISTANCE_HIGH;
 
     track_path_t path = track_path_new();
 
@@ -58,9 +61,9 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
             for (int i = 1; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
                 int distance_from_end = dist[dest] - dist[cur_node];
-                if (track[cur_node].type == NODE_SENSOR && distance_from_end >= TRAIN_STOPPING_DISTANCE) {
+                if (track[cur_node].type == NODE_SENSOR && distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
-                    path.stop_time_offset = (distance_from_end - TRAIN_STOPPING_DISTANCE) * 1000 / TRAIN_SPEED;
+                    path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
                     break;
                 }
                 if (i == path_length - 1) {
@@ -110,7 +113,7 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     return path;
 }
 
-track_path_t get_closest_node(track_node* track, int src, int *dests, int n)
+track_path_t get_closest_node(track_node* track, int src, int* dests, int n)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];

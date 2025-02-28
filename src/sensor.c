@@ -2,6 +2,7 @@
 #include "clock_server.h"
 #include "common.h"
 #include "display_state_server.h"
+#include "marklin.h"
 #include "name_server.h"
 #include "rpi.h"
 #include "state_server.h"
@@ -29,7 +30,11 @@ void sensor_task()
     memset(sensordata, 0, 10);
 
     track_node track[TRACK_MAX];
+#ifdef TRACKA
     init_tracka(track);
+#else
+    init_trackb(track);
+#endif
 
 #if defined(MEASURE_TRAIN_SPEED)
     // A3 C13 E7 D7 D9 E12 C6 B15
@@ -77,9 +82,12 @@ void sensor_task()
                     }
                     train_sensor_reading(track, sensor_name);
 
+                    // if (strcmp(sensor_name, "C15") == 0) {
+                    //     marklin_set_speed(55, 0);
+                    // }
+
 #if defined(MEASURE_TRAIN_SPEED)
-                    int idx
-                        = clock_index(bank, i + 1);
+                    int idx = clock_index(bank, i + 1);
                     if (idx < 0)
                         continue;
                     int clock_to_stop = (idx - 1 + 8) % 8;

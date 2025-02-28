@@ -13,6 +13,7 @@ ICACHE?=on
 DCACHE?=on
 PERFTEST?=off
 MEASURE_TRAIN_SPEED?=off
+TRACKA?=on
 
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable
@@ -44,6 +45,10 @@ endif
 
 ifeq ($(MEASURE_TRAIN_SPEED),on)
 CFLAGS += -DMEASURE_TRAIN_SPEED
+endif
+
+ifeq ($(TRACKA),on)
+CFLAGS += -DTRACKA
 endif
 
 # -Wl,option tells g++ to pass 'option' to the linker with commas replaced by spaces

@@ -13,7 +13,8 @@
 #define NUM_LOOP_SENSORS 8
 #define NUM_LOOP_SWITCHES 4
 
-void fix_middle_switches(int switch_num, switchstate_t dir) {
+void fix_middle_switches(int switch_num, switchstate_t dir)
+{
     if (dir == C) {
         int corresponding_switch_num = 0;
         if (switch_num == 153) {
@@ -30,7 +31,7 @@ void fix_middle_switches(int switch_num, switchstate_t dir) {
 
             marklin_set_switch(corresponding_switch_num, S);
         }
-    }   
+    }
 }
 
 void command_task()
@@ -39,12 +40,16 @@ void command_task()
     ASSERT(ret >= 0, "register_as failed");
 
     track_node track[TRACK_MAX];
+#ifdef TRACKA
     init_tracka(track);
+#else
+    init_trackb(track);
+#endif
 
     // A3 C13 E7 D7 D9 E12 C6 B15
     int loop_sensors[NUM_LOOP_SENSORS] = { 2, 44, 70, 54, 56, 75, 37, 30 };
-    int loop_switches[NUM_LOOP_SWITCHES] = { 14, 8, 7, 18};
-    switchstate_t loop_switch_states[NUM_LOOP_SWITCHES] = {S, S, C, C};
+    int loop_switches[NUM_LOOP_SWITCHES] = { 14, 8, 7, 18 };
+    switchstate_t loop_switch_states[NUM_LOOP_SWITCHES] = { S, S, C, C };
 
     char command[32];
     uint64_t caller_tid;
@@ -152,6 +157,12 @@ void command_task()
                 result.error_message = "train does not exist";
                 goto end;
             }
+            uint64_t speed_level = train_get_speed(train);
+            if (speed_level != TRAIN_SPEED_LOW_LEVEL && speed_level != TRAIN_SPEED_HIGH_LEVEL) {
+                result.type = COMMAND_FAIL;
+                result.error_message = "train must be at speed 6 (LOW) or 10 (HIGH)";
+                goto end;
+            }
             if (dest == -1) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "invalid destination node";
@@ -173,18 +184,21 @@ void command_task()
                 goto end;
             }
 
-            track_path_t path = get_shortest_path(track, src, dest);
+            track_path_t path = get_shortest_path(track, src, dest, speed_level);
             for (int i = 0; i < path.path_length - 1; ++i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
                     char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? S : C;
-                    
+
                     fix_middle_switches(node.num, switch_type);
                     state_set_switch(node.num, switch_type);
                     marklin_set_switch(node.num, switch_type);
                 }
             }
-            printf(CONSOLE, "stop node: %d, time offset: %d\r\n", path.stop_node, path.stop_time_offset);
+            int64_t ret = create(1, &deactivate_solenoid_task);
+            ASSERT(ret >= 0, "create failed");
+
+            // printf(CONSOLE, "stop node: %d, time offset: %d\r\n", path.stop_node, path.stop_time_offset);
             set_stop_node(train, path.stop_node, path.stop_time_offset);
 
             result.type = COMMAND_SUCCESS;
@@ -261,7 +275,7 @@ void command_task()
             }
 
             train_set_speed(train, speed);
-            
+
             marklin_set_speed(train, speed);
 
             result.type = COMMAND_SUCCESS;
