@@ -69,6 +69,9 @@ int kmain()
     // performance metrics
     uint64_t total_time = 0, kernel_time = 0, idle_time = 0;
     uint64_t kernel_time_start = timer_get_us(), kernel_time_duration, kernel_time_end, user_time_duration;
+    priority_queue_pi_t kernel_time_queue = pq_pi_new();
+    priority_queue_pi_t user_time_queue = pq_pi_new();
+    priority_queue_pi_t idle_time_queue = pq_pi_new();
 
     // kernel context
     main_context_t context;
@@ -86,6 +89,9 @@ int kmain()
     context.total_time = &total_time;
     context.kernel_time = &kernel_time;
     context.idle_time = &idle_time;
+    context.kernel_time_queue = &kernel_time_queue;
+    context.user_time_queue = &user_time_queue;
+    context.idle_time_queue = &idle_time_queue;
 
     while (!pq_task_empty(&scheduler)) {
         context.active_task = pq_task_pop(&scheduler);

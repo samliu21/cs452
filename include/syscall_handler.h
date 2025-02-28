@@ -2,6 +2,7 @@
 #define _syscall_handler_h_
 
 #include "allocator.h"
+#include "priority_queue_pi.h"
 #include "priority_queue_task.h"
 #include "queue.h"
 #include "task.h"
@@ -23,6 +24,9 @@ typedef struct main_context_t {
     uint64_t* total_time;
     uint64_t* kernel_time;
     uint64_t* idle_time;
+    priority_queue_pi_t* kernel_time_queue;
+    priority_queue_pi_t* user_time_queue;
+    priority_queue_pi_t* idle_time_queue;
 } main_context_t;
 
 void create_handler(main_context_t* context);
