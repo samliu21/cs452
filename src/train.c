@@ -27,6 +27,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].sensors.size = 0;
     tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
+    tlist->trains[tlist->size].reverse_direction = 0;
     tlist->size++;
 }
 
@@ -48,6 +49,8 @@ typedef enum {
     GET_TRAIN_TIMES = 5,
     TRAIN_LAST_SENSOR = 6,
     SET_STOP_NODE = 7,
+    SET_TRAIN_REVERSE = 8,
+    GET_TRAIN_REVERSE = 9,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -104,7 +107,7 @@ void train_sensor_reading(track_node* track, char* sensor)
     ASSERT(ret >= 0, "send failed");
 }
 
-void get_train_times(char* response)
+void train_get_times(char* response)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -131,7 +134,7 @@ int train_last_sensor(uint64_t train)
     return response;
 }
 
-void set_stop_node(uint64_t train, int node, int time_offset)
+void train_set_stop_node(uint64_t train, int node, int time_offset)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -143,6 +146,32 @@ void set_stop_node(uint64_t train, int node, int time_offset)
     ui2a(time_offset, 10, buf + 3);
     int64_t ret = send(train_task_tid, buf, 32, NULL, 0);
     ASSERT(ret >= 0, "send failed");
+}
+
+void train_set_reverse(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = SET_TRAIN_REVERSE;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+int train_get_reverse(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = GET_TRAIN_REVERSE;
+    buf[1] = train;
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
 }
 
 void train_stop_task()
@@ -316,6 +345,23 @@ void train_task()
             ASSERT(ret >= 0, "reply failed");
             break;
         }
+        case SET_TRAIN_REVERSE: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            t->reverse_direction = !t->reverse_direction;
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+		case GET_TRAIN_REVERSE: {
+			uint64_t train = buf[1];
+			train_t* t = trainlist_find(&trainlist, train);
+			ASSERT(t != NULL, "train not found");
+			ret = reply_char(caller_tid, t->reverse_direction);
+			ASSERT(ret >= 0, "reply failed");
+			break;
+		}
         default:
             ASSERT(0, "invalid request");
         }

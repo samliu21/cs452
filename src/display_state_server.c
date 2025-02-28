@@ -104,7 +104,7 @@ void display_state_task()
 
         // train times
         char train_times[256];
-        get_train_times(train_times);
+        train_get_times(train_times);
         if (c == FORCE || strcmp(train_times, old_train_times)) {
             if (strlen(train_times) == 0) {
                 puts(CONSOLE, "\033[s\033[5;1H\033[2Ktime delta: n/a, distance delta: n/a\033[u");

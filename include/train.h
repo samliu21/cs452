@@ -12,6 +12,7 @@
 
 #define TRAIN_STOPPING_DISTANCE_HIGH 340 // mm
 #define TRAIN_STOPPING_DISTANCE_LOW 75
+#define TRAIN_REVERSE_STOPPING_DISTANCE_OFFSET 125
 
 typedef struct train_t {
     uint64_t id;
@@ -20,6 +21,7 @@ typedef struct train_t {
     int stop_node;
     int stop_time_offset;
     int last_sensor;
+    int reverse_direction;
 } train_t;
 
 typedef struct trainlist_t {
@@ -35,9 +37,11 @@ void train_set_speed(uint64_t train, uint64_t speed);
 uint64_t train_get_speed(uint64_t train);
 int train_exists(uint64_t train);
 void train_sensor_reading(track_node* track, char* sensor);
-void get_train_times(char* response);
+void train_get_times(char* response);
 int train_last_sensor(uint64_t train);
-void set_stop_node(uint64_t train, int node, int time_offset);
+void train_set_stop_node(uint64_t train, int node, int time_offset);
+void train_set_reverse(uint64_t train);
+int train_get_reverse(uint64_t train);
 
 void train_task();
 

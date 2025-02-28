@@ -89,6 +89,8 @@ void command_task()
             int64_t ret = send(reverse_task_id, (char*)&train, 1, NULL, 0);
             ASSERT(ret >= 0, "send failed");
 
+            train_set_reverse(train);
+
             result.type = COMMAND_SUCCESS;
         }
 
@@ -161,7 +163,7 @@ void command_task()
                 goto end;
             }
 
-            track_path_t path = get_shortest_path(track, src, dest, speed_level);
+            track_path_t path = get_shortest_path(track, src, dest, train);
             for (int i = path.path_length - 2; i >= 0; --i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
@@ -174,7 +176,7 @@ void command_task()
             ASSERT(ret >= 0, "create failed");
 
             // printf(CONSOLE, "stop node: %d, time offset: %d\r\n", path.stop_node, path.stop_time_offset);
-            set_stop_node(train, path.stop_node, path.stop_time_offset);
+            train_set_stop_node(train, path.stop_node, path.stop_time_offset);
 
             result.type = COMMAND_SUCCESS;
         }

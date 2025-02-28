@@ -24,7 +24,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-track_path_t get_shortest_path(track_node* track, int src, int dest, int speed_level)
+track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t train)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -40,8 +40,13 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, int speed_l
     dist[src] = 0;
     prev[src] = -1;
 
+    int speed_level = train_get_speed(train);
+    int reverse = train_get_reverse(train);
     int speed = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_SPEED_LOW : TRAIN_SPEED_HIGH;
     int stopping_distance = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_STOPPING_DISTANCE_LOW : TRAIN_STOPPING_DISTANCE_HIGH;
+    if (reverse) {
+        stopping_distance += TRAIN_REVERSE_STOPPING_DISTANCE_OFFSET;
+    }
 
     track_path_t path = track_path_new();
 
