@@ -110,6 +110,83 @@ track_path_t get_shortest_path(track_node* track, int src, int dest)
     return path;
 }
 
+track_path_t get_closest_node(track_node* track, int src, int *dests, int n)
+{
+    priority_queue_pi_t pq = pq_pi_new();
+    pi_t nodes[256];
+    int nodes_pos = 0;
+    int prev[TRACK_MAX], dist[TRACK_MAX];
+    for (int i = 0; i < TRACK_MAX; ++i) {
+        dist[i] = 1e9;
+    }
+
+    nodes[nodes_pos].weight = 0;
+    nodes[nodes_pos].id = src;
+    pq_pi_add(&pq, &nodes[nodes_pos++]);
+    dist[src] = 0;
+    prev[src] = -1;
+
+    track_path_t path = track_path_new();
+    int dest = -1;
+
+    while (!pq_pi_empty(&pq)) {
+        pi_t* pi = pq_pi_pop(&pq);
+        int node = pi->id;
+        int weight = pi->weight;
+        for (int i = 0; i < n; ++i) {
+            if (node == dests[i]) {
+                dest = dests[i];
+            }
+        }
+        if (dest >= 0) {
+            int path_reverse[TRACK_MAX];
+            int path_length = 0;
+            while (node != -1) {
+                path_reverse[path_length++] = node;
+                node = prev[node];
+            }
+            for (int i = path_length - 1; i >= 0; --i) {
+                track_path_add(&path, path_reverse[i]);
+            }
+            break;
+        }
+        if (dist[node] < weight) {
+            continue;
+        }
+
+        switch (track[node].type) {
+        case NODE_BRANCH: {
+            // two edges
+            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
+            track_edge curved_edge = track[node].edge[DIR_CURVED];
+            int node_straight = get_node_index(track, straight_edge.dest);
+            int node_curved = get_node_index(track, curved_edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            break;
+        }
+
+        case NODE_SENSOR:
+        case NODE_MERGE:
+        case NODE_ENTER: {
+            // one edge
+            track_edge edge = track[node].edge[DIR_AHEAD];
+            int node_ahead = get_node_index(track, edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            break;
+        }
+
+        case NODE_EXIT:
+            break;
+
+        default:
+            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
+        }
+    }
+
+    return path;
+}
+
 reachable_sensors_t reachable_sensors_new()
 {
     reachable_sensors_t rs;
@@ -127,7 +204,7 @@ void reachable_sensors_add(reachable_sensors_t* rs, int sensor, int distance)
 reachable_sensors_t get_reachable_sensors(track_node* track, int src_sensor)
 {
     priority_queue_pi_t pq = pq_pi_new();
-    pi_t nodes[2000];
+    pi_t nodes[256];
     int nodes_pos = 0;
     int prev[TRACK_MAX], dist[TRACK_MAX];
     for (int i = 0; i < TRACK_MAX; ++i) {

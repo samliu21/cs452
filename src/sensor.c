@@ -75,7 +75,7 @@ void sensor_task()
                         sensor_name[1] = '0' + (i + 1);
                         sensor_name[2] = 0;
                     }
-                    state_sensor_reading(track, sensor_name);
+                    train_sensor_reading(track, sensor_name);
 
 #if defined(MEASURE_TRAIN_SPEED)
                     int idx

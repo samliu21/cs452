@@ -5,6 +5,7 @@
 #include "rpi.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "track_data.h"
 #include "train.h"
 #include "uart_server.h"
 
@@ -13,9 +14,9 @@ typedef enum {
     GET_RECENT_SENSORS = 2,
     SET_SWITCH = 3,
     GET_SWITCHES = 4,
-    SWITCH_EXISTS = 5,
-    SET_TRAIN_TIMES = 6,
-    GET_TRAIN_TIMES = 7,
+    GET_SWITCH_DATA = 5,
+    SWITCH_EXISTS = 6,
+    NEXT_SENSOR = 7,
 } state_server_request_t;
 
 void state_set_recent_sensor(char bank, char sensor)
@@ -78,26 +79,19 @@ int state_switch_exists(uint64_t sw)
     return response;
 }
 
-void state_set_train_times(char* times)
+int state_next_sensor(int sensor)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
 
-    char buf[2 + strlen(times)];
-    buf[0] = SET_TRAIN_TIMES;
-    strcpy(buf + 1, times);
-    int64_t ret = send(state_task_tid, buf, 2 + strlen(times), NULL, 0);
+    char buf[2];
+    buf[0] = NEXT_SENSOR;
+    buf[1] = sensor;
+    char response;
+    int64_t ret = send(state_task_tid, buf, 2, &response, 1);
     ASSERT(ret >= 0, "send failed");
-}
-
-void state_get_train_times(char* response)
-{
-    int64_t state_task_tid = who_is(STATE_TASK_NAME);
-    ASSERT(state_task_tid >= 0, "who_is failed");
-
-    char c = GET_TRAIN_TIMES;
-    int64_t ret = send(state_task_tid, &c, 1, response, 256);
-    ASSERT(ret >= 0, "send failed");
+    if (ret == 0) return -1;
+    return response;
 }
 
 void state_task()
@@ -113,8 +107,8 @@ void state_task()
     charqueuenode sensornodes[4 * NUM_RECENT_SENSORS + 1];
     charqueue sensorqueue = charqueue_new(sensornodes, 4 * NUM_RECENT_SENSORS + 1);
 
-    char train_times[256];
-    memset(&train_times, 0, 256);
+    track_node track[TRACK_MAX];
+    init_tracka(track);
 
     uint64_t caller_tid;
     char buf[256];
@@ -191,15 +185,27 @@ void state_task()
             ASSERT(ret >= 0, "reply failed");
             break;
         }
-        case SET_TRAIN_TIMES: {
-            char* times = buf + 1;
-            strcpy(train_times, times);
-            ret = reply_empty(caller_tid);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case GET_TRAIN_TIMES: {
-            ret = reply(caller_tid, train_times, strlen(train_times) + 1);
+        case NEXT_SENSOR: {
+            int sensor = buf[1];
+            track_node* cur_node = track[sensor].edge[DIR_AHEAD].dest;
+            while (cur_node->type != NODE_SENSOR && cur_node->type != NODE_EXIT) {
+                if (cur_node->type == NODE_BRANCH) {
+                    int dir = (switch_find(&switchlist, cur_node->num)->state == S)
+                        ? DIR_STRAIGHT
+                        : DIR_CURVED;
+                    cur_node = cur_node->edge[dir].dest;
+                } else {
+                    cur_node = cur_node->edge[DIR_AHEAD].dest;
+                }
+            }
+            if (cur_node->type == NODE_EXIT) {
+                ret = reply_empty(caller_tid);
+                ASSERT(ret >= 0, "reply failed");
+                break;
+            }
+            int next_sensor = get_node_index(track, cur_node);
+            ASSERTF(next_sensor >= 0 && next_sensor < TRACK_MAX, "next sensor has invalid index %d", next_sensor);
+            ret = reply_char(caller_tid, next_sensor);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

@@ -3,6 +3,7 @@
 .global my_parent_tid
 .global yield
 .global exit
+.global syscall_exit
 .global send
 .global receive
 .global reply
@@ -25,7 +26,9 @@ yield:
 exit:
 	svc #4
 	ret
-
+syscall_exit:
+    svc #4
+    ret
 send:
     svc #5
     ret

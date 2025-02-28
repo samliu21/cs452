@@ -12,9 +12,7 @@
 #include "uart_server.h"
 #include <stdlib.h>
 
-#define NUM_LOOP_SENSORS 8
-
-trainlist_t train_createlist(train_t* trains)
+trainlist_t trainlist_create(train_t* trains)
 {
     trainlist_t tlist;
     tlist.trains = trains;
@@ -22,22 +20,17 @@ trainlist_t train_createlist(train_t* trains)
     return tlist;
 }
 
-void train_add(trainlist_t* tlist, uint64_t id)
+void trainlist_add(trainlist_t* tlist, uint64_t id)
 {
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
     tlist->trains[tlist->size].sensors.size = 0;
+    tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
     tlist->size++;
 }
 
-void train_set_speed(trainlist_t* tlist, uint64_t id, uint64_t speed)
-{
-    train_t* t = train_find(tlist, id);
-    t->speed = speed;
-}
-
-train_t* train_find(trainlist_t* tlist, uint64_t id)
+train_t* trainlist_find(trainlist_t* tlist, uint64_t id)
 {
     for (int i = 0; i < tlist->size; ++i) {
         if (tlist->trains[i].id == id) {
@@ -52,11 +45,12 @@ typedef enum {
     GET_TRAIN_SPEED = 2,
     TRAIN_EXISTS = 3,
     SENSOR_READING = 4,
-    TRAIN_LOOP_NEXT = 5,
-    SET_STOP_NODE = 6,
+    GET_TRAIN_TIMES = 5,
+    TRAIN_LAST_SENSOR = 6,
+    SET_STOP_NODE = 7,
 } train_task_request_t;
 
-void state_set_speed(uint64_t train, uint64_t speed)
+void train_set_speed(uint64_t train, uint64_t speed)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -69,7 +63,7 @@ void state_set_speed(uint64_t train, uint64_t speed)
     ASSERT(ret >= 0, "send failed");
 }
 
-uint64_t state_get_speed(uint64_t train)
+uint64_t train_get_speed(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -82,7 +76,7 @@ uint64_t state_get_speed(uint64_t train)
     return response[1];
 }
 
-int state_train_exists(uint64_t train)
+int train_exists(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -96,7 +90,7 @@ int state_train_exists(uint64_t train)
     return response;
 }
 
-void state_sensor_reading(track_node* track, char* sensor)
+void train_sensor_reading(track_node* track, char* sensor)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
@@ -110,13 +104,23 @@ void state_sensor_reading(track_node* track, char* sensor)
     ASSERT(ret >= 0, "send failed");
 }
 
-int train_loop_next(uint64_t train)
+void get_train_times(char* response)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char c = GET_TRAIN_TIMES;
+    int64_t ret = send(train_task_tid, &c, 1, response, 256);
+    ASSERT(ret >= 0, "send failed");
+}
+
+int train_last_sensor(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
 
     char buf[2];
-    buf[0] = TRAIN_LOOP_NEXT;
+    buf[0] = TRAIN_LAST_SENSOR;
     buf[1] = train;
     char response;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
@@ -158,7 +162,9 @@ void train_stop_task()
     ASSERT(ret >= 0, "delay failed");
 
     marklin_set_speed(train, 0);
-    state_set_speed(train, 0);
+    train_set_speed(train, 0);
+
+    syscall_exit();
 }
 
 void train_task()
@@ -169,20 +175,19 @@ void train_task()
     ASSERT(ret >= 0, "register_as failed");
 
     train_t trains[5];
-    trainlist_t trainlist = train_createlist(trains);
-    train_add(&trainlist, 55);
+    trainlist_t trainlist = trainlist_create(trains);
+    trainlist_add(&trainlist, 55);
     int last_time;
-    // train_add(&trainlist, 54);
+    // trainlist_add(&trainlist, 54);
 
     track_node track[TRACK_MAX];
     init_tracka(track);
 
-    // A3 C13 E7 D7 D9 E12 C6 B15
-    int loop_sensors[NUM_LOOP_SENSORS] = { 2, 44, 70, 54, 56, 75, 37, 30 };
-
     uint64_t caller_tid;
     char buf[32];
     int has_received_initial_sensor = 0;
+    char train_times[64];
+    train_times[0] = '\0';
     for (;;) {
         ret = receive(&caller_tid, buf, 32);
         ASSERT(ret >= 0, "receive failed");
@@ -191,7 +196,7 @@ void train_task()
         case SET_TRAIN_SPEED: {
             uint64_t speed = buf[1];
             uint64_t train = buf[2];
-            train_t* t = train_find(&trainlist, train);
+            train_t* t = trainlist_find(&trainlist, train);
             if (t == NULL) {
                 ret = reply_num(caller_tid, 1);
             } else {
@@ -203,7 +208,7 @@ void train_task()
         }
         case GET_TRAIN_SPEED: {
             uint64_t train = buf[1];
-            train_t* t = train_find(&trainlist, train);
+            train_t* t = trainlist_find(&trainlist, train);
             char response[2];
             if (t == NULL) {
                 response[0] = 1;
@@ -217,7 +222,7 @@ void train_task()
         }
         case TRAIN_EXISTS: {
             uint64_t train = buf[1];
-            train_t* t = train_find(&trainlist, train);
+            train_t* t = trainlist_find(&trainlist, train);
             ret = reply_char(caller_tid, t == NULL ? 0 : 1);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -230,10 +235,10 @@ void train_task()
                     int64_t stop_task_tid = create(1, &train_stop_task);
                     ASSERT(stop_task_tid >= 0, "create failed");
 
-                    char buf[32];
-                    buf[0] = trainlist.trains[i].id;
-                    ui2a(trainlist.trains[i].stop_time_offset, 10, buf + 1);
-                    ret = send(stop_task_tid, buf, 32, NULL, 0);
+                    char time_offset_buf[32];
+                    time_offset_buf[0] = trainlist.trains[i].id;
+                    ui2a(trainlist.trains[i].stop_time_offset, 10, time_offset_buf + 1);
+                    ret = send(stop_task_tid, time_offset_buf, 32, NULL, 0);
                     ASSERT(ret >= 0, "send failed");
 
                     trainlist.trains[i].stop_node = -1;
@@ -245,6 +250,7 @@ void train_task()
             if (!has_received_initial_sensor) {
                 has_received_initial_sensor = 1;
                 trainlist.trains[0].sensors = get_reachable_sensors(track, node_index);
+                trainlist.trains[0].last_sensor = node_index;
                 last_time = timer_get_ms();
                 goto sensor_reading_end;
             }
@@ -257,12 +263,13 @@ void train_task()
                         int t_pred = train->sensors.distances[j] * 1000 / TRAIN_SPEED;
                         int t_actual = timer_get_ms() - last_time;
                         int t_diff = t_actual - t_pred;
-                        char buf[64];
-                        sprintf(buf, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * TRAIN_SPEED / 1000);
-                        state_set_train_times(buf);
+
+                        sprintf(train_times, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * TRAIN_SPEED / 1000);
+
                         last_time = timer_get_ms();
 
                         train->sensors = get_reachable_sensors(track, node_index);
+                        train->last_sensor = node_index;
                         goto sensor_reading_end;
                     }
                 }
@@ -272,30 +279,22 @@ void train_task()
             reply_empty(caller_tid);
             break;
         }
-        case TRAIN_LOOP_NEXT: {
+        case GET_TRAIN_TIMES: {
+            ret = reply(caller_tid, train_times, strlen(train_times) + 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case TRAIN_LAST_SENSOR: {
             uint64_t train = buf[1];
-            train_t* t = train_find(&trainlist, train);
-            if (t->sensors.size == 0) {
-                ret = reply_empty(caller_tid);
-                ASSERT(ret >= 0, "reply failed");
-                break;
-            }
-            int sensor = -1;
-            for (int i = 0; i < t->sensors.size; ++i) {
-                for (int j = 0; j < NUM_LOOP_SENSORS; ++j) {
-                    if (t->sensors.sensors[i] == loop_sensors[j]) {
-                        sensor = loop_sensors[j];
-                    }
-                }
-            }
-            if (sensor >= 0) {
-                char sensor_byte = sensor;
-                ret = reply(caller_tid, &sensor_byte, 1);
+            train_t* t = trainlist_find(&trainlist, train);
+
+            if (t != NULL) {
+                char c = t->last_sensor;
+                ret = reply(caller_tid, &c, 1);
                 ASSERT(ret >= 0, "reply failed");
                 break;
             }
 
-            // train is not in the loop.
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -304,7 +303,7 @@ void train_task()
             uint64_t train = buf[1];
             int node = buf[2];
             int time_offset = a2ui(buf + 3, 10);
-            train_t* t = train_find(&trainlist, train);
+            train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             t->stop_node = node;
             t->stop_time_offset = time_offset;

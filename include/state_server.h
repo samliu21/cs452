@@ -12,7 +12,6 @@ void state_get_recent_sensors(char* response);
 void state_set_switch(uint64_t sw, char d);
 void state_get_switches(char* response);
 int state_switch_exists(uint64_t sw);
-void state_set_train_times(char* times);
-void state_get_train_times(char* response);
+int state_next_sensor(int sensor);
 
 #endif

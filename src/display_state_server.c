@@ -6,6 +6,7 @@
 #include "state_server.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "train.h"
 #include "uart_server.h"
 
 typedef enum {
@@ -106,7 +107,7 @@ void display_state_task()
 
         // train times
         char train_times[256];
-        state_get_train_times(train_times);
+        get_train_times(train_times);
         if (c == FORCE || strcmp(train_times, old_train_times)) {
             if (strlen(train_times) == 0) {
                 puts(CONSOLE, "\033[s\033[5;1H\033[2Ktime delta: n/a, distance delta: n/a\033[u");
