@@ -70,8 +70,8 @@ void handle_interrupt(main_context_t* context)
     uint64_t interrupt_id = iar & INTERRUPT_ID_MASK;
     switch (interrupt_id) {
     case INTERRUPT_ID_TIMER: {
-        while (!queue_empty(context->tasks_waiting_for_timer)) {
-            task_t* task = queue_pop(context->tasks_waiting_for_timer);
+        while (!queue_task_empty(context->tasks_waiting_for_timer)) {
+            task_t* task = queue_task_pop(context->tasks_waiting_for_timer);
             pq_task_add(context->scheduler, task);
             task->state = READY;
         }
@@ -84,7 +84,7 @@ void handle_interrupt(main_context_t* context)
         uint32_t terminal_mis = UART_REG(CONSOLE, UART_MIS);
         uint32_t marklin_mis = UART_REG(MARKLIN, UART_MIS);
 
-        queue_t* waiting_queue;
+        queue_task_t* waiting_queue;
         int line;
         uint32_t mis;
         for (int i = 0; i < 2; ++i) {
@@ -117,7 +117,7 @@ void handle_interrupt(main_context_t* context)
             ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
 
             // reschedule the task
-            task_t* uart_task = queue_pop(waiting_queue);
+            task_t* uart_task = queue_task_pop(waiting_queue);
             pq_task_add(context->scheduler, uart_task);
             uart_task->state = READY;
 

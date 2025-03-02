@@ -4,7 +4,7 @@
 #include "allocator.h"
 #include "priority_queue_pi.h"
 #include "priority_queue_task.h"
-#include "queue.h"
+#include "queue_task.h"
 #include "task.h"
 #include "uintmap.h"
 
@@ -14,11 +14,11 @@ typedef struct main_context_t {
     char* stack;
     uint64_t* n_tasks;
     priority_queue_task_t* scheduler;
-    queue_t* tasks_waiting_for_send;
-    queue_t* tasks_waiting_for_reply;
-    queue_t* tasks_waiting_for_timer;
-    queue_t* tasks_waiting_for_terminal;
-    queue_t* tasks_waiting_for_marklin;
+    queue_task_t* tasks_waiting_for_send;
+    queue_task_t* tasks_waiting_for_reply;
+    queue_task_t* tasks_waiting_for_timer;
+    queue_task_t* tasks_waiting_for_terminal;
+    queue_task_t* tasks_waiting_for_marklin;
     task_t* active_task;
     uint32_t next_tick;
     uint64_t* total_time;

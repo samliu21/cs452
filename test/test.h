@@ -7,7 +7,7 @@
 #include "message_test.h"
 #include "priority_queue_pi_test.h"
 #include "priority_queue_task_test.h"
-#include "queue_test.h"
+#include "queue_task_test.h"
 #include "stringmap_test.h"
 #include "syscall_test.h"
 #include "uintmap_test.h"
@@ -26,7 +26,7 @@ int tests()
     execute(run_allocator_tests, failed);
     execute(run_pq_task_tests, failed);
     execute(run_pq_pi_tests, failed);
-    execute(run_queue_tests, failed);
+    execute(run_queue_task_tests, failed);
     execute(run_stringmap_tests, failed);
     execute(run_uintmap_tests, failed);
     execute(run_context_switch_tests, failed);

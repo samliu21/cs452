@@ -2,7 +2,7 @@
 #define _task_h_
 
 #include "common.h"
-#include "queue.h"
+#include "queue_task.h"
 
 typedef enum {
     READY,
@@ -23,7 +23,7 @@ typedef struct task_t {
     uint64_t parent_tid;
     struct task_t* next_task;
     struct task_t* next_slab;
-    queue_t senders_queue;
+    queue_task_t senders_queue;
     state_t state;
 } task_t;
 

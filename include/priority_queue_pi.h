@@ -1,10 +1,7 @@
 #ifndef _priority_queue_pi_h_
 #define _priority_queue_pi_h_
 
-typedef struct pi_t {
-    int weight, id;
-    struct pi_t* next;
-} pi_t;
+#include "common.h"
 
 typedef struct priority_queue_pi_t {
     pi_t* head;

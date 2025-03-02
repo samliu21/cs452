@@ -7,6 +7,11 @@ typedef long long int64_t;
 
 typedef void (*func_t)();
 
+typedef struct pi_t {
+    int weight, id;
+    struct pi_t* next;
+} pi_t;
+
 #define NUM_TASKS 64
 #define STACK_SIZE (2 * 1024 * 1024)
 #define MAX_RAND 32767

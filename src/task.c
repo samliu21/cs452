@@ -11,7 +11,7 @@ void task_new(task_t* task, uint64_t tid, uint64_t priority, uint64_t sp, func_t
     task->spsr = 0; // this allows interrupts to be enabled on user tasks
 
     task->next_task = NULL;
-    task->senders_queue = queue_new();
+    task->senders_queue = queue_task_new();
     task->state = READY;
     // note: next_slab is set in allocator_new, don't need to default to NULL
 }

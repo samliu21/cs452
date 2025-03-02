@@ -64,10 +64,10 @@ int _test_clock()
     task_t* idle_task = allocator_new_task(&allocator, stack, n_tasks++, 1, &idletaskfunc, &kernel_task);
 
     priority_queue_task_t scheduler = pq_task_new();
-    queue_t tasks_waiting_for_send = queue_new();
-    queue_t tasks_waiting_for_reply = queue_new();
-    queue_t tasks_waiting_for_timer = queue_new();
-    queue_t tasks_waiting_for_terminal = queue_new();
+    queue_task_t tasks_waiting_for_send = queue_task_new();
+    queue_task_t tasks_waiting_for_reply = queue_task_new();
+    queue_task_t tasks_waiting_for_timer = queue_task_new();
+    queue_task_t tasks_waiting_for_terminal = queue_task_new();
 
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
 

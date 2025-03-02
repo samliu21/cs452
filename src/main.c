@@ -58,11 +58,11 @@ int kmain()
     pq_task_add(&scheduler, initial_task);
 
     // blocked queues
-    queue_t tasks_waiting_for_send = queue_new();
-    queue_t tasks_waiting_for_reply = queue_new();
-    queue_t tasks_waiting_for_timer = queue_new();
-    queue_t tasks_waiting_for_terminal = queue_new();
-    queue_t tasks_waiting_for_marklin = queue_new();
+    queue_task_t tasks_waiting_for_send = queue_task_new();
+    queue_task_t tasks_waiting_for_reply = queue_task_new();
+    queue_task_t tasks_waiting_for_timer = queue_task_new();
+    queue_task_t tasks_waiting_for_terminal = queue_task_new();
+    queue_task_t tasks_waiting_for_marklin = queue_task_new();
 
     // timer
     uint32_t next_tick = timer_get_us() + US_PER_TICK;
@@ -70,10 +70,10 @@ int kmain()
     // performance metrics
     uint64_t kernel_time_start = timer_get_us(), kernel_time_end;
 
-    //pi_t * kernel_time_nodes = (pi_t *) (USER_STACK_START + STACK_SIZE * NUM_TASKS);
+    // pi_t * kernel_time_nodes = (pi_t *) (USER_STACK_START + STACK_SIZE * NUM_TASKS);
     pi_t kernel_time_nodes[8000];
     int kernel_next_node = 0;
-    //pi_t * idle_time_nodes = kernel_time_nodes + MAX_TIME_NODES;
+    // pi_t * idle_time_nodes = kernel_time_nodes + MAX_TIME_NODES;
     pi_t idle_time_nodes[8000];
     int idle_next_node = 0;
 
@@ -101,7 +101,7 @@ int kmain()
         ASSERT(context.active_task->state == READY, "active task is not in ready state");
 
         kernel_time_end = timer_get_us();
-        
+
         /*
         pi_t* kernel_time_node = &(kernel_time_nodes[kernel_next_node++]);
         if (kernel_next_node >= MAX_TIME_NODES)
