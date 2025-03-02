@@ -14,6 +14,7 @@ DCACHE?=on
 PERFTEST?=off
 MEASURE_TRAIN_SPEED?=off
 TRACKA?=on
+IDLE_TIME_WINDOW?=500 # in ticks
 
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable

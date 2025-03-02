@@ -5,7 +5,7 @@
 #include "uintmap.h"
 #include <stdlib.h>
 
-#define CPU_USAGE_INTERVAL 250000 // 5 seconds
+#define CPU_USAGE_INTERVAL 5000000
 
 void send_receive(task_t* sender, task_t* receiver)
 {
@@ -146,22 +146,17 @@ void cpu_usage_handler(main_context_t* context)
 {
     int t_end = timer_get_us();
     int t_start = t_end - CPU_USAGE_INTERVAL;
+    int window_length = min(CPU_USAGE_INTERVAL, timer_get_ms() - context->kernel_execution_start_time);
 
     while (!queue_pi_empty(context->kernel_time_queue) && context->kernel_time_queue->head->weight < t_start) {
         context->kernel_time -= queue_pi_pop(context->kernel_time_queue)->id;
-        queue_pi_pop(context->kernel_time_queue);
     }
-    ASSERT(!queue_pi_empty(context->kernel_time_queue), "kernel time queue empty");
-
-    while (!queue_pi_empty(context->idle_time_queue) && context->idle_time_queue->head->weight < t_start) {
+    while (!queue_pi_empty(context->idle_time_queue) && queue_pi_peek(context->idle_time_queue)->weight < t_start) {
         context->idle_time -= queue_pi_pop(context->idle_time_queue)->id;
-        queue_pi_pop(context->idle_time_queue);
     }
-    ASSERT(!queue_pi_empty(context->idle_time_queue), "kernel time queue empty");
 
-    uint64_t kernel_percentage = (context->kernel_time * 100) / CPU_USAGE_INTERVAL;
-    uint64_t idle_percentage = (context->idle_time * 100) / CPU_USAGE_INTERVAL;
+    uint64_t kernel_percentage = (context->kernel_time * 100) / window_length;
+    uint64_t idle_percentage = (context->idle_time * 100) / window_length;
 
     context->active_task->registers[0] = kernel_percentage + 100 * idle_percentage;
-    // context->active_task->registers[0] = 3344;
 }

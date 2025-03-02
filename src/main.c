@@ -19,7 +19,7 @@
 extern void setup_mmu();
 
 #define PRINT_PERF_AFTER_MS 50
-#define MAX_TIME_NODES 40000
+#define MAX_TIME_NODES 100000
 
 int kmain()
 {
@@ -71,7 +71,8 @@ int kmain()
     // performance metrics
     uint64_t kernel_time_start = timer_get_us(), kernel_time_end;
 
-    pi_t kernel_time_nodes[8000], idle_time_nodes[8000];
+    pi_t* kernel_time_nodes = (pi_t*)(USER_STACK_START + NUM_TASKS * STACK_SIZE);
+    pi_t* idle_time_nodes = kernel_time_nodes + MAX_TIME_NODES;
     int kernel_next_node = 0;
     int idle_next_node = 0;
 
@@ -95,6 +96,7 @@ int kmain()
     context.idle_time_queue = &idle_time_queue;
     context.kernel_time = 0;
     context.idle_time = 0;
+    context.kernel_execution_start_time = timer_get_us();
 
     while (!pq_task_empty(&scheduler)) {
         context.active_task = pq_task_pop(&scheduler);
@@ -105,7 +107,7 @@ int kmain()
         pi_t* kernel_time_node = &(kernel_time_nodes[kernel_next_node++]);
         if (kernel_next_node >= MAX_TIME_NODES)
             kernel_next_node = 0;
-        kernel_time_node->weight = kernel_time_end;
+        kernel_time_node->weight = kernel_time_start; // weight = start time
         kernel_time_node->id = kernel_time_end - kernel_time_start;
         context.kernel_time += kernel_time_node->id;
         queue_pi_add(&kernel_time_queue, kernel_time_node);
@@ -118,7 +120,7 @@ int kmain()
             pi_t* idle_time_node = &(idle_time_nodes[idle_next_node++]);
             if (idle_next_node >= MAX_TIME_NODES)
                 idle_next_node = 0;
-            idle_time_node->weight = kernel_time_start;
+            idle_time_node->weight = kernel_time_end; // weight = start time
             idle_time_node->id = kernel_time_start - kernel_time_end;
             context.idle_time += idle_time_node->id;
             queue_pi_add(&idle_time_queue, idle_time_node);
