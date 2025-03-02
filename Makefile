@@ -14,7 +14,7 @@ DCACHE?=on
 PERFTEST?=off
 MEASURE_TRAIN_SPEED?=off
 TRACKA?=on
-IDLE_TIME_WINDOW?=500 # in ticks
+IDLE_TIME_WINDOW_TICKS?=500 # in ticks
 
 # COMPILE OPTIONS
 WARNINGS=-Wall -Wextra -Wpedantic -Wno-unused-const-variable
@@ -51,6 +51,8 @@ endif
 ifeq ($(TRACKA),on)
 CFLAGS += -DTRACKA
 endif
+
+CFLAGS += -DIDLE_TIME_WINDOW_TICKS=$(IDLE_TIME_WINDOW_TICKS)
 
 # -Wl,option tells g++ to pass 'option' to the linker with commas replaced by spaces
 # doing this rather than calling the linker directly simplifies the compilation procedure

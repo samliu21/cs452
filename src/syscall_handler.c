@@ -5,7 +5,7 @@
 #include "uintmap.h"
 #include <stdlib.h>
 
-#define CPU_USAGE_INTERVAL 5000000
+#define IDLE_TIME_WINDOW_US (IDLE_TIME_WINDOW_TICKS * US_PER_TICK)
 
 void send_receive(task_t* sender, task_t* receiver)
 {
@@ -145,8 +145,8 @@ void await_event_handler(main_context_t* context)
 void cpu_usage_handler(main_context_t* context)
 {
     int t_end = timer_get_us();
-    int t_start = t_end - CPU_USAGE_INTERVAL;
-    int window_length = min(CPU_USAGE_INTERVAL, timer_get_ms() - context->kernel_execution_start_time);
+    int t_start = t_end - IDLE_TIME_WINDOW_US;
+    int window_length = min(IDLE_TIME_WINDOW_US, timer_get_us() - context->kernel_execution_start_time);
 
     while (!queue_pi_empty(context->kernel_time_queue) && context->kernel_time_queue->head->weight < t_start) {
         context->kernel_time -= queue_pi_pop(context->kernel_time_queue)->id;
