@@ -83,7 +83,7 @@ void sensor_task()
                     train_sensor_reading(track, sensor_name);
 
                     // if (strcmp(sensor_name, "C15") == 0) {
-                    //     marklin_set_speed(55, 0);
+                    //     marklin_set_speed(77, 0);
                     // }
 
 #if defined(MEASURE_TRAIN_SPEED)
