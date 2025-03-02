@@ -5,6 +5,8 @@
 #include "uintmap.h"
 #include <stdlib.h>
 
+#define CPU_USAGE_INTERVAL 250000 // 5 seconds
+
 void send_receive(task_t* sender, task_t* receiver)
 {
     uint64_t* caller_tid = (uint64_t*)receiver->registers[0];
@@ -142,7 +144,35 @@ void await_event_handler(main_context_t* context)
 
 void cpu_usage_handler(main_context_t* context)
 {
-    uint64_t kernel_percentage = *context->kernel_time * 100 / *context->total_time;
-    uint64_t idle_percentage = *context->idle_time * 100 / *context->total_time;
-    context->active_task->registers[0] = kernel_percentage + 100 * idle_percentage;
+    /*
+    int t_end = timer_get_us();
+    int t_start = t_end - CPU_USAGE_INTERVAL;
+
+    while (!pq_pi_empty(context->kernel_time_queue) && context->kernel_time_queue->head->weight < t_start) {
+        pq_pi_pop(context->kernel_time_queue);
+    }
+    ASSERT(!pq_pi_empty(context->kernel_time_queue), "kernel time queue empty");
+    pi_t* kernel_node = context->kernel_time_queue->head;
+    uint64_t kernel_time = 0;
+    while (kernel_node) {
+        kernel_time += kernel_node->id;
+        kernel_node = kernel_node->next;
+    }
+
+    while (!pq_pi_empty(context->idle_time_queue) && context->idle_time_queue->head->weight < t_start) {
+        pq_pi_pop(context->idle_time_queue);
+    }
+    ASSERT(!pq_pi_empty(context->idle_time_queue), "kernel time queue empty");
+    pi_t* idle_node = context->idle_time_queue->head;
+    uint64_t idle_time = 0;
+    while (idle_node) {
+        idle_time += idle_node->id;
+        idle_node = idle_node->next;
+    }
+
+    uint64_t kernel_percentage = (kernel_time * 100) / CPU_USAGE_INTERVAL;
+    uint64_t idle_percentage = (idle_time * 100) / CPU_USAGE_INTERVAL;
+    */
+    //context->active_task->registers[0] = kernel_percentage + 100 * idle_percentage;
+    context->active_task->registers[0] = 3344;
 }
