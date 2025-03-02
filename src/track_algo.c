@@ -4,6 +4,7 @@
 #include "track_data.h"
 #include "track_node.h"
 #include "train.h"
+#include "train_data.h"
 #include "uart_server.h"
 #include <stdlib.h>
 
@@ -34,6 +35,8 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t tr
         dist[i] = 1e9;
     }
 
+    train_data_t train_data = init_train_data_a();
+
     nodes[nodes_pos].weight = 0;
     nodes[nodes_pos].id = src;
     pq_pi_add(&pq, &nodes[nodes_pos++]);
@@ -42,11 +45,8 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t tr
 
     int speed_level = train_get_speed(train);
     int reverse = train_get_reverse(train);
-    int speed = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_SPEED_LOW : TRAIN_SPEED_HIGH;
-    int stopping_distance = (speed_level == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_STOPPING_DISTANCE_LOW : TRAIN_STOPPING_DISTANCE_HIGH;
-    if (reverse) {
-        stopping_distance += TRAIN_REVERSE_STOPPING_DISTANCE_OFFSET;
-    }
+    int speed = train_data.speed[train][speed_level];
+    int stopping_distance = train_data.stopping_distance[train][speed_level][reverse];
 
     track_path_t path = track_path_new();
 

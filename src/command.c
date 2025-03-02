@@ -137,7 +137,7 @@ void command_task()
                 goto end;
             }
             uint64_t speed_level = train_get_speed(train);
-            if (speed_level != TRAIN_SPEED_LOW_LEVEL && speed_level != TRAIN_SPEED_HIGH_LEVEL) {
+            if (speed_level != 6 && speed_level != 10) {
                 result.type = COMMAND_FAIL;
                 result.error_message = "train must be at speed 6 (LOW) or 10 (HIGH)";
                 goto end;

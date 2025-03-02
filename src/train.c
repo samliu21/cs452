@@ -9,6 +9,7 @@
 #include "timer.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "train_data.h"
 #include "uart_server.h"
 #include <stdlib.h>
 
@@ -216,6 +217,8 @@ void train_task()
     init_trackb(track);
 #endif
 
+    train_data_t train_data = init_train_data_a();
+
     uint64_t caller_tid;
     char buf[32];
     int has_received_initial_sensor = 0;
@@ -292,7 +295,7 @@ void train_task()
                 train_t* train = &trainlist.trains[i];
                 for (int j = 0; j < train->sensors.size; ++j) {
                     if (train->sensors.sensors[j] == node_index) {
-                        int speed = (train->speed == TRAIN_SPEED_LOW_LEVEL) ? TRAIN_SPEED_LOW : TRAIN_SPEED_HIGH;
+                        int speed = train_data.speed[train->id][train->speed];
                         // print predicted and actual times
                         int t_pred = train->sensors.distances[j] * 1000 / speed;
                         int t_actual = timer_get_ms() - last_time;
@@ -354,14 +357,14 @@ void train_task()
             ASSERT(ret >= 0, "reply failed");
             break;
         }
-		case GET_TRAIN_REVERSE: {
-			uint64_t train = buf[1];
-			train_t* t = trainlist_find(&trainlist, train);
-			ASSERT(t != NULL, "train not found");
-			ret = reply_char(caller_tid, t->reverse_direction);
-			ASSERT(ret >= 0, "reply failed");
-			break;
-		}
+        case GET_TRAIN_REVERSE: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            ret = reply_char(caller_tid, t->reverse_direction);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
         default:
             ASSERT(0, "invalid request");
         }

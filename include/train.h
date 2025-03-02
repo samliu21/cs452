@@ -5,15 +5,6 @@
 #include "track_algo.h"
 #include "track_node.h"
 
-#define TRAIN_SPEED_HIGH_LEVEL 10
-#define TRAIN_SPEED_LOW_LEVEL 6
-#define TRAIN_SPEED_HIGH 274 // mm/s
-#define TRAIN_SPEED_LOW 89
-
-#define TRAIN_STOPPING_DISTANCE_HIGH 340 // mm
-#define TRAIN_STOPPING_DISTANCE_LOW 75
-#define TRAIN_REVERSE_STOPPING_DISTANCE_OFFSET 125
-
 typedef struct train_t {
     uint64_t id;
     uint64_t speed;
