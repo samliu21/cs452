@@ -1,5 +1,5 @@
-#ifndef _queue_h_
-#define _queue_h_
+#ifndef _queue_pi_h_
+#define _queue_pi_h_
 
 #include "common.h"
 

@@ -1,5 +1,5 @@
-#ifndef _queue_h_
-#define _queue_h_
+#ifndef _queue_task_h_
+#define _queue_task_h_
 
 typedef struct task_t task_t; // forward declare
 

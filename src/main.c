@@ -7,6 +7,7 @@
 #include "k3_user_tasks.h"
 #include "k4_user_tasks.h"
 #include "priority_queue_task.h"
+#include "queue_pi.h"
 #include "rpi.h"
 #include "syscall_asm.h"
 #include "syscall_handler.h"
@@ -70,15 +71,12 @@ int kmain()
     // performance metrics
     uint64_t kernel_time_start = timer_get_us(), kernel_time_end;
 
-    // pi_t * kernel_time_nodes = (pi_t *) (USER_STACK_START + STACK_SIZE * NUM_TASKS);
-    pi_t kernel_time_nodes[8000];
+    pi_t kernel_time_nodes[8000], idle_time_nodes[8000];
     int kernel_next_node = 0;
-    // pi_t * idle_time_nodes = kernel_time_nodes + MAX_TIME_NODES;
-    pi_t idle_time_nodes[8000];
     int idle_next_node = 0;
 
-    priority_queue_pi_t kernel_time_queue = pq_pi_new();
-    priority_queue_pi_t idle_time_queue = pq_pi_new();
+    queue_pi_t kernel_time_queue = queue_pi_new();
+    queue_pi_t idle_time_queue = queue_pi_new();
 
     // kernel context
     main_context_t context;
@@ -95,6 +93,8 @@ int kmain()
     context.next_tick = next_tick;
     context.kernel_time_queue = &kernel_time_queue;
     context.idle_time_queue = &idle_time_queue;
+    context.kernel_time = 0;
+    context.idle_time = 0;
 
     while (!pq_task_empty(&scheduler)) {
         context.active_task = pq_task_pop(&scheduler);
@@ -102,28 +102,28 @@ int kmain()
 
         kernel_time_end = timer_get_us();
 
-        /*
         pi_t* kernel_time_node = &(kernel_time_nodes[kernel_next_node++]);
         if (kernel_next_node >= MAX_TIME_NODES)
             kernel_next_node = 0;
         kernel_time_node->weight = kernel_time_end;
         kernel_time_node->id = kernel_time_end - kernel_time_start;
-        pq_pi_add(&kernel_time_queue, kernel_time_node);
+        context.kernel_time += kernel_time_node->id;
+        queue_pi_add(&kernel_time_queue, kernel_time_node);
         ASSERTF(kernel_time_queue.size < MAX_TIME_NODES, "kernel ran out of time nodes.");
-        */
 
         uint64_t esr = enter_task(&kernel_task, context.active_task);
 
-        // kernel_time_start = timer_get_us();
-        // if (context.active_task->priority == 0) {
-        //     pi_t* idle_time_node = &(idle_time_nodes[idle_next_node++]);
-        //     if (idle_next_node >= MAX_TIME_NODES)
-        //         idle_next_node = 0;
-        //     idle_time_node->weight = kernel_time_start;
-        //     idle_time_node->id = kernel_time_start - kernel_time_end;
-        //     pq_pi_add(&idle_time_queue, idle_time_node);
-        //     ASSERTF(idle_time_queue.size < MAX_TIME_NODES, "idle ran out of time nodes.");
-        // }
+        kernel_time_start = timer_get_us();
+        if (context.active_task->priority == 0) {
+            pi_t* idle_time_node = &(idle_time_nodes[idle_next_node++]);
+            if (idle_next_node >= MAX_TIME_NODES)
+                idle_next_node = 0;
+            idle_time_node->weight = kernel_time_start;
+            idle_time_node->id = kernel_time_start - kernel_time_end;
+            context.idle_time += idle_time_node->id;
+            queue_pi_add(&idle_time_queue, idle_time_node);
+            ASSERTF(idle_time_queue.size < MAX_TIME_NODES, "idle ran out of time nodes.");
+        }
 
         uint64_t syndrome = esr & 0xFFFF;
 
