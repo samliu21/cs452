@@ -12,6 +12,14 @@ int a2d(char ch)
     return -1;
 }
 
+int a2i(char* s, unsigned int base)
+{
+    int neg = s[0] == '-';
+    if (neg)
+        s++;
+    return neg ? -a2ui(s, base) : a2ui(s, base);
+}
+
 // ascii string to unsigned int, with base
 unsigned int a2ui(char* s, unsigned int base)
 {

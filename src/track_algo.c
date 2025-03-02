@@ -25,7 +25,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t train)
+track_path_t get_shortest_path(track_node* track, int src, int dest, int node_offset, uint64_t train)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -65,7 +65,7 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t tr
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 1; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
-                int distance_from_end = dist[dest] - dist[cur_node];
+                int distance_from_end = dist[dest] - dist[cur_node] + node_offset;
                 if (track[cur_node].type == NODE_SENSOR && distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
@@ -87,7 +87,6 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, uint64_t tr
 
         switch (track[node].type) {
         case NODE_BRANCH: {
-            // two edges
             track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
             track_edge curved_edge = track[node].edge[DIR_CURVED];
             int node_straight = get_node_index(track, straight_edge.dest);
@@ -240,23 +239,30 @@ reachable_sensors_t get_reachable_sensors(track_node* track, int src_sensor)
 
         switch (track[node].type) {
         case NODE_BRANCH: {
-            // two edges
             track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
             track_edge curved_edge = track[node].edge[DIR_CURVED];
+            track_edge reverse_straight_edge = *track[node].edge[DIR_STRAIGHT].reverse;
+            track_edge reverse_curved_edge = *track[node].edge[DIR_CURVED].reverse;
             int node_straight = get_node_index(track, straight_edge.dest);
             int node_curved = get_node_index(track, curved_edge.dest);
+            int node_reverse_straight = get_node_index(track, reverse_straight_edge.dest);
+            int node_reverse_curved = get_node_index(track, reverse_curved_edge.dest);
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_reverse_straight, reverse_straight_edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_reverse_curved, reverse_curved_edge.dist);
             break;
         }
 
         case NODE_SENSOR:
         case NODE_MERGE:
         case NODE_ENTER: {
-            // one edge
             track_edge edge = track[node].edge[DIR_AHEAD];
+            track_edge reverse_edge = *track[node].edge[DIR_AHEAD].reverse;
             int node_ahead = get_node_index(track, edge.dest);
+            int node_reverse = get_node_index(track, reverse_edge.dest);
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_reverse, reverse_edge.dist);
             break;
         }
 

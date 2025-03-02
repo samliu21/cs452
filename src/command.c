@@ -123,13 +123,14 @@ void command_task()
         }
 
         else if (strcmp(command_type, "go") == 0) {
-            if (argc != 3) {
+            if (argc != 4) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "go command expects 2 arguments";
+                result.error_message = "go command expects 3 arguments";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
             int dest = name_to_node_index(track, args[2]);
+            int node_offset = a2i(args[3], 10);
 
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
@@ -163,7 +164,7 @@ void command_task()
                 goto end;
             }
 
-            track_path_t path = get_shortest_path(track, src, dest, train);
+            track_path_t path = get_shortest_path(track, src, dest, node_offset, train);
             for (int i = path.path_length - 2; i >= 0; --i) {
                 track_node node = track[path.nodes[i]];
                 if (node.type == NODE_BRANCH) {

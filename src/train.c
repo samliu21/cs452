@@ -284,20 +284,19 @@ void train_task()
             // if the train has not received a sensor reading yet, set the reachable sensors from the initial reading
             // otherwise, find the train expecting this sensor reading and update its reachable sensors
             if (!has_received_initial_sensor) {
-                uint64_t train = 0;
+                int train = -1;
                 for (int i = 0; i < trainlist.size; ++i) {
                     if (trainlist.trains[i].speed > 0) {
                         train = i;
                         break;
                     }
                 }
-                if (train == 0) {
-                    puts(CONSOLE, "received a sensor reading but no train is moving... assuming it is train 55\r\n");
+                if (train >= 0) {
+                    has_received_initial_sensor = 1;
+                    trainlist.trains[train].sensors = get_reachable_sensors(track, node_index);
+                    trainlist.trains[train].last_sensor = node_index;
+                    last_time = timer_get_ms();
                 }
-                has_received_initial_sensor = 1;
-                trainlist.trains[train].sensors = get_reachable_sensors(track, node_index);
-                trainlist.trains[train].last_sensor = node_index;
-                last_time = timer_get_ms();
                 goto sensor_reading_end;
             }
 
