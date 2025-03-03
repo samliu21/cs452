@@ -32,6 +32,7 @@ void command_task()
 
     char command[32];
     uint64_t caller_tid;
+    char* error_message = NULL;
 
     for (;;) {
         int64_t ret = receive(&caller_tid, command, 32);
@@ -46,18 +47,18 @@ void command_task()
         if (strcmp(command_type, "tr") == 0) {
             if (argc != 3) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "tr command expects 2 arguments";
+                error_message = "tr command expects 2 arguments";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
             uint64_t speed = a2ui(args[2], 10);
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train does not exist";
+                error_message = "train does not exist";
                 goto end;
             } else if (speed > 15) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "speed must be between 0 and 14";
+                error_message = "speed must be between 0 and 14";
                 goto end;
             }
 
@@ -73,13 +74,13 @@ void command_task()
         else if (strcmp(command_type, "rv") == 0) {
             if (argc != 2) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "rv command expects 1 argument";
+                error_message = "rv command expects 1 argument";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train does not exist";
+                error_message = "train does not exist";
                 goto end;
             }
 
@@ -97,7 +98,7 @@ void command_task()
         else if (strcmp(command_type, "sw") == 0) {
             if (argc != 3) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "sw command expects 2 arguments";
+                error_message = "sw command expects 2 arguments";
                 goto end;
             }
             unsigned int num = a2ui(args[1], 10);
@@ -105,13 +106,13 @@ void command_task()
 
             if (!state_switch_exists(num)) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "switch does not exist";
+                error_message = "switch does not exist";
                 goto end;
             }
 
             if (d != S && d != C) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "switch direction must be S or C";
+                error_message = "switch direction must be S or C";
                 goto end;
             }
 
@@ -125,7 +126,7 @@ void command_task()
         else if (strcmp(command_type, "go") == 0) {
             if (argc != 4) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "go command expects 3 arguments";
+                error_message = "go command expects 3 arguments";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
@@ -134,18 +135,18 @@ void command_task()
 
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train does not exist";
+                error_message = "train does not exist";
                 goto end;
             }
             uint64_t speed_level = train_get_speed(train);
             if (speed_level != 6 && speed_level != 10) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train must be at speed 6 (LOW) or 10 (HIGH)";
+                error_message = "train must be at speed 6 (LOW) or 10 (HIGH)";
                 goto end;
             }
             if (dest == -1) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "invalid destination node";
+                error_message = "invalid destination node";
                 goto end;
             }
 
@@ -153,14 +154,14 @@ void command_task()
 
             if (last_sensor == -1) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train is not ready to go";
+                error_message = "train is not ready to go";
                 goto end;
             }
 
             int src = state_next_sensor(last_sensor);
             if (last_sensor == -1) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "no next sensor";
+                error_message = "no next sensor";
                 goto end;
             }
 
@@ -185,22 +186,22 @@ void command_task()
         else if (strcmp(command_type, "lp") == 0) {
             if (argc != 3) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "lp command expects 2 arguments";
+                error_message = "lp command expects 2 arguments";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
             uint64_t speed = a2ui(args[2], 10);
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train does not exist";
+                error_message = "train does not exist";
                 goto end;
             } else if (train_get_speed(train) != 0) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train must be stopped first";
+                error_message = "train must be stopped first";
                 goto end;
             } else if (speed > 15) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "speed must be between 0 and 14";
+                error_message = "speed must be between 0 and 14";
                 goto end;
             }
 
@@ -208,7 +209,7 @@ void command_task()
 
             if (last_sensor == -1) {
                 result.type = COMMAND_FAIL;
-                result.error_message = "train is not ready to go";
+                error_message = "train is not ready to go";
                 goto end;
             }
 
@@ -227,7 +228,7 @@ void command_task()
                 rv = 1;
                 if (path.path_length == 0) {
                     result.type = COMMAND_FAIL;
-                    result.error_message = "could not find loop";
+                    error_message = "could not find loop";
                     goto end;
                 }
             }
@@ -265,10 +266,16 @@ void command_task()
 
         else {
             result.type = COMMAND_FAIL;
-            result.error_message = "invalid command";
+            char msg[128];
+            sprintf(msg, "invalid command: %s", command);
+            strcpy(result.error_message, msg); // copy directly into result.error_message
+            error_message = NULL;
         }
 
     end:
+        if (error_message != NULL) {
+            strcpy(result.error_message, error_message);
+        }
         reply(caller_tid, (char*)&result, sizeof(command_result_t));
     }
 }

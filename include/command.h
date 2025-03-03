@@ -9,7 +9,7 @@ typedef enum {
 
 typedef struct command_result_t {
     command_type_t type;
-    char* error_message;
+    char error_message[128];
 } command_result_t;
 
 void command_task();

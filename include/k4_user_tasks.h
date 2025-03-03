@@ -19,8 +19,9 @@ void terminal_task()
 {
     int64_t command_task_tid = who_is(COMMAND_TASK_NAME);
     ASSERT(command_task_tid >= 0, "who_is failed");
-    
-    char command[32], command_result_buf[32];
+
+    char command[32];
+    command_result_t command_result;
     int command_pos = 0;
     puts(CONSOLE, "> ");
     for (;;) {
@@ -31,19 +32,24 @@ void terminal_task()
             display_force();
 
             command[command_pos] = 0;
-            int64_t ret = send(command_task_tid, command, command_pos + 1, command_result_buf, 32);
+            int64_t ret = send(command_task_tid, command, command_pos + 1, (char*)&command_result, sizeof(command_result_t));
             ASSERT(ret >= 0, "send failed");
 
-            command_result_t* command_result = (command_result_t*)command_result_buf;
-            if (command_result->type == COMMAND_QUIT) {
+            if (command_result.type == COMMAND_QUIT) {
                 terminate();
-            } else if (command_result->type == COMMAND_FAIL) {
-                printf(CONSOLE, "error: %s\r\n", command_result->error_message);
+            } else if (command_result.type == COMMAND_FAIL) {
+                printf(CONSOLE, "error: %s\r\n", command_result.error_message);
             }
 
             command_pos = 0;
             puts(CONSOLE, "> ");
             display_force();
+        } else if (c == '\b') {
+            command_pos--;
+            if (command_pos > 0) {
+                puts(CONSOLE, "\033[D \033[D");
+                command_pos--;
+            }
         } else {
             putc(CONSOLE, c);
         }
