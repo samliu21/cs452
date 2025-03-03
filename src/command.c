@@ -248,6 +248,7 @@ void command_task()
             ASSERT(ret >= 0, "create failed");
 
             if (rv == 1) {
+                train_set_reverse(train);
                 marklin_reverse(train);
             }
 
