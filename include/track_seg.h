@@ -4,6 +4,8 @@
 #include "track_data.h"
 #include "track_node.h"
 
+#define TRACK_SEGMENTS_MAX 38
+
 void init_sega(track_node* track)
 {
     for (int i = 0; i < TRACK_MAX; ++i) {

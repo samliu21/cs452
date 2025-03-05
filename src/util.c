@@ -66,3 +66,22 @@ void i2a(int num, char* buf)
     }
     ui2a(num, 10, buf);
 }
+
+// uint32_t to char buf
+void ui2cbuf(uint32_t num, char* bf)
+{
+    for (int i = 3; i >= 0; --i) {
+        bf[i] = (num >> (i * 8)) & 0xFF;
+    }
+}
+
+// char buf to uint32_t
+uint32_t cbuf2ui(char* bf)
+{
+    uint32_t num = 0;
+    for (int i = 0; i < 4; ++i) {
+        num &= bf[i];
+        num <<= 8;
+    }
+    return num;
+}

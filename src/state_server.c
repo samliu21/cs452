@@ -2,12 +2,16 @@
 #include "charqueue.h"
 #include "marklin.h"
 #include "name_server.h"
+#include "priority_queue_pi.h"
 #include "rpi.h"
 #include "switch.h"
 #include "syscall_func.h"
 #include "track_data.h"
+#include "track_seg.h"
 #include "train.h"
 #include "uart_server.h"
+
+#define MAX_RESERVATIONS 200
 
 typedef enum {
     SET_RECENT_SENSOR = 1,
@@ -17,6 +21,8 @@ typedef enum {
     GET_SWITCH_DATA = 5,
     SWITCH_EXISTS = 6,
     NEXT_SENSOR = 7,
+    IS_RESERVED = 8,
+    RESERVE_SEGMENT = 9,
 } state_server_request_t;
 
 void state_set_recent_sensor(char bank, char sensor)
@@ -95,6 +101,50 @@ int state_next_sensor(int sensor)
     return response;
 }
 
+int state_is_reserved(int segment, uint32_t check_time)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char buf[6];
+    buf[0] = IS_RESERVED;
+    buf[1] = segment;
+    ui2cbuf(check_time, &(buf[2]));
+    char response;
+    int64_t ret = send(state_task_tid, buf, 6, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    if (ret == 0)
+        return -1;
+    return response;
+}
+
+int is_reserved(priority_queue_pi_t *seg_queue, uint32_t check_time) {
+    pi_t * node = pq_pi_peek(seg_queue);
+    if (!node) return 0;
+    while (node->next && node->next->weight < check_time) {
+        node = node->next;
+    }
+    if (node->weight + node->id > check_time) {
+        return 1;
+    }
+    return 0;
+}
+
+int state_reserve_segment(int segment, uint32_t start, uint32_t duration)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char buf[10];
+    buf[0] = NEXT_SENSOR;
+    buf[1] = segment;
+    ui2cbuf(start, &(buf[2]));
+    ui2cbuf(duration, &(buf[6]));
+    int64_t ret = send(state_task_tid, buf, 10, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+    return 0;
+}
+
 void state_task()
 {
     int64_t ret;
@@ -114,6 +164,14 @@ void state_task()
 #else
     init_trackb(track);
 #endif
+
+    pi_t reservation_nodes[MAX_RESERVATIONS][TRACK_SEGMENTS_MAX];
+    int reservation_next_nodes[TRACK_SEGMENTS_MAX];
+    priority_queue_pi_t reservations[TRACK_SEGMENTS_MAX];
+    for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
+        reservation_next_nodes[i] = 0;
+        reservations[i] = pq_pi_new();
+    }
 
     uint64_t caller_tid;
     char buf[256];
@@ -211,6 +269,31 @@ void state_task()
             int next_sensor = get_node_index(track, cur_node);
             ASSERTF(next_sensor >= 0 && next_sensor < TRACK_MAX, "next sensor has invalid index %d", next_sensor);
             ret = reply_char(caller_tid, next_sensor);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case IS_RESERVED: {
+            int segment = buf[1];
+            uint32_t check_time = cbuf2ui(&buf[2]);
+            ret = reply_char(caller_tid, is_reserved(&(reservations[segment]), check_time));
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case RESERVE_SEGMENT: {
+            int segment = buf[1];
+            uint32_t start = cbuf2ui(&buf[2]);
+            uint32_t duration = cbuf2ui(&buf[6]);
+            ASSERTF(!is_reserved(&(reservations[segment]), start), "tried to double-reserve segment %d", segment);
+            pi_t * node = &(reservation_nodes[reservation_next_nodes[segment]++][segment]);
+            if (reservation_next_nodes[segment] >= MAX_RESERVATIONS) {
+                reservation_next_nodes[segment] = 0;
+            }
+            node->weight = start;
+            node->id = duration;
+            pq_pi_add(&(reservations[segment]), node);
+            ASSERTF(reservations[segment].size <= MAX_RESERVATIONS, "segment %d has too many reservations", segment);
+            ASSERTF(!(node->next) || node->next->weight > start + duration, "tried to double-reserve segment %d", segment);
+            ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
