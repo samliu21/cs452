@@ -7,6 +7,7 @@ train_data_t init_train_data_a()
     data.reverse_stopping_distance_offset = 125;
 
     // train 55
+    data.speed[55][0] = 0;
     data.speed[55][6] = 89;
     data.speed[55][10] = 274;
 
@@ -18,6 +19,7 @@ train_data_t init_train_data_a()
     data.train_length[55] = 212;
 
     // train 77
+    data.speed[77][0] = 0;
     data.speed[77][6] = 133;
     data.speed[77][10] = 337;
 

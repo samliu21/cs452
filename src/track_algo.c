@@ -79,7 +79,7 @@ track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int 
                 }
             }
             for (int i = path_length - 1; i >= 0; --i) {
-                int dist_between = (i == 0) ? -1 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
+                int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
                 track_path_add(&path, path_reverse[i], dist_between);
             }
             break;

@@ -84,7 +84,7 @@ void k4_initial_user_task()
 
     // train setup tasks
     create(1, &train_task);
-    //create(1, &train_model_notifier);
+    create(1, &train_model_notifier);
 
     create(1, &state_task);
     create(1, &display_state_task);

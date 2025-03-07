@@ -33,7 +33,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].reverse_direction = 0;
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
-    track_path_add(&tlist->trains[tlist->size].path, 140, -1); // EN9 hardcoded for train 55
+    track_path_add(&tlist->trains[tlist->size].path, 140, 1e9); // EN9 hardcoded for train 55
 
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
