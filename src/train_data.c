@@ -15,6 +15,8 @@ train_data_t init_train_data_a()
     data.stopping_distance[55][10][0] = 340;
     data.stopping_distance[55][10][1] = data.stopping_distance[55][10][0] + data.reverse_stopping_distance_offset;
 
+    data.train_length[55] = 212;
+
     // train 77
     data.speed[77][6] = 133;
     data.speed[77][10] = 337;
@@ -23,6 +25,8 @@ train_data_t init_train_data_a()
     data.stopping_distance[77][6][1] = data.stopping_distance[77][6][0] + data.reverse_stopping_distance_offset;
     data.stopping_distance[77][10][0] = 630;
     data.stopping_distance[77][10][1] = data.stopping_distance[77][10][0] + data.reverse_stopping_distance_offset;
+
+    data.train_length[77] = 225;
 
     return data;
 }

@@ -4,6 +4,7 @@
 #include "marklin.h"
 #include "name_server.h"
 #include "state_server.h"
+#include "switch.h"
 #include "syscall_asm.h"
 #include "syscall_func.h"
 #include "timer.h"
@@ -25,10 +26,16 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
 {
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
+    tlist->trains[tlist->size].speed_time_begin = 0;
     tlist->trains[tlist->size].sensors.size = 0;
     tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
     tlist->trains[tlist->size].reverse_direction = 0;
+    tlist->trains[tlist->size].cur_node = 140; // EN9 hardcoded for train 55
+
+    train_data_t train_data = init_train_data_a();
+    tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
+
     tlist->size++;
 }
 
@@ -52,6 +59,9 @@ typedef enum {
     SET_STOP_NODE = 7,
     SET_TRAIN_REVERSE = 8,
     GET_TRAIN_REVERSE = 9,
+    SHOULD_UPDATE_TRAIN_STATE = 10,
+    GET_CUR_NODE = 11,
+    ROUTE_TRAIN = 12,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -197,6 +207,53 @@ void train_stop_task()
     syscall_exit();
 }
 
+int train_get_cur_node(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = GET_CUR_NODE;
+    buf[1] = train;
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
+}
+
+void train_route(uint64_t train, int dest, int offset)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[8];
+    buf[0] = ROUTE_TRAIN;
+    buf[1] = train;
+    buf[2] = dest;
+    i2a(offset, buf + 3);
+    int64_t ret = send(train_task_tid, buf, 8, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+void should_update_train_state()
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char c = SHOULD_UPDATE_TRAIN_STATE;
+    int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+}
+
+void train_model_notifier()
+{
+    for (;;) {
+        should_update_train_state();
+
+        delay(5);
+    }
+}
+
 void train_task()
 {
     int64_t ret;
@@ -237,6 +294,7 @@ void train_task()
                 ret = reply_num(caller_tid, 1);
             } else {
                 t->speed = speed;
+                t->speed_time_begin = timer_get_ms();
                 ret = reply_num(caller_tid, 0);
             }
             ASSERT(ret >= 0, "reply failed");
@@ -372,6 +430,50 @@ void train_task()
             ASSERT(t != NULL, "train not found");
             ret = reply_char(caller_tid, t->reverse_direction);
             ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SHOULD_UPDATE_TRAIN_STATE: {
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            for (int i = 0; i < trainlist.size; ++i) {
+                train_t* t = &trainlist.trains[i];
+                int update_duration = min(50, timer_get_ms() - t->speed_time_begin);
+                int update_distance = update_duration * train_data.speed[t->id][t->speed] / 1000;
+            }
+            break;
+        }
+        case GET_CUR_NODE: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            ret = reply_char(caller_tid, t->cur_node);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case ROUTE_TRAIN: {
+            uint64_t train = buf[1];
+            int dest = buf[2];
+            int offset = a2i(buf + 3, 10);
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            t->path = get_shortest_path(track, t->cur_node, dest, offset, train);
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+
+            for (int i = t->path.path_length - 2; i >= 0; --i) {
+                track_node node = track[t->path.nodes[i]];
+                if (node.type == NODE_BRANCH) {
+                    char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
+
+                    create_switch_task(node.num, switch_type);
+                }
+            }
+            int64_t ret = create(1, &deactivate_solenoid_task);
+            ASSERT(ret >= 0, "create failed");
+
+            t->stop_node = t->path.stop_node;
+            t->stop_time_offset = t->path.stop_time_offset;
+
             break;
         }
         default:

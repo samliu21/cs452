@@ -1,5 +1,6 @@
 #include "track_data.h"
 #include "common.h"
+#include "track_seg.h"
 
 int name_to_node_index(track_node* track, char* name)
 {
@@ -1194,6 +1195,8 @@ void init_tracka(track_node* track)
     track[143].name = "EX10";
     track[143].type = NODE_EXIT;
     track[143].reverse = &track[142];
+
+    init_sega(track);
 }
 
 void init_trackb(track_node* track)
