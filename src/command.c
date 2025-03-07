@@ -122,7 +122,7 @@ void command_task()
 
             result.type = COMMAND_SUCCESS;
         }
-
+        /*
         else if (strcmp(command_type, "go") == 0) {
             if (argc != 4) {
                 result.type = COMMAND_FAIL;
@@ -182,6 +182,7 @@ void command_task()
 
             result.type = COMMAND_SUCCESS;
         }
+        */
 
         else if (strcmp(command_type, "route") == 0) { // route <train> <dest> <offset>
             if (argc != 4) {
@@ -210,10 +211,11 @@ void command_task()
                 goto end;
             }
 
-            int src = train_get_cur_node(train);
+            // set speed for routing purposes
+            train_set_speed(train, 10);
+
             train_route(train, dest, node_offset);
 
-            train_set_speed(train, 10);
             marklin_set_speed(train, 10);
 
             result.type = COMMAND_SUCCESS;

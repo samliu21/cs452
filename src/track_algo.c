@@ -25,7 +25,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-track_path_t get_shortest_path(track_node* track, int src, int dest, int node_offset, uint64_t train)
+track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int node_offset)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -37,16 +37,16 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, int node_of
 
     train_data_t train_data = init_train_data_a();
 
+    int src = train->path.nodes[train->cur_node];
     nodes[nodes_pos].weight = 0;
     nodes[nodes_pos].id = src;
     pq_pi_add(&pq, &nodes[nodes_pos++]);
     dist[src] = 0;
     prev[src] = -1;
 
-    int speed_level = train_get_speed(train);
-    int reverse = train_get_reverse(train);
-    int speed = train_data.speed[train][speed_level];
-    int stopping_distance = train_data.stopping_distance[train][speed_level][reverse];
+    printf(CONSOLE, "id %d, speed %d\r\n", train->id, train->speed);
+    int speed = train_data.speed[train->id][train->speed];
+    int stopping_distance = train_data.stopping_distance[train->id][train->speed][train->reverse_direction];
 
     track_path_t path = track_path_new();
 
@@ -61,6 +61,8 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, int node_of
                 path_reverse[path_length++] = node;
                 node = prev[node];
             }
+            // add src node to path.
+            path_reverse[path_length++] = node;
 
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 1; i < path_length; ++i) {
@@ -69,15 +71,16 @@ track_path_t get_shortest_path(track_node* track, int src, int dest, int node_of
                 if (track[cur_node].type == NODE_SENSOR && distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
+                    printf(CONSOLE, "stop node: %d, offset: %d, speed %d, \r\n", path.stop_node, path.stop_time_offset, speed);
                     break;
                 }
                 if (i == path_length - 1) {
                     ASSERT(0, "could not find stop node");
                 }
             }
-
             for (int i = path_length - 1; i >= 0; --i) {
-                track_path_add(&path, path_reverse[i]);
+                int dist_between = (i == 0) ? -1 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
+                track_path_add(&path, path_reverse[i], dist_between);
             }
             break;
         }
@@ -153,7 +156,8 @@ track_path_t get_closest_node(track_node* track, int src, int* dests, int n)
                 node = prev[node];
             }
             for (int i = path_length - 1; i >= 0; --i) {
-                track_path_add(&path, path_reverse[i]);
+                int dist_between = (i == 0) ? -1 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
+                track_path_add(&path, path_reverse[i], dist_between);
             }
             break;
         }

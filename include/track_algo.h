@@ -5,8 +5,10 @@
 #include "track_node.h"
 #include "track_path.h"
 
+typedef struct train_t train_t;
+
 int get_node_index(track_node* track_begin, track_node* node);
-track_path_t get_shortest_path(track_node* track, int src, int dest, int node_offset, uint64_t train);
+track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset);
 track_path_t get_closest_node(track_node* track, int src, int* dests, int n);
 
 ////////////////////////////////////////////////////////////////////////////////

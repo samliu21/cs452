@@ -42,6 +42,7 @@ int train_get_reverse(uint64_t train);
 int train_get_cur_node(uint64_t train);
 void train_route(uint64_t train, int dest, int offset);
 
+void train_model_notifier();
 void train_task();
 
 #endif

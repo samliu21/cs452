@@ -59,6 +59,8 @@ void display_state_task()
     memset(&old_train_times, 0, 256);
     old_train_times[0] = 255;
 
+    int old_train_cur_node = 0;
+
     char c;
     uint64_t notifier_tid;
     for (;;) {
@@ -112,6 +114,12 @@ void display_state_task()
                 printf(CONSOLE, "\033[s\033[5;1H\033[2K%s\033[u", train_times);
             }
             strcpy(old_train_times, train_times);
+        }
+
+        int train_cur_node = train_get_cur_node(55);
+        if (c == FORCE || train_cur_node != old_train_cur_node) {
+            printf(CONSOLE, "\033[s\033[6;1H\033[2KTrain 55 is at node %d\033[u", train_cur_node);
+            old_train_cur_node = train_cur_node;
         }
     }
 }

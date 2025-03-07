@@ -5,12 +5,13 @@
 
 typedef struct track_path_t {
     int nodes[TRACK_MAX];
+    int distances[TRACK_MAX];
     int path_length;
 	int stop_node;
 	int stop_time_offset;
 } track_path_t;
 
 track_path_t track_path_new();
-int track_path_add(track_path_t* path, int node);
+int track_path_add(track_path_t* path, int node, int dist);
 
 #endif

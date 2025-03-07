@@ -31,7 +31,9 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
     tlist->trains[tlist->size].reverse_direction = 0;
-    tlist->trains[tlist->size].cur_node = 140; // EN9 hardcoded for train 55
+    tlist->trains[tlist->size].cur_node = 0;
+    tlist->trains[tlist->size].path = track_path_new();
+    track_path_add(&tlist->trains[tlist->size].path, 140, -1); // EN9 hardcoded for train 55
 
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
@@ -439,6 +441,10 @@ void train_task()
                 train_t* t = &trainlist.trains[i];
                 int update_duration = min(50, timer_get_ms() - t->speed_time_begin);
                 int update_distance = update_duration * train_data.speed[t->id][t->speed] / 1000;
+                t->cur_offset += update_distance;
+                if (t->cur_offset >= t->path.distances[t->cur_node]) {
+                    t->cur_offset -= t->path.distances[t->cur_node++];
+                }
             }
             break;
         }
@@ -446,7 +452,7 @@ void train_task()
             uint64_t train = buf[1];
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
-            ret = reply_char(caller_tid, t->cur_node);
+            ret = reply_char(caller_tid, t->path.nodes[t->cur_node]);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
@@ -455,11 +461,16 @@ void train_task()
             int dest = buf[2];
             int offset = a2i(buf + 3, 10);
             train_t* t = trainlist_find(&trainlist, train);
+            int src = t->path.nodes[t->cur_node];
+            printf(CONSOLE, "dest: %d, offset: %d, train: %d, src: %d\r\n", dest, offset, train, src);
             ASSERT(t != NULL, "train not found");
-            t->path = get_shortest_path(track, t->cur_node, dest, offset, train);
+            printf(CONSOLE, "before getting shortest path\r\n");
+            t->path = get_shortest_path(track, t, dest, offset);
+            printf(CONSOLE, "after getting shortest path\r\n");
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 
+            printf(CONSOLE, "replied\r\n");
             for (int i = t->path.path_length - 2; i >= 0; --i) {
                 track_node node = track[t->path.nodes[i]];
                 if (node.type == NODE_BRANCH) {
@@ -471,6 +482,7 @@ void train_task()
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
+            printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
             t->stop_node = t->path.stop_node;
             t->stop_time_offset = t->path.stop_time_offset;
 
