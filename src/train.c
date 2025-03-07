@@ -26,6 +26,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
 {
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
+    tlist->trains[tlist->size].old_speed = 0;
     tlist->trains[tlist->size].speed_time_begin = 0;
     tlist->trains[tlist->size].sensors.size = 0;
     tlist->trains[tlist->size].last_sensor = -1;
@@ -34,8 +35,10 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
     track_path_add(&tlist->trains[tlist->size].path, 140, 1e9); // EN9 hardcoded for train 55
-
     train_data_t train_data = init_train_data_a();
+    tlist->trains[tlist->size].acc = 0;
+    tlist->trains[tlist->size].acc_start = 0;
+    tlist->trains[tlist->size].acc_end = 0;
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
 
     tlist->size++;
@@ -294,11 +297,24 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             if (t == NULL) {
                 ret = reply_num(caller_tid, 1);
-            } else {
-                t->speed = speed;
-                t->speed_time_begin = timer_get_ms();
-                ret = reply_num(caller_tid, 0);
+                ASSERT(ret >= 0, "reply failed");
+                break;
             }
+
+            int old_speed = t->speed;
+            if (old_speed == 0 && speed > 0) {
+                t->acc = train_data.acc_start[train][speed];
+                t->acc_start = timer_get_ms();
+                t->acc_end = timer_get_ms() + train_data.starting_time[train][speed];
+            } else if (old_speed > 0 && speed == 0) {
+                t->acc = train_data.acc_stop[train][speed];
+                t->acc_start = timer_get_ms();
+                t->acc_end = timer_get_ms() + train_data.stopping_time[train][speed][t->reverse_direction];
+            }
+            t->speed = speed;
+            t->old_speed = old_speed;
+            t->speed_time_begin = timer_get_ms();
+            ret = reply_num(caller_tid, 0);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
@@ -439,8 +455,21 @@ void train_task()
             ASSERT(ret >= 0, "reply failed");
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* t = &trainlist.trains[i];
-                int update_duration = min(50, timer_get_ms() - t->speed_time_begin);
-                int update_distance = update_duration * train_data.speed[t->id][t->speed] / 1000;
+
+                int interval_end = timer_get_ms();
+                int interval_start = interval_end - 50;
+                int acc_start = max(interval_start, t->acc_start);
+                int acc_end = min(interval_end, t->acc_end);
+
+                int acc_duration = acc_end - acc_start;
+                int new_speed_duration = interval_end - acc_end;
+                int old_speed_duration = acc_start - interval_start;
+
+                int acc_distance = t->old_speed * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
+                int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed] / 1000;
+                int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed] / 1000;
+                int update_distance = acc_distance + new_speed_distance + old_speed_distance;
+
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
@@ -461,16 +490,11 @@ void train_task()
             int dest = buf[2];
             int offset = a2i(buf + 3, 10);
             train_t* t = trainlist_find(&trainlist, train);
-            int src = t->path.nodes[t->cur_node];
-            printf(CONSOLE, "dest: %d, offset: %d, train: %d, src: %d\r\n", dest, offset, train, src);
             ASSERT(t != NULL, "train not found");
-            printf(CONSOLE, "before getting shortest path\r\n");
             t->path = get_shortest_path(track, t, dest, offset);
-            printf(CONSOLE, "after getting shortest path\r\n");
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 
-            printf(CONSOLE, "replied\r\n");
             for (int i = t->path.path_length - 2; i >= 0; --i) {
                 track_node node = track[t->path.nodes[i]];
                 if (node.type == NODE_BRANCH) {

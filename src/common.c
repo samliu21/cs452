@@ -91,6 +91,11 @@ uint64_t myrand()
     return (seed >> 16) & 0x7FFF; // Scale down to 0-32767
 }
 
+uint64_t max(uint64_t a, uint64_t b)
+{
+	return a > b ? a : b;
+}
+
 uint64_t min(uint64_t a, uint64_t b)
 {
     return a < b ? a : b;

@@ -8,6 +8,7 @@
 typedef struct train_t {
     uint64_t id;
     uint64_t speed;
+	uint64_t old_speed;
     int speed_time_begin;
     reachable_sensors_t sensors;
     int stop_node;
@@ -19,6 +20,9 @@ typedef struct train_t {
     int cur_node;
     int cur_offset;
     track_path_t path;
+    int acc;
+	int acc_start;
+    int acc_end;
 } train_t;
 
 typedef struct trainlist_t {
