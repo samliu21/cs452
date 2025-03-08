@@ -13,5 +13,6 @@ typedef struct track_path_t {
 
 track_path_t track_path_new();
 int track_path_add(track_path_t* path, int node, int dist);
+int track_path_lookahead(track_path_t* path, int node, int lookahead);
 
 #endif

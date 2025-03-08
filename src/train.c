@@ -14,6 +14,8 @@
 #include "uart_server.h"
 #include <stdlib.h>
 
+#define LOOKAHEAD_DISTANCE 1000
+
 trainlist_t trainlist_create(train_t* trains)
 {
     trainlist_t tlist;
@@ -488,6 +490,27 @@ void train_task()
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
+                }
+                
+                int distance_ahead = 0;
+                int cur_node_index = t->cur_node;
+                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
+                    track_node* cur_node = &track[t->path.nodes[cur_node_index]];
+                    track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
+                    distance_ahead += t->path.nodes[cur_node_index];
+
+                    for (int i = 0; i < 2; ++i) {
+                        if (cur_node->enters_seg[i] >= 0 && cur_node->edge[i].dest == nxt_node) {
+                            int reserver = state_is_reserved(cur_node->enters_seg[i]);
+                            if (reserver && reserver != t->id) {
+                                printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+                            } else {
+                                state_reserve_segment(cur_node->enters_seg[i], t->id);
+                            }
+                        }
+                    }
+
+                    cur_node_index++;
                 }
             }
             break;

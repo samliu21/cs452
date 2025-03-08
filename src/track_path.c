@@ -15,3 +15,11 @@ int track_path_add(track_path_t* path, int node, int dist)
     path->distances[path->path_length] = dist;
     return ++path->path_length;
 }
+
+int track_path_lookahead(track_path_t* path, int node, int lookahead) {
+    while (path->distances[node] <= lookahead) {
+        lookahead -= path->distances[node];
+        node++;
+    }
+    return node;
+}
