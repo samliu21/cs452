@@ -66,7 +66,8 @@ typedef enum {
     GET_TRAIN_REVERSE = 9,
     SHOULD_UPDATE_TRAIN_STATE = 10,
     GET_CUR_NODE = 11,
-    ROUTE_TRAIN = 12,
+    GET_CUR_OFFSET = 12,
+    ROUTE_TRAIN = 13,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -224,6 +225,20 @@ int train_get_cur_node(uint64_t train)
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
     ASSERT(ret >= 0, "send failed");
     return response;
+}
+
+int train_get_cur_offset(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = GET_CUR_OFFSET;
+    buf[1] = train;
+    char response[8];
+    int64_t ret = send(train_task_tid, buf, 2, response, 8);
+    ASSERT(ret >= 0, "send failed");
+    return a2i(response, 10);
 }
 
 void train_route(uint64_t train, int dest, int offset)
@@ -482,6 +497,16 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             ret = reply_char(caller_tid, t->path.nodes[t->cur_node]);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_CUR_OFFSET: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            char response[8];
+            i2a(t->cur_offset, response);
+            ret = reply(caller_tid, response, 8);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

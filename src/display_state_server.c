@@ -117,10 +117,11 @@ void display_state_task()
         }
 
         int train_cur_node = train_get_cur_node(55);
-        if (c == FORCE || train_cur_node != old_train_cur_node) {
-            printf(CONSOLE, "\033[s\033[6;1H\033[2KTrain 55 is at node %d\033[u", train_cur_node);
-            old_train_cur_node = train_cur_node;
-        }
+        int train_cur_offset = train_get_cur_offset(55);
+        // if (c == FORCE || train_cur_node != old_train_cur_node) {
+        printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %d, and offset: %d\033[u", train_cur_node, train_cur_offset);
+        // old_train_cur_node = train_cur_node;
+        // }
     }
 }
 

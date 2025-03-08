@@ -25,7 +25,7 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int node_offset)
+track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -44,9 +44,9 @@ track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int 
     dist[src] = 0;
     prev[src] = -1;
 
-    printf(CONSOLE, "id %d, speed %d\r\n", train->id, train->speed);
     int speed = train_data.speed[train->id][train->speed];
     int stopping_distance = train_data.stopping_distance[train->id][train->speed][train->reverse_direction];
+    int reverse_edge_weight = train_data.reverse_edge_weight[train->id][train->speed];
 
     track_path_t path = track_path_new();
 
@@ -71,7 +71,7 @@ track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int 
                 if (track[cur_node].type == NODE_SENSOR && distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
-                    printf(CONSOLE, "stop node: %d, offset: %d, speed %d, \r\n", path.stop_node, path.stop_time_offset, speed);
+                    // printf(CONSOLE, "stop node: %d, offset: %d, speed %d, \r\n", path.stop_node, path.stop_time_offset, speed);
                     break;
                 }
                 if (i == path_length - 1) {
@@ -114,6 +114,11 @@ track_path_t get_shortest_path(track_node* track, train_t *train, int dest, int 
 
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
+        }
+
+        if (track[node].type == NODE_EXIT || track[node].type == NODE_MERGE) {
+            int reverse_node = get_node_index(track, track[node].reverse);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, reverse_node, reverse_edge_weight);
         }
     }
 

@@ -8,7 +8,7 @@
 typedef struct train_t {
     uint64_t id;
     uint64_t speed;
-	uint64_t old_speed;
+    uint64_t old_speed;
     int speed_time_begin;
     reachable_sensors_t sensors;
     int stop_node;
@@ -21,7 +21,7 @@ typedef struct train_t {
     int cur_offset;
     track_path_t path;
     int acc;
-	int acc_start;
+    int acc_start;
     int acc_end;
 } train_t;
 
@@ -44,6 +44,7 @@ void train_set_stop_node(uint64_t train, int node, int time_offset);
 void train_set_reverse(uint64_t train);
 int train_get_reverse(uint64_t train);
 int train_get_cur_node(uint64_t train);
+int train_get_cur_offset(uint64_t train);
 void train_route(uint64_t train, int dest, int offset);
 
 void train_model_notifier();

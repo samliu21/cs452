@@ -30,6 +30,9 @@ train_data_t init_train_data_a()
     data.acc_start[55][6] = 110;
     data.acc_start[55][10] = 110;
 
+    data.reverse_edge_weight[55][6] = 1000;
+    data.reverse_edge_weight[55][10] = 1000;
+
     // train 77
     data.speed[77][0] = 0;
     data.speed[77][6] = 133;
@@ -51,6 +54,9 @@ train_data_t init_train_data_a()
     data.acc_stop[77][10] = -90;
     data.acc_start[77][6] = 90;
     data.acc_start[77][10] = 90;
+
+    data.reverse_edge_weight[77][6] = 1000;
+    data.reverse_edge_weight[77][10] = 1000;
 
     return data;
 }

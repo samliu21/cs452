@@ -31,6 +31,21 @@ int kmain()
     uart_config_and_enable(CONSOLE);
     uart_config_and_enable(MARKLIN);
 
+    // track_node track[TRACK_MAX];
+    // init_tracka(track);
+    // train_t t;
+    // t.path = track_path_new();
+    // track_path_add(&t.path, 140, 1e9); // EN9 hardcoded for train 55
+    // uart_puts(CONSOLE, "before shortest path\r\n");
+    // track_path_t path = get_shortest_path(track, &t, 93, 0);
+    // uart_puts(CONSOLE, "after shortest path\r\n");
+    // for (int i = 0; i < path.path_length; ++i) {
+    //     uart_printf(CONSOLE, "%s ", track[path.nodes[i]].name);
+    // }
+    // uart_puts(CONSOLE, "\r\n");
+
+    for (;;) { }
+
     // run tests and initialize exception vector
     init_interrupts();
     init_vbar();
