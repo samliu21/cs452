@@ -43,10 +43,10 @@ train_data_t init_train_data_a()
     data.stopping_distance[77][10][0] = 630;
     data.stopping_distance[77][10][1] = data.stopping_distance[77][10][0] + data.reverse_stopping_distance_offset;
 
-    data.stopping_distance[77][6][0] = 2857;
-    data.stopping_distance[77][6][1] = 4737;
-    data.stopping_distance[77][10][0] = 3739;
-    data.stopping_distance[77][10][1] = 4481;
+    data.stopping_time[77][6][0] = 2857;
+    data.stopping_time[77][6][1] = 4737;
+    data.stopping_time[77][10][0] = 3739;
+    data.stopping_time[77][10][1] = 4481;
 
     data.train_length[77] = 225;
 
