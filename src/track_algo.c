@@ -68,10 +68,11 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             for (int i = 1; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
                 int distance_from_end = dist[dest] - dist[cur_node] + node_offset;
-                if (track[cur_node].type == NODE_SENSOR && distance_from_end >= stopping_distance) {
+                if (distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
 					path.stop_distance_offset = distance_from_end - stopping_distance;
+                    printf(CONSOLE, "stop node: %d, dist offset: %d \r\n", path.stop_node, path.stop_distance_offset);
                     // printf(CONSOLE, "stop node: %d, offset: %d, speed %d, \r\n", path.stop_node, path.stop_time_offset, speed);
                     break;
                 }
