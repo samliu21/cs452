@@ -13,6 +13,7 @@ typedef struct train_t {
     reachable_sensors_t sensors;
     int stop_node;
     int stop_time_offset;
+    int stop_distance_offset;
     int last_sensor;
     int reverse_direction;
 
@@ -23,6 +24,9 @@ typedef struct train_t {
     int acc;
     int acc_start;
     int acc_end;
+
+    int total_distance_tiny;
+    int total_distance_accumulated;
 } train_t;
 
 typedef struct trainlist_t {

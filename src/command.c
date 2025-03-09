@@ -5,6 +5,7 @@
 #include "state_server.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "timer.h"
 #include "track_algo.h"
 #include "track_data.h"
 #include "train.h"
@@ -217,6 +218,7 @@ void command_task()
             train_route(train, dest, node_offset);
 
             marklin_set_speed(train, 10);
+            printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
 
             result.type = COMMAND_SUCCESS;
         }

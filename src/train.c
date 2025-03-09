@@ -278,6 +278,23 @@ void train_model_notifier()
     }
 }
 
+void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
+{
+    int old_speed = t->speed;
+    if (old_speed == 0 && speed > 0) {
+        t->acc = train_data->acc_start[t->id][speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
+    } else if (old_speed > 0 && speed == 0) {
+        t->acc = train_data->acc_stop[t->id][speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][speed][t->reverse_direction];
+    }
+    t->speed = speed;
+    t->old_speed = old_speed;
+    t->speed_time_begin = timer_get_ms();
+}
+
 void train_task()
 {
     int64_t ret;
@@ -320,20 +337,8 @@ void train_task()
                 break;
             }
 
-            int old_speed = t->speed;
-            if (old_speed == 0 && speed > 0) {
-                t->acc = train_data.acc_start[train][speed];
-                t->acc_start = timer_get_ms();
-                t->acc_end = timer_get_ms() + train_data.starting_time[train][speed];
-                printf(CONSOLE, "acc: %d, start: %d, end: %d\r\n", t->acc, t->acc_start, t->acc_end);
-            } else if (old_speed > 0 && speed == 0) {
-                t->acc = train_data.acc_stop[train][speed];
-                t->acc_start = timer_get_ms();
-                t->acc_end = timer_get_ms() + train_data.stopping_time[train][speed][t->reverse_direction];
-            }
-            t->speed = speed;
-            t->old_speed = old_speed;
-            t->speed_time_begin = timer_get_ms();
+            set_train_speed_handler(&train_data, t, speed);
+
             ret = reply_num(caller_tid, 0);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -362,20 +367,20 @@ void train_task()
         case SENSOR_READING: {
             int node_index = buf[1];
 
-            for (int i = 0; i < trainlist.size; ++i) {
-                if (node_index == trainlist.trains[i].stop_node) {
-                    int64_t stop_task_tid = create(1, &train_stop_task);
-                    ASSERT(stop_task_tid >= 0, "create failed");
+            // for (int i = 0; i < trainlist.size; ++i) {
+            //     if (node_index == trainlist.trains[i].stop_node) {
+            //         int64_t stop_task_tid = create(1, &train_stop_task);
+            //         ASSERT(stop_task_tid >= 0, "create failed");
 
-                    char time_offset_buf[32];
-                    time_offset_buf[0] = trainlist.trains[i].id;
-                    ui2a(trainlist.trains[i].stop_time_offset, 10, time_offset_buf + 1);
-                    ret = send(stop_task_tid, time_offset_buf, 32, NULL, 0);
-                    ASSERT(ret >= 0, "send failed");
+            //         char time_offset_buf[32];
+            //         time_offset_buf[0] = trainlist.trains[i].id;
+            //         ui2a(trainlist.trains[i].stop_time_offset, 10, time_offset_buf + 1);
+            //         ret = send(stop_task_tid, time_offset_buf, 32, NULL, 0);
+            //         ASSERT(ret >= 0, "send failed");
 
-                    trainlist.trains[i].stop_node = -1;
-                }
-            }
+            //         trainlist.trains[i].stop_node = -1;
+            //     }
+            // }
 
             // if the train has not received a sensor reading yet, set the reachable sensors from the initial reading
             // otherwise, find the train expecting this sensor reading and update its reachable sensors
@@ -486,23 +491,36 @@ void train_task()
                 int new_speed_duration = interval_end - acc_end;
                 int old_speed_duration = acc_start - interval_start;
 
-                int vi = max(0, (interval_start - t->speed_time_begin) * t->acc / 1000);
+                int vi = max(0, (interval_start - t->speed_time_begin) * t->acc);
 
-                int dx = vi * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
+                int dx = vi * acc_duration + t->acc * acc_duration * acc_duration / 2;
 
                 // mm/s^2 * ms * ms
                 // int acc_distance = t->old_speed * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
-                int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed] / 1000;
-                int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed] / 1000;
-                int update_distance = dx + new_speed_distance + old_speed_distance;
+                int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
+                int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed];
+                // int update_distance = (dx + (new_speed_distance + old_speed_distance) * 1000) / 1000000;
+                t->total_distance_tiny += dx + (new_speed_distance + old_speed_distance) * 1000;
 
-                if (dx > 0) {
-                    printf(CONSOLE, "dx: %d\r\n", dx);
-                }
+                int update_distance = (t->total_distance_tiny - t->total_distance_accumulated) / 1000000;
+                t->total_distance_accumulated += update_distance * 1000000;
 
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
+
+                    // if (t->path.nodes[t->cur_node] == 57) {
+                    //     marklin_set_speed(55, 15);
+                    //     printf(CONSOLE, "end time: %d\r\n", timer_get_ms());
+                    // }
+                }
+
+                if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
+                    marklin_set_speed(t->id, 0);
+
+                    set_train_speed_handler(&train_data, t, 0);
+
+                    t->stop_node = -1;
                 }
 
                 // int distance_ahead = 0;
@@ -570,6 +588,7 @@ void train_task()
             printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
             t->stop_node = t->path.stop_node;
             t->stop_time_offset = t->path.stop_time_offset;
+            t->stop_distance_offset = t->path.stop_distance_offset;
 
             break;
         }
