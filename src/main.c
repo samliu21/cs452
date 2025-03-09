@@ -44,7 +44,7 @@ int kmain()
     // }
     // uart_puts(CONSOLE, "\r\n");
 
-    for (;;) { }
+    // for (;;) { }
 
     // run tests and initialize exception vector
     init_interrupts();

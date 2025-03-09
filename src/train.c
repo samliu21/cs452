@@ -269,10 +269,12 @@ void should_update_train_state()
 
 void train_model_notifier()
 {
+    int cur_time = time();
     for (;;) {
         should_update_train_state();
 
-        delay(5);
+        cur_time += 5;
+        delay_until(cur_time);
     }
 }
 
@@ -323,6 +325,7 @@ void train_task()
                 t->acc = train_data.acc_start[train][speed];
                 t->acc_start = timer_get_ms();
                 t->acc_end = timer_get_ms() + train_data.starting_time[train][speed];
+                printf(CONSOLE, "acc: %d, start: %d, end: %d\r\n", t->acc, t->acc_start, t->acc_end);
             } else if (old_speed > 0 && speed == 0) {
                 t->acc = train_data.acc_stop[train][speed];
                 t->acc_start = timer_get_ms();
@@ -475,43 +478,53 @@ void train_task()
 
                 int interval_end = timer_get_ms();
                 int interval_start = interval_end - 50;
-                int acc_start = max(interval_start, t->acc_start);
-                int acc_end = min(interval_end, t->acc_end);
+
+                int acc_start = min(interval_end, max(interval_start, t->acc_start));
+                int acc_end = min(interval_end, max(interval_start, t->acc_end));
 
                 int acc_duration = acc_end - acc_start;
                 int new_speed_duration = interval_end - acc_end;
                 int old_speed_duration = acc_start - interval_start;
 
-                int acc_distance = t->old_speed * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
+                int vi = max(0, (interval_start - t->speed_time_begin) * t->acc / 1000);
+
+                int dx = vi * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
+
+                // mm/s^2 * ms * ms
+                // int acc_distance = t->old_speed * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed] / 1000;
                 int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed] / 1000;
-                int update_distance = acc_distance + new_speed_distance + old_speed_distance;
+                int update_distance = dx + new_speed_distance + old_speed_distance;
+
+                if (dx > 0) {
+                    printf(CONSOLE, "dx: %d\r\n", dx);
+                }
 
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
                 }
-                
-                int distance_ahead = 0;
-                int cur_node_index = t->cur_node;
-                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
-                    track_node* cur_node = &track[t->path.nodes[cur_node_index]];
-                    track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
-                    distance_ahead += t->path.nodes[cur_node_index];
 
-                    for (int i = 0; i < 2; ++i) {
-                        if (cur_node->enters_seg[i] >= 0 && cur_node->edge[i].dest == nxt_node) {
-                            int reserver = state_is_reserved(cur_node->enters_seg[i]);
-                            if (reserver && reserver != t->id) {
-                                printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
-                            } else {
-                                state_reserve_segment(cur_node->enters_seg[i], t->id);
-                            }
-                        }
-                    }
+                // int distance_ahead = 0;
+                // int cur_node_index = t->cur_node;
+                // while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
+                //     track_node* cur_node = &track[t->path.nodes[cur_node_index]];
+                //     track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
+                //     distance_ahead += t->path.nodes[cur_node_index];
 
-                    cur_node_index++;
-                }
+                //     for (int i = 0; i < 2; ++i) {
+                //         if (cur_node->enters_seg[i] >= 0 && cur_node->edge[i].dest == nxt_node) {
+                //             int reserver = state_is_reserved(cur_node->enters_seg[i]);
+                //             if (reserver && reserver != t->id) {
+                //                 printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+                //             } else {
+                //                 state_reserve_segment(cur_node->enters_seg[i], t->id);
+                //             }
+                //         }
+                //     }
+
+                //     cur_node_index++;
+                // }
             }
             break;
         }
