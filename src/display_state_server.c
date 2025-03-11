@@ -110,7 +110,7 @@ void display_state_task()
         train_get_times(train_times);
         if (c == FORCE || strcmp(train_times, old_train_times)) {
             if (strlen(train_times) == 0) {
-                puts(CONSOLE, "\033[s\033[5;1H\033[2Ktime delta: n/a, distance delta: n/a\033[u");
+                puts(CONSOLE, "\033[s\033[5;1H\033[2Kdistance delta: n/a\033[u");
             } else {
                 printf(CONSOLE, "\033[s\033[5;1H\033[2K%s\033[u", train_times);
             }

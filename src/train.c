@@ -15,6 +15,7 @@
 #include <stdlib.h>
 
 #define LOOKAHEAD_DISTANCE 1000
+#define SENSOR_PREDICTION_WINDOW 300
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -30,7 +31,6 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].speed = 0;
     tlist->trains[tlist->size].old_speed = 0;
     tlist->trains[tlist->size].speed_time_begin = 0;
-    tlist->trains[tlist->size].sensors.size = 0;
     tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
     tlist->trains[tlist->size].reverse_direction = 0;
@@ -306,7 +306,10 @@ void train_task()
     trainlist_t trainlist = trainlist_create(trains);
     trainlist_add(&trainlist, 55);
     trainlist_add(&trainlist, 77);
-    int last_time;
+
+    for (int i = 0; i < trainlist.size; ++i) {
+        marklin_set_speed(trainlist.trains[i].id, 0);
+    }
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -319,7 +322,6 @@ void train_task()
 
     uint64_t caller_tid;
     char buf[32];
-    int has_received_initial_sensor = 0;
     char train_times[64];
     train_times[0] = '\0';
     for (;;) {
@@ -384,41 +386,44 @@ void train_task()
 
             // if the train has not received a sensor reading yet, set the reachable sensors from the initial reading
             // otherwise, find the train expecting this sensor reading and update its reachable sensors
-            if (!has_received_initial_sensor) {
-                int train = -1;
-                for (int i = 0; i < trainlist.size; ++i) {
-                    if (trainlist.trains[i].speed > 0) {
-                        train = i;
-                        break;
-                    }
-                }
-                if (train >= 0) {
-                    has_received_initial_sensor = 1;
-                    trainlist.trains[train].sensors = get_reachable_sensors(track, node_index);
-                    trainlist.trains[train].last_sensor = node_index;
-                    last_time = timer_get_ms();
-                }
-                goto sensor_reading_end;
-            }
+            // if (!has_received_initial_sensor) {
+            //     int train = -1;
+            //     for (int i = 0; i < trainlist.size; ++i) {
+            //         if (trainlist.trains[i].speed > 0) {
+            //             train = i;
+            //             break;
+            //         }
+            //     }
+            //     if (train >= 0) {
+            //         has_received_initial_sensor = 1;
+            //         trainlist.trains[train].sensors = get_reachable_sensors(track, node_index);
+            //         trainlist.trains[train].last_sensor = node_index;
+            //     }
+            //     goto sensor_reading_end;
+            // }
 
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* train = &trainlist.trains[i];
-                for (int j = 0; j < train->sensors.size; ++j) {
-                    if (train->sensors.sensors[j] == node_index) {
-                        int speed = train_data.speed[train->id][train->speed];
-                        // print predicted and actual times
-                        int t_pred = train->sensors.distances[j] * 1000 / speed;
-                        int t_actual = timer_get_ms() - last_time;
-                        int t_diff = t_actual - t_pred;
 
-                        sprintf(train_times, "time delta: %dms, distance delta: %dmm", t_diff, t_diff * speed / 1000);
+                int distance_to_sensor = 1e9;
+                if (train->path.nodes[train->cur_node] == node_index) {
+                    distance_to_sensor = train->cur_offset;
+                } else if (train->cur_node + 1 < train->path.path_length && train->path.nodes[train->cur_node + 1] == node_index) {
+                    distance_to_sensor = train->cur_offset - train->path.distances[train->cur_node]; // neg number
+                }
 
-                        last_time = timer_get_ms();
+                if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
+                    sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
-                        train->sensors = get_reachable_sensors(track, node_index);
-                        train->last_sensor = node_index;
-                        goto sensor_reading_end;
+                    if (distance_to_sensor < 0) {
+                        train->cur_node++;
                     }
+                    ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
+                    train->cur_offset = 0;
+
+                    // train->sensors = get_reachable_sensors(track, node_index);
+                    // train->last_sensor = node_index;
+                    goto sensor_reading_end;
                 }
             }
 
