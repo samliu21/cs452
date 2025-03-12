@@ -57,6 +57,14 @@ int strncmp(const char* s1, const char* s2, int n)
     }
 }
 
+void strcat(char* dest, const char* src)
+{
+    while (*dest)
+        dest++;
+    while ((*(dest++) = *(src++)))
+        ;
+}
+
 int isspace(char c)
 {
     return c == ' ' || c == '\t' || c == '\n' || c == '\r';
@@ -93,7 +101,7 @@ uint64_t myrand()
 
 uint64_t max(uint64_t a, uint64_t b)
 {
-	return a > b ? a : b;
+    return a > b ? a : b;
 }
 
 uint64_t min(uint64_t a, uint64_t b)

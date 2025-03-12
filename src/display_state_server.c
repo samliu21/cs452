@@ -59,6 +59,10 @@ void display_state_task()
     memset(&old_train_times, 0, 256);
     old_train_times[0] = 255;
 
+    char old_reservations[1024];
+    memset(&old_reservations, 0, 1024);
+    old_reservations[0] = 255;
+
     int old_train_cur_node = 0;
     int old_train_cur_offset = 0;
 
@@ -117,12 +121,21 @@ void display_state_task()
             strcpy(old_train_times, train_times);
         }
 
+        // node + offset
         int train_cur_node = train_get_cur_node(55);
         int train_cur_offset = train_get_cur_offset(55);
         if (c == FORCE || train_cur_node != old_train_cur_node || train_cur_offset != old_train_cur_offset) {
             printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %d, and offset: %d\033[u", train_cur_node, train_cur_offset);
             old_train_cur_node = train_cur_node;
             old_train_cur_offset = train_cur_offset;
+        }
+
+        // reservations
+        char reservations[1024];
+        state_get_reservations(reservations);
+        if (c == FORCE || strcmp(reservations, old_reservations)) {
+            printf(CONSOLE, "\033[s\033[7;1H\033[2Kreservations: [ %s]\033[u", reservations);
+            strcpy(old_reservations, reservations);
         }
     }
 }

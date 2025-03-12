@@ -24,6 +24,7 @@ typedef enum {
     IS_RESERVED = 8,
     RESERVE_SEGMENT = 9,
     RELEASE_SEGMENT = 10,
+    GET_RESERVATIONS = 11,
 } state_server_request_t;
 
 void state_set_recent_sensor(char bank, char sensor)
@@ -141,6 +142,16 @@ int state_release_segment(int segment)
     int64_t ret = send(state_task_tid, buf, 2, NULL, 0);
     ASSERT(ret >= 0, "send failed");
     return 0;
+}
+
+void state_get_reservations(char* response)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char c = GET_RESERVATIONS;
+    int64_t ret = send(state_task_tid, &c, 1, response, 1024);
+    ASSERT(ret >= 0, "send failed");
 }
 
 void state_task()
@@ -276,7 +287,9 @@ void state_task()
         case RESERVE_SEGMENT: {
             int segment = buf[1];
             int train = buf[2];
-            ASSERTF(!reservations[segment], "tried to double-reserve segment %d", segment);
+            // check that reservations[segment] == train because reservations are attempted every 5 ticks
+            // thus allow reserve_segment to be idempotent
+            ASSERTF(!reservations[segment] || reservations[segment] == train, "segment %d is already reserved by train %d", segment, train);
             reservations[segment] = train;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
@@ -287,6 +300,21 @@ void state_task()
             ASSERTF(reservations[segment], "tried to release non-reserved segment %d", segment);
             reservations[segment] = 0;
             ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_RESERVATIONS: {
+            char response[1024];
+            memset(response, 0, 1024);
+            for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
+                if (reservations[i]) {
+                    char buf[32];
+                    memset(buf, 0, 32);
+                    sprintf(buf, "seg %d: train %d; ", i, reservations[i]);
+                    strcat(response, buf);
+                }
+            }
+            ret = reply(caller_tid, response, 1024);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

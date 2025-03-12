@@ -36,7 +36,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].reverse_direction = 0;
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
-    track_path_add(&tlist->trains[tlist->size].path, 140, 1e9); // EN9 hardcoded for train 55
+    track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 135, 1e9); // EN9 hardcoded for train 55
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
@@ -495,26 +495,31 @@ void train_task()
                     t->stop_node = -1;
                 }
 
-                // int distance_ahead = 0;
-                // int cur_node_index = t->cur_node;
-                // while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
-                //     track_node* cur_node = &track[t->path.nodes[cur_node_index]];
-                //     track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
-                //     distance_ahead += t->path.nodes[cur_node_index];
-
-                //     for (int i = 0; i < 2; ++i) {
-                //         if (cur_node->enters_seg[i] >= 0 && cur_node->edge[i].dest == nxt_node) {
-                //             int reserver = state_is_reserved(cur_node->enters_seg[i]);
-                //             if (reserver && reserver != t->id) {
-                //                 printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
-                //             } else {
-                //                 state_reserve_segment(cur_node->enters_seg[i], t->id);
-                //             }
-                //         }
-                //     }
-
-                //     cur_node_index++;
+                int distance_ahead = 0;
+                int cur_node_index = t->cur_node;
+                // for (int j = 0; j < t->path.path_length - 1; ++j) {
+                //     printf(CONSOLE, "path node %d: %d\r\n", j, t->path.nodes[j]);
                 // }
+                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
+                    track_node* cur_node = &track[t->path.nodes[cur_node_index]];
+                    track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
+                    distance_ahead += t->path.distances[cur_node_index];
+
+                    for (int j = 0; j < 2; ++j) {
+                        if (cur_node->enters_seg[j] >= 0 && cur_node->edge[j].dest == nxt_node) {
+                            // printf(CONSOLE, "train %d entering segment %d from node %s, j: %d, cur_node_index: %d\r\n", t->id, cur_node->enters_seg[j], cur_node->name, j, cur_node_index);
+                            uint64_t reserver = state_is_reserved(cur_node->enters_seg[j]);
+                            if (reserver && reserver != t->id) {
+                                printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+                            } else {
+                                state_reserve_segment(cur_node->enters_seg[j], t->id);
+                            }
+                        }
+                    }
+
+                    cur_node_index++;
+                    // printf(CONSOLE, "incrementing to %d...\r\n", cur_node_index);
+                }
             }
             break;
         }

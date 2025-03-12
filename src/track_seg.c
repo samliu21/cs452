@@ -8,7 +8,7 @@ void init_sega(track_node* track)
 
     // BR1 -> EX7, EN7 -> MR1
     track[80].enters_seg[1] = 0;
-    track[136].enters_seg[0] = 1;
+    track[136].enters_seg[0] = 0;
 
     // BR1 -> EX8, EN8 -> MR1
     track[80].enters_seg[0] = 1;
