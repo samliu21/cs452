@@ -97,7 +97,7 @@ void sensor_task()
                         sensor_name[2] = 0;
                     }
                     train_sensor_reading(track, sensor_name);
-					
+
                     // if (strcmp(sensor_name, "E11") == 0) {
                     //     marklin_set_speed(55, 0);
                     //     create(50, temp_task);

@@ -286,9 +286,10 @@ void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t spee
         t->acc_start = timer_get_ms();
         t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
     } else if (old_speed > 0 && speed == 0) {
-        t->acc = train_data->acc_stop[t->id][speed];
+        t->acc = train_data->acc_stop[t->id][old_speed];
         t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][speed];
+        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
+        printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
     }
     t->speed = speed;
     t->old_speed = old_speed;
@@ -307,9 +308,9 @@ void train_task()
     trainlist_add(&trainlist, 55);
     trainlist_add(&trainlist, 77);
 
-    for (int i = 0; i < trainlist.size; ++i) {
-        marklin_set_speed(trainlist.trains[i].id, 0);
-    }
+    // for (int i = 0; i < trainlist.size; ++i) {
+    //     marklin_set_speed(trainlist.trains[i].id, 0);
+    // }
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -419,7 +420,7 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = 0;
+                    train->cur_offset = 30;
 
                     // train->sensors = get_reachable_sensors(track, node_index);
                     // train->last_sensor = node_index;
@@ -496,19 +497,15 @@ void train_task()
                 int new_speed_duration = interval_end - acc_end;
                 int old_speed_duration = acc_start - interval_start;
 
-                int vi = max(0, (interval_start - t->speed_time_begin) * t->acc);
-
+                int vi = train_data.speed[t->id][t->old_speed] * 1000 + max(0, (interval_start - t->speed_time_begin)) * t->acc;
                 int dx = vi * acc_duration + t->acc * acc_duration * acc_duration / 2;
 
-                // mm/s^2 * ms * ms
-                // int acc_distance = t->old_speed * acc_duration / 1000 + t->acc * acc_duration * acc_duration / 2000000;
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
                 int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed];
-                // int update_distance = (dx + (new_speed_distance + old_speed_distance) * 1000) / 1000000;
-                t->total_distance_tiny += dx + (new_speed_distance + old_speed_distance) * 1000;
+                t->distance_overflow_nm += dx + (new_speed_distance + old_speed_distance) * 1000;
 
-                int update_distance = (t->total_distance_tiny - t->total_distance_accumulated) / 1000000;
-                t->total_distance_accumulated += update_distance * 1000000;
+                int update_distance = t->distance_overflow_nm / 1000000;
+                t->distance_overflow_nm -= update_distance * 1000000;
 
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {

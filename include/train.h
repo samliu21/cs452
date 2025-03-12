@@ -24,8 +24,7 @@ typedef struct train_t {
     int acc_start;
     int acc_end;
 
-    int total_distance_tiny;
-    int total_distance_accumulated;
+    int distance_overflow_nm;
 } train_t;
 
 typedef struct trainlist_t {
