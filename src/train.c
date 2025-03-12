@@ -420,7 +420,7 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = 30;
+                    train->cur_offset = 25;
 
                     // train->sensors = get_reachable_sensors(track, node_index);
                     // train->last_sensor = node_index;
