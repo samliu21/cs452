@@ -370,42 +370,13 @@ void train_task()
         case SENSOR_READING: {
             int node_index = buf[1];
 
-            // for (int i = 0; i < trainlist.size; ++i) {
-            //     if (node_index == trainlist.trains[i].stop_node) {
-            //         int64_t stop_task_tid = create(1, &train_stop_task);
-            //         ASSERT(stop_task_tid >= 0, "create failed");
-
-            //         char time_offset_buf[32];
-            //         time_offset_buf[0] = trainlist.trains[i].id;
-            //         ui2a(trainlist.trains[i].stop_time_offset, 10, time_offset_buf + 1);
-            //         ret = send(stop_task_tid, time_offset_buf, 32, NULL, 0);
-            //         ASSERT(ret >= 0, "send failed");
-
-            //         trainlist.trains[i].stop_node = -1;
-            //     }
-            // }
-
-            // if the train has not received a sensor reading yet, set the reachable sensors from the initial reading
-            // otherwise, find the train expecting this sensor reading and update its reachable sensors
-            // if (!has_received_initial_sensor) {
-            //     int train = -1;
-            //     for (int i = 0; i < trainlist.size; ++i) {
-            //         if (trainlist.trains[i].speed > 0) {
-            //             train = i;
-            //             break;
-            //         }
-            //     }
-            //     if (train >= 0) {
-            //         has_received_initial_sensor = 1;
-            //         trainlist.trains[train].sensors = get_reachable_sensors(track, node_index);
-            //         trainlist.trains[train].last_sensor = node_index;
-            //     }
-            //     goto sensor_reading_end;
-            // }
-
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* train = &trainlist.trains[i];
 
+                // spurious reading from same sensor
+                if (train->last_sensor == node_index) {
+                    continue;
+                }
                 int distance_to_sensor = 1e9;
                 if (train->path.nodes[train->cur_node] == node_index) {
                     distance_to_sensor = train->cur_offset;
@@ -420,10 +391,10 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = 25;
+                    train->cur_offset = 0;
 
                     // train->sensors = get_reachable_sensors(track, node_index);
-                    // train->last_sensor = node_index;
+                    train->last_sensor = node_index;
                     goto sensor_reading_end;
                 }
             }
@@ -498,11 +469,11 @@ void train_task()
                 int old_speed_duration = acc_start - interval_start;
 
                 int vi = train_data.speed[t->id][t->old_speed] * 1000 + max(0, (interval_start - t->speed_time_begin)) * t->acc;
-                int dx = vi * acc_duration + t->acc * acc_duration * acc_duration / 2;
+                int acc_distance = vi * acc_duration + t->acc * acc_duration * acc_duration / 2;
 
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
                 int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed];
-                t->distance_overflow_nm += dx + (new_speed_distance + old_speed_distance) * 1000;
+                t->distance_overflow_nm += acc_distance + (new_speed_distance + old_speed_distance) * 1000;
 
                 int update_distance = t->distance_overflow_nm / 1000000;
                 t->distance_overflow_nm -= update_distance * 1000000;
@@ -510,10 +481,9 @@ void train_task()
                 t->cur_offset += update_distance;
                 if (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
-
-                    // if (t->path.nodes[t->cur_node] == 57) {
+                    // if (t->path.nodes[t->cur_node] == 38) {
                     //     marklin_set_speed(55, 15);
-                    //     printf(CONSOLE, "end time: %d\r\n", timer_get_ms());
+                    //     // printf(CONSOLE, "end time: %d\r\n", timer_get_ms());
                     // }
                 }
 
