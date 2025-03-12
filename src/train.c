@@ -288,7 +288,7 @@ void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t spee
     } else if (old_speed > 0 && speed == 0) {
         t->acc = train_data->acc_stop[t->id][speed];
         t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][speed][t->reverse_direction];
+        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][speed];
     }
     t->speed = speed;
     t->old_speed = old_speed;

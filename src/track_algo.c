@@ -45,7 +45,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     prev[src] = -1;
 
     int speed = train_data.speed[train->id][train->speed];
-    int stopping_distance = train_data.stopping_distance[train->id][train->speed][train->reverse_direction];
+    int stopping_distance = train_data.stopping_distance[train->id][train->speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id][train->speed];
 
     track_path_t path = track_path_new();
@@ -71,7 +71,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 if (distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_time_offset = (distance_from_end - stopping_distance) * 1000 / speed;
-					path.stop_distance_offset = distance_from_end - stopping_distance;
+                    path.stop_distance_offset = distance_from_end - stopping_distance;
                     printf(CONSOLE, "stop node: %d, dist offset: %d \r\n", path.stop_node, path.stop_distance_offset);
                     // printf(CONSOLE, "stop node: %d, offset: %d, speed %d, \r\n", path.stop_node, path.stop_time_offset, speed);
                     break;
