@@ -124,12 +124,12 @@ uint64_t train_get_old_speed(uint64_t train)
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
 
-    char buf[2], response[2];
+    char buf[2], response;
     buf[0] = GET_TRAIN_OLD_SPEED;
     buf[1] = train;
-    int64_t ret = send(train_task_tid, buf, 2, response, 2);
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
     ASSERT(ret >= 0, "send failed");
-    return response[1];
+    return response;
 }
 
 int train_exists(uint64_t train)
@@ -428,7 +428,7 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = 0;
+                    train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset : 0;
 
                     // release reservations behind sensor
                     int segments_to_release[16];
@@ -540,24 +540,22 @@ void train_task()
                     t->stop_node = -1;
                 }
 
-                // handle reversing.
+                // handle reversing
                 if (t->cur_node + 2 < t->path.path_length) {
-                    track_node * next_node = &track[t->path.nodes[t->cur_node + 1]];
-                    track_node * next_next_node = &track[t->path.nodes[t->cur_node + 2]];
+                    track_node* next_node = &track[t->path.nodes[t->cur_node + 1]];
+                    track_node* next_next_node = &track[t->path.nodes[t->cur_node + 2]];
                     if (t->speed > 0 && next_node->reverse == next_next_node) {
-                        int stop_in = t->path.distances[t->cur_node] + train_data.train_length[t->id]
-                            - t->cur_offset - train_data.stopping_distance[t->id][t->speed];
-                        if (t->reverse_direction) {
-                            stop_in -= train_data.reverse_stopping_distance_offset;
-                        }
-                        if (stop_in <= 0) {
+                        int distance_to_stop = t->path.distances[t->cur_node] + train_data.train_length[t->id] + REVERSE_OVER_MERGE_OFFSET
+                            - t->cur_offset;
+
+                        if (distance_to_stop <= train_data.stopping_distance[t->id][t->speed]) {
                             int64_t reverse_task_id = create(1, &train_reverse_task);
-                            int64_t ret = send(reverse_task_id, (char*) &t->id, 1, NULL, 0);
+                            char c = t->id;
+                            int64_t ret = send(reverse_task_id, &c, 1, NULL, 0);
                             ASSERT(ret >= 0, "send failed");
                         }
                     }
                 }
-
 
                 int distance_ahead = 0;
                 int cur_node_index = t->cur_node;

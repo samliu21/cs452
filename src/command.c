@@ -26,11 +26,6 @@ void command_task()
     init_trackb(track);
 #endif
 
-    // A3 C13 E7 D7 D9 E12 C6 B15
-    int loop_sensors[NUM_LOOP_SENSORS] = { 2, 44, 70, 54, 56, 75, 37, 30 };
-    int loop_switches[NUM_LOOP_SWITCHES] = { 14, 8, 7, 18 };
-    switchstate_t loop_switch_states[NUM_LOOP_SWITCHES] = { S, S, C, C };
-
     char command[32];
     uint64_t caller_tid;
     char* error_message = NULL;

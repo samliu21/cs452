@@ -81,7 +81,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
                 // for reverse edge, update distance to be train length + offset for reservation calculations
                 if (dist_between == reverse_edge_weight) {
-                    dist_between = train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
+                    dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
                 }
                 track_path_add(&path, path_reverse[i], dist_between);
             }
