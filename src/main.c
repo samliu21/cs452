@@ -46,6 +46,15 @@ int kmain()
     // }
     // uart_puts(CONSOLE, "\r\n");
 
+    // track_node track[TRACK_MAX];
+    // init_tracka(track);
+    // int reachable_segments[16];
+    // int num_reachable_segments = reachable_segments_within_distance(reachable_segments, track, 115, 262); // MR18
+    // uart_printf(CONSOLE, "num reachable segments: %d\r\n", num_reachable_segments);
+    // for (int i = 0; i < num_reachable_segments; ++i) {
+    //     uart_printf(CONSOLE, "%d ", reachable_segments[i]);
+    // }
+
     // for (;;) { }
 
     // run tests and initialize exception vector

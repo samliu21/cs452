@@ -8,6 +8,7 @@
 #include "syscall_asm.h"
 #include "syscall_func.h"
 #include "timer.h"
+#include "track_algo.h"
 #include "track_data.h"
 #include "track_node.h"
 #include "train_data.h"
@@ -309,7 +310,11 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
         }
 
         if (cur_node->reverse == nxt_node) {
-            segments[segment_index++] = cur_node->enters_seg[0]; // ahead for both enter and merge
+            int reachable_segments[8];
+            int num_reachable_segments = reachable_segments_within_distance(reachable_segments, track, path->nodes[i], 300);
+            for (int j = 0; j < num_reachable_segments; ++j) {
+                segments[segment_index++] = reachable_segments[j];
+            }
         }
     }
     return segment_index;

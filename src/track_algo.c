@@ -128,6 +128,73 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     return path;
 }
 
+int reachable_segments_within_distance(int* reachable_segments, track_node* track, int src, int max_distance)
+{
+    priority_queue_pi_t pq = pq_pi_new();
+    pi_t nodes[256];
+    int nodes_pos = 0;
+    int prev[TRACK_MAX], dist[TRACK_MAX];
+    for (int i = 0; i < TRACK_MAX; ++i) {
+        dist[i] = 1e9;
+    }
+
+    nodes[nodes_pos].weight = 0;
+    nodes[nodes_pos].id = src;
+    pq_pi_add(&pq, &nodes[nodes_pos++]);
+    dist[src] = 0;
+    prev[src] = -1;
+
+    int num_reachable_segments = 0;
+
+    while (!pq_pi_empty(&pq)) {
+        pi_t* pi = pq_pi_pop(&pq);
+        int node = pi->id;
+        int weight = pi->weight;
+        if (weight > max_distance) {
+            break;
+        }
+        if (dist[node] < weight) {
+            continue;
+        }
+
+        for (int i = 0; i < 2; ++i) {
+            if (track[node].enters_seg[i] >= 0) {
+                reachable_segments[num_reachable_segments++] = track[node].enters_seg[i];
+            }
+        }
+
+        switch (track[node].type) {
+        case NODE_BRANCH: {
+            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
+            track_edge curved_edge = track[node].edge[DIR_CURVED];
+            int node_straight = get_node_index(track, straight_edge.dest);
+            int node_curved = get_node_index(track, curved_edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            break;
+        }
+
+        case NODE_SENSOR:
+        case NODE_MERGE:
+        case NODE_ENTER: {
+            // one edge
+            track_edge edge = track[node].edge[DIR_AHEAD];
+            int node_ahead = get_node_index(track, edge.dest);
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            break;
+        }
+
+        case NODE_EXIT:
+            break;
+
+        default:
+            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
+        }
+    }
+
+    return num_reachable_segments;
+}
+
 track_path_t get_closest_node(track_node* track, int src, int* dests, int n)
 {
     priority_queue_pi_t pq = pq_pi_new();
