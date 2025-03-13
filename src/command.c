@@ -85,13 +85,9 @@ void command_task()
                 goto end;
             }
 
-            marklin_set_speed(train, 0);
-
             int64_t reverse_task_id = create(1, &train_reverse_task);
             int64_t ret = send(reverse_task_id, (char*)&train, 1, NULL, 0);
             ASSERT(ret >= 0, "send failed");
-
-            train_set_reverse(train);
 
             result.type = COMMAND_SUCCESS;
         }
@@ -219,83 +215,6 @@ void command_task()
 
             marklin_set_speed(train, 10);
             // printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
-
-            result.type = COMMAND_SUCCESS;
-        }
-
-        else if (strcmp(command_type, "lp") == 0) {
-            if (argc != 3) {
-                result.type = COMMAND_FAIL;
-                error_message = "lp command expects 2 arguments";
-                goto end;
-            }
-            uint64_t train = a2ui(args[1], 10);
-            uint64_t speed = a2ui(args[2], 10);
-            if (!train_exists(train)) {
-                result.type = COMMAND_FAIL;
-                error_message = "train does not exist";
-                goto end;
-            } else if (train_get_speed(train) != 0) {
-                result.type = COMMAND_FAIL;
-                error_message = "train must be stopped first";
-                goto end;
-            } else if (speed > 15) {
-                result.type = COMMAND_FAIL;
-                error_message = "speed must be between 0 and 14";
-                goto end;
-            }
-
-            int last_sensor = train_last_sensor(train);
-
-            if (last_sensor == -1) {
-                result.type = COMMAND_FAIL;
-                error_message = "train is not ready to go";
-                goto end;
-            }
-
-            int rv = 0;
-            int src = state_next_sensor(last_sensor);
-            if (src == -1) {
-                src = get_node_index(track, track[last_sensor].reverse);
-                rv = 1;
-            }
-
-            track_path_t path = get_closest_node(track, src, loop_sensors, NUM_LOOP_SENSORS);
-
-            if (path.path_length == 0) {
-                src = get_node_index(track, track[src].reverse);
-                path = get_closest_node(track, src, loop_sensors, NUM_LOOP_SENSORS);
-                rv = 1;
-                if (path.path_length == 0) {
-                    result.type = COMMAND_FAIL;
-                    error_message = "could not find loop";
-                    goto end;
-                }
-            }
-
-            for (int i = 0; i < path.path_length - 1; ++i) {
-                track_node node = track[path.nodes[i]];
-                if (node.type == NODE_BRANCH) {
-                    char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? S : C;
-
-                    create_switch_task(node.num, switch_type);
-                }
-            }
-
-            for (int i = 0; i < NUM_LOOP_SWITCHES; ++i) {
-                create_switch_task(loop_switches[i], loop_switch_states[i]);
-            }
-            int64_t ret = create(1, &deactivate_solenoid_task);
-            ASSERT(ret >= 0, "create failed");
-
-            if (rv == 1) {
-                train_set_reverse(train);
-                marklin_reverse(train);
-            }
-
-            train_set_speed(train, speed);
-
-            marklin_set_speed(train, speed);
 
             result.type = COMMAND_SUCCESS;
         }

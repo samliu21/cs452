@@ -41,21 +41,22 @@ void train_reverse_task()
     receive(&caller_tid, &train, 1);
     reply_empty(caller_tid);
 
+    // stop train
+    train_set_speed(train, 0);
+    marklin_set_speed(train, 0);
+
     // delay
     int64_t ret = delay(350);
     ASSERT(ret >= 0, "delay failed");
 
-    // reverse train
-    char sendbuf[3];
-    sendbuf[0] = 0x1f;
-    sendbuf[1] = train;
-    sendbuf[2] = 0;
-    puts(MARKLIN, sendbuf);
+    train_set_reverse(train);
+    marklin_reverse(train);
 
     // set train speed
-    uint64_t speed = train_get_speed(train);
-    marklin_set_speed(train, speed);
-
+    uint64_t old_speed = train_get_old_speed(train);
+    train_set_speed(train, old_speed);
+    marklin_set_speed(train, old_speed);
+    
     exit();
 }
 

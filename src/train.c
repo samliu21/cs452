@@ -15,7 +15,8 @@
 #include "uart_server.h"
 #include <stdlib.h>
 
-#define LOOKAHEAD_DISTANCE 1000
+#define RESERVATION_LOOKAHEAD_DISTANCE 1000
+#define REVERSE_LOOKAHEAD_DISTANCE 200
 #define SENSOR_PREDICTION_WINDOW 300
 
 trainlist_t trainlist_create(train_t* trains)
@@ -60,17 +61,18 @@ train_t* trainlist_find(trainlist_t* tlist, uint64_t id)
 typedef enum {
     SET_TRAIN_SPEED = 1,
     GET_TRAIN_SPEED = 2,
-    TRAIN_EXISTS = 3,
-    SENSOR_READING = 4,
-    GET_TRAIN_TIMES = 5,
-    TRAIN_LAST_SENSOR = 6,
-    SET_STOP_NODE = 7,
-    SET_TRAIN_REVERSE = 8,
-    GET_TRAIN_REVERSE = 9,
-    SHOULD_UPDATE_TRAIN_STATE = 10,
-    GET_CUR_NODE = 11,
-    GET_CUR_OFFSET = 12,
-    ROUTE_TRAIN = 13,
+    GET_TRAIN_OLD_SPEED = 3,
+    TRAIN_EXISTS = 4,
+    SENSOR_READING = 5,
+    GET_TRAIN_TIMES = 6,
+    TRAIN_LAST_SENSOR = 7,
+    SET_STOP_NODE = 8,
+    SET_TRAIN_REVERSE = 9,
+    GET_TRAIN_REVERSE = 10,
+    SHOULD_UPDATE_TRAIN_STATE = 11,
+    GET_CUR_NODE = 12,
+    GET_CUR_OFFSET = 13,
+    ROUTE_TRAIN = 14,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -86,13 +88,44 @@ void train_set_speed(uint64_t train, uint64_t speed)
     ASSERT(ret >= 0, "send failed");
 }
 
+void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
+{
+    int old_speed = t->speed;
+    if (old_speed == 0 && speed > 0) {
+        t->acc = train_data->acc_start[t->id][speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
+    } else if (old_speed > 0 && speed == 0) {
+        t->acc = train_data->acc_stop[t->id][old_speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
+        // printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
+    }
+    t->speed = speed;
+    t->old_speed = old_speed;
+    t->speed_time_begin = timer_get_ms();
+}
+
 uint64_t train_get_speed(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
 
-    char buf[2], response[2];
+    char buf[2], response;
     buf[0] = GET_TRAIN_SPEED;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "send failed");
+    return response;
+}
+
+uint64_t train_get_old_speed(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2], response[2];
+    buf[0] = GET_TRAIN_OLD_SPEED;
     buf[1] = train;
     int64_t ret = send(train_task_tid, buf, 2, response, 2);
     ASSERT(ret >= 0, "send failed");
@@ -258,43 +291,20 @@ void train_route(uint64_t train, int dest, int offset)
     ASSERT(ret >= 0, "send failed");
 }
 
-void should_update_train_state()
+void train_model_notifier()
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char c = SHOULD_UPDATE_TRAIN_STATE;
-    int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
-}
-
-void train_model_notifier()
-{
     int cur_time = time();
+    char c = SHOULD_UPDATE_TRAIN_STATE;
+
     for (;;) {
-        should_update_train_state();
+        int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
+        ASSERT(ret >= 0, "send failed");
 
         cur_time += 5;
         delay_until(cur_time);
     }
-}
-
-void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
-{
-    int old_speed = t->speed;
-    if (old_speed == 0 && speed > 0) {
-        t->acc = train_data->acc_start[t->id][speed];
-        t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
-    } else if (old_speed > 0 && speed == 0) {
-        t->acc = train_data->acc_stop[t->id][old_speed];
-        t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
-        // printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
-    }
-    t->speed = speed;
-    t->old_speed = old_speed;
-    t->speed_time_begin = timer_get_ms();
 }
 
 int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)
@@ -372,14 +382,18 @@ void train_task()
         case GET_TRAIN_SPEED: {
             uint64_t train = buf[1];
             train_t* t = trainlist_find(&trainlist, train);
-            char response[2];
-            if (t == NULL) {
-                response[0] = 1;
-            } else {
-                response[0] = 0;
-                response[1] = t->speed;
-            }
-            ret = reply(caller_tid, response, 2);
+            ASSERTF(t != NULL, "train %d not found.", train);
+            char response = t->speed;
+            ret = reply_char(caller_tid, response);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_TRAIN_OLD_SPEED: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERTF(t != NULL, "train %d not found.", train);
+            char response = t->old_speed;
+            ret = reply_char(caller_tid, response);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
@@ -517,6 +531,7 @@ void train_task()
                     // }
                 }
 
+                // handle stopping.
                 if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
                     marklin_set_speed(t->id, 0);
 
@@ -525,9 +540,28 @@ void train_task()
                     t->stop_node = -1;
                 }
 
+                // handle reversing.
+                if (t->cur_node + 2 < t->path.path_length) {
+                    track_node * next_node = &track[t->path.nodes[t->cur_node + 1]];
+                    track_node * next_next_node = &track[t->path.nodes[t->cur_node + 2]];
+                    if (t->speed > 0 && next_node->reverse == next_next_node) {
+                        int stop_in = t->path.distances[t->cur_node] + train_data.train_length[t->id]
+                            - t->cur_offset - train_data.stopping_distance[t->id][t->speed];
+                        if (t->reverse_direction) {
+                            stop_in -= train_data.reverse_stopping_distance_offset;
+                        }
+                        if (stop_in <= 0) {
+                            int64_t reverse_task_id = create(1, &train_reverse_task);
+                            int64_t ret = send(reverse_task_id, (char*) &t->id, 1, NULL, 0);
+                            ASSERT(ret >= 0, "send failed");
+                        }
+                    }
+                }
+
+
                 int distance_ahead = 0;
                 int cur_node_index = t->cur_node;
-                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE + t->cur_offset) {
+                while (cur_node_index < t->path.path_length - 1 && distance_ahead < RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset) {
                     distance_ahead += t->path.distances[cur_node_index];
                     cur_node_index++;
                 }
