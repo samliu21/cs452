@@ -318,7 +318,7 @@ void state_task()
                 if (reservations[i]) {
                     char buf[32];
                     memset(buf, 0, 32);
-                    sprintf(buf, "seg %d: train %d; ", i, reservations[i]);
+                    sprintf(buf, "%d; ", i);
                     strcat(response, buf);
                 }
             }

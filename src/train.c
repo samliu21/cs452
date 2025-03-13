@@ -428,7 +428,7 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset : 0;
+                    train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset : 25;
 
                     // release reservations behind sensor
                     int segments_to_release[16];
@@ -602,6 +602,11 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             t->path = get_shortest_path(track, t, dest, offset);
+            printf(CONSOLE, "path length: %d\r\n", t->path.path_length);
+            for (int i = 0; i < t->path.path_length; ++i) {
+                printf(CONSOLE, "%d:%d ", t->path.nodes[i], t->path.distances[i]);
+            }
+            printf(CONSOLE, "\r\n");
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 
@@ -616,10 +621,11 @@ void train_task()
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
-            // printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
+            printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
             t->stop_node = t->path.stop_node;
             t->stop_time_offset = t->path.stop_time_offset;
             t->stop_distance_offset = t->path.stop_distance_offset;
+            t->cur_node = 0;
 
             break;
         }
