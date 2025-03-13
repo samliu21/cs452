@@ -34,13 +34,15 @@ int kmain()
     // track_node track[TRACK_MAX];
     // init_tracka(track);
     // train_t t;
+    // t.id = 55;
     // t.path = track_path_new();
     // track_path_add(&t.path, 140, 1e9); // EN9 hardcoded for train 55
+    // t.cur_node = 0;
     // uart_puts(CONSOLE, "before shortest path\r\n");
-    // track_path_t path = get_shortest_path(track, &t, 93, 0);
+    // track_path_t path = get_shortest_path(track, &t, 37, 0);
     // uart_puts(CONSOLE, "after shortest path\r\n");
     // for (int i = 0; i < path.path_length; ++i) {
-    //     uart_printf(CONSOLE, "%s ", track[path.nodes[i]].name);
+    //     uart_printf(CONSOLE, "%s:%d ", track[path.nodes[i]].name, path.distances[i]);
     // }
     // uart_puts(CONSOLE, "\r\n");
 

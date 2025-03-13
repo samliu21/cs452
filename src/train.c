@@ -16,7 +16,6 @@
 
 #define LOOKAHEAD_DISTANCE 1000
 #define SENSOR_PREDICTION_WINDOW 300
-#define REVERSE_OVER_MERGE_OFFSET 50
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -307,6 +306,10 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
             if (cur_node->enters_seg[j] >= 0 && cur_node->edge[j].dest == nxt_node) {
                 segments[segment_index++] = cur_node->enters_seg[j];
             }
+        }
+
+        if (cur_node->reverse == nxt_node) {
+            segments[segment_index++] = cur_node->enters_seg[0]; // ahead for both enter and merge
         }
     }
     return segment_index;

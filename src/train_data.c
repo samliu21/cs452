@@ -28,8 +28,7 @@ train_data_t init_train_data_a()
     // data.acc_start[55][6] =
     data.acc_start[55][10] = data.speed[55][10] * 1000 / data.starting_time[55][10];
 
-    data.reverse_edge_weight[55][6] = 1000;
-    data.reverse_edge_weight[55][10] = 1000;
+    data.reverse_edge_weight[55] = 1000;
 
     // train 77
     // data.speed[77][0] = 0;

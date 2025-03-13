@@ -13,7 +13,7 @@ typedef struct train_data_t {
     int64_t train_length[256];
     int64_t acc_stop[256][16];
     int64_t acc_start[256][16];
-    int64_t reverse_edge_weight[256][16];
+    int64_t reverse_edge_weight[256];
 } train_data_t;
 
 train_data_t init_train_data_a();

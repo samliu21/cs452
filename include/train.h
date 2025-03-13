@@ -5,6 +5,8 @@
 #include "track_algo.h"
 #include "track_node.h"
 
+#define REVERSE_OVER_MERGE_OFFSET 50
+
 typedef struct train_t {
     uint64_t id;
     uint64_t speed;
