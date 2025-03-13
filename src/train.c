@@ -16,6 +16,7 @@
 
 #define LOOKAHEAD_DISTANCE 1000
 #define SENSOR_PREDICTION_WINDOW 300
+#define REVERSE_OVER_MERGE_OFFSET 50
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -518,7 +519,7 @@ void train_task()
 
                 int distance_ahead = 0;
                 int cur_node_index = t->cur_node;
-                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
+                while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE + t->cur_offset) {
                     distance_ahead += t->path.distances[cur_node_index];
                     cur_node_index++;
                 }
