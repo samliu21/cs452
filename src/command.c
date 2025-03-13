@@ -218,7 +218,7 @@ void command_task()
             train_route(train, dest, node_offset);
 
             marklin_set_speed(train, 10);
-            printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
+            // printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
 
             result.type = COMMAND_SUCCESS;
         }

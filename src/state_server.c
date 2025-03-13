@@ -131,15 +131,16 @@ int state_reserve_segment(int segment, int train)
     return 0;
 }
 
-int state_release_segment(int segment)
+int state_release_segment(int segment, int train)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
 
-    char buf[2];
+    char buf[3];
     buf[0] = RELEASE_SEGMENT;
     buf[1] = segment;
-    int64_t ret = send(state_task_tid, buf, 2, NULL, 0);
+    buf[2] = train;
+    int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
     ASSERT(ret >= 0, "send failed");
     return 0;
 }
@@ -294,6 +295,7 @@ void state_task()
             int train = buf[2];
             // check that reservations[segment] == train because reservations are attempted every 5 ticks
             // thus allow reserve_segment to be idempotent
+            // TODO: look into this
             ASSERTF(!reservations[segment] || reservations[segment] == train, "segment %d is already reserved by train %d", segment, train);
             reservations[segment] = train;
             ret = reply_empty(caller_tid);
@@ -302,7 +304,8 @@ void state_task()
         }
         case RELEASE_SEGMENT: {
             int segment = buf[1];
-            ASSERTF(reservations[segment], "tried to release non-reserved segment %d", segment);
+            int train = buf[2];
+            ASSERTF(reservations[segment] == train || !reservations[segment], "tried to release non-reserved segment %d", segment);
             reservations[segment] = 0;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");

@@ -289,11 +289,26 @@ void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t spee
         t->acc = train_data->acc_stop[t->id][old_speed];
         t->acc_start = timer_get_ms();
         t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
-        printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
+        // printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
     }
     t->speed = speed;
     t->old_speed = old_speed;
     t->speed_time_begin = timer_get_ms();
+}
+
+int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)
+{
+    int segment_index = 0;
+    for (int i = start_node; i < end_node; ++i) {
+        track_node* cur_node = &track[path->nodes[i]];
+        track_node* nxt_node = &track[path->nodes[i + 1]];
+        for (int j = 0; j < 2; ++j) {
+            if (cur_node->enters_seg[j] >= 0 && cur_node->edge[j].dest == nxt_node) {
+                segments[segment_index++] = cur_node->enters_seg[j];
+            }
+        }
+    }
+    return segment_index;
 }
 
 void train_task()
@@ -391,6 +406,13 @@ void train_task()
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = 0;
+
+                    // release reservations behind sensor
+                    int segments_to_release[16];
+                    int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, node_index);
+                    for (int j = 0; j < num_segments_to_release; ++j) {
+                        state_release_segment(segments_to_release[j], train->id);
+                    }
 
                     // train->sensors = get_reachable_sensors(track, node_index);
                     train->last_sensor = node_index;
@@ -496,28 +518,20 @@ void train_task()
 
                 int distance_ahead = 0;
                 int cur_node_index = t->cur_node;
-                // for (int j = 0; j < t->path.path_length - 1; ++j) {
-                //     printf(CONSOLE, "path node %d: %d\r\n", j, t->path.nodes[j]);
-                // }
                 while (cur_node_index < t->path.path_length - 1 && distance_ahead < LOOKAHEAD_DISTANCE) {
-                    track_node* cur_node = &track[t->path.nodes[cur_node_index]];
-                    track_node* nxt_node = &track[t->path.nodes[cur_node_index + 1]];
                     distance_ahead += t->path.distances[cur_node_index];
-
-                    for (int j = 0; j < 2; ++j) {
-                        if (cur_node->enters_seg[j] >= 0 && cur_node->edge[j].dest == nxt_node) {
-                            // printf(CONSOLE, "train %d entering segment %d from node %s, j: %d, cur_node_index: %d\r\n", t->id, cur_node->enters_seg[j], cur_node->name, j, cur_node_index);
-                            uint64_t reserver = state_is_reserved(cur_node->enters_seg[j]);
-                            if (reserver && reserver != t->id) {
-                                printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
-                            } else {
-                                state_reserve_segment(cur_node->enters_seg[j], t->id);
-                            }
-                        }
-                    }
-
                     cur_node_index++;
-                    // printf(CONSOLE, "incrementing to %d...\r\n", cur_node_index);
+                }
+
+                int segments_to_reserve[16];
+                int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, cur_node_index);
+                for (int j = 0; j < num_segments_to_reserve; ++j) {
+                    uint64_t reserver = state_is_reserved(segments_to_reserve[j]);
+                    if (reserver && reserver != t->id) {
+                        printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+                    } else {
+                        state_reserve_segment(segments_to_reserve[j], t->id);
+                    }
                 }
             }
             break;
@@ -561,7 +575,7 @@ void train_task()
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
-            printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
+            // printf(CONSOLE, "stop node: %d, stop time offset %d\r\n", t->path.stop_node, t->path.stop_time_offset);
             t->stop_node = t->path.stop_node;
             t->stop_time_offset = t->path.stop_time_offset;
             t->stop_distance_offset = t->path.stop_distance_offset;

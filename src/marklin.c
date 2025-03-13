@@ -15,7 +15,8 @@ void marklin_set_speed(uint64_t train, uint64_t speed)
     puts(MARKLIN, buf);
 }
 
-void marklin_reverse(uint64_t train) {
+void marklin_reverse(uint64_t train)
+{
     char buf[3];
     buf[0] = 0x1f;
     buf[1] = train;
