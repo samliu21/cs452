@@ -307,10 +307,9 @@ void train_task()
     trainlist_t trainlist = trainlist_create(trains);
     trainlist_add(&trainlist, 55);
     trainlist_add(&trainlist, 77);
-
-    // for (int i = 0; i < trainlist.size; ++i) {
-    //     marklin_set_speed(trainlist.trains[i].id, 0);
-    // }
+    for (int i = 0; i < trainlist.size; ++i) {
+        marklin_set_speed(trainlist.trains[i].id, 0);
+    }
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA

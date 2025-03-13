@@ -37,15 +37,6 @@ void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
 
-    // set switches to straight
-    tswitch_t switch_buf[64];
-    switchlist_t switchlist = switch_createlist(switch_buf);
-    for (int i = 0; i < switchlist.n_switches; ++i) {
-        create_switch_task(switchlist.switches[i].id, switchlist.switches[i].state);
-    }
-    int64_t ret = create(1, &deactivate_solenoid_task);
-    ASSERT(ret >= 0, "create failed");
-
     uint64_t old_usage = 0;
     uint64_t old_ticks = 0;
     char old_sensors[128];
@@ -142,7 +133,7 @@ void display_state_task()
 
 void display_state_notifier()
 {
-    // wait for display server to finish initializing switches
+    // wait for display server to make sure all servers are ready.
     display_lazy();
 
     int64_t ret;

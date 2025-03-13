@@ -23,7 +23,8 @@ void terminal_task()
     char command[32];
     command_result_t command_result;
     int command_pos = 0;
-    puts(CONSOLE, "> ");
+    // wait for servers to init
+    display_lazy();
     for (;;) {
         char c = getc(CONSOLE);
         command[command_pos++] = c;
@@ -39,11 +40,12 @@ void terminal_task()
                 terminate();
             } else if (command_result.type == COMMAND_FAIL) {
                 printf(CONSOLE, "error: %s\r\n", command_result.error_message);
+                display_force();
             }
 
             command_pos = 0;
-            puts(CONSOLE, "> ");
-            display_force();
+            puts(CONSOLE, "\033[999;1H> ");
+            
         } else if (c == '\b') {
             command_pos--;
             if (command_pos > 0) {
@@ -54,8 +56,6 @@ void terminal_task()
             putc(CONSOLE, c);
         }
     }
-
-    exit();
 }
 
 void k4_initial_user_task()
@@ -80,7 +80,7 @@ void k4_initial_user_task()
     create(1, &marklin_notifier);
 
     // clear screen
-    puts(CONSOLE, "\033[2J\033[999;1H");
+    puts(CONSOLE, "\033[2J\033[999;1H> ");
 
     // train setup tasks
     create(1, &train_task);

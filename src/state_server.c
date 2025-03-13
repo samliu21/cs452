@@ -163,6 +163,11 @@ void state_task()
 
     tswitch_t switch_buf[64];
     switchlist_t switchlist = switch_createlist(switch_buf);
+    for (int i = 0; i < switchlist.n_switches; ++i) {
+        create_switch_task(switchlist.switches[i].id, switchlist.switches[i].state);
+    }
+    ret = create(1, &deactivate_solenoid_task);
+    ASSERT(ret >= 0, "create failed");
 
     charqueuenode sensornodes[4 * NUM_RECENT_SENSORS + 1];
     charqueue sensorqueue = charqueue_new(sensornodes, 4 * NUM_RECENT_SENSORS + 1);

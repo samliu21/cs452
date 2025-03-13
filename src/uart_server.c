@@ -157,17 +157,16 @@ void uart_server_task()
     res = register_as(line == CONSOLE ? TERMINAL_TASK_NAME : MARKLIN_TASK_NAME);
     ASSERT(res >= 0, "register_as failed");
 
-    char msg[256];
-    charqueuenode writenodes[256], readertidnodes[256], writertidnodes[256];
-    charqueue writequeue = charqueue_new(writenodes, 256);
-    charqueue readertidqueue = charqueue_new(readertidnodes, 256);
-    charqueue writertidqueue = charqueue_new(writertidnodes, 256);
+    char msg[512];
+    charqueuenode writenodes[2048], readertidnodes[1024];
+    charqueue writequeue = charqueue_new(writenodes, 2048);
+    charqueue readertidqueue = charqueue_new(readertidnodes, 1024);
     uint64_t caller_tid;
 
     int cts_flag = 1;
 
     for (;;) {
-        int64_t ret = receive(&caller_tid, msg, 256);
+        int64_t ret = receive(&caller_tid, msg, 512);
         ASSERT(ret >= 0, "receive failed");
 
         switch (msg[0]) {
@@ -184,22 +183,19 @@ void uart_server_task()
             break;
         }
         case REQUEST_UART_WRITE: {
+            reply_empty(caller_tid);
             char c = msg[1];
             charqueue_add(&writequeue, c);
-            charqueue_add(&writertidqueue, caller_tid);
 
             break;
         }
         case REQUEST_UART_WRITE_STRING: {
+            reply_empty(caller_tid);
             char* s = msg + 1;
             while (*s) {
                 charqueue_add(&writequeue, *s);
                 s++;
-                if (*s) {
-                    charqueue_add(&writertidqueue, WRITER_QUEUE_DUMMY_TID);
-                }
             }
-            charqueue_add(&writertidqueue, caller_tid);
 
             break;
         }
@@ -249,13 +245,6 @@ void uart_server_task()
             }
 
             uart_assert_putc(line, charqueue_pop(&writequeue));
-
-            ASSERT(!charqueue_empty(&writertidqueue), "writer tid queue is empty");
-            uint64_t tid = charqueue_pop(&writertidqueue);
-            if (tid != WRITER_QUEUE_DUMMY_TID) {
-                int64_t res = reply_empty(tid);
-                ASSERT(res >= 0, "reply failed");
-            }
 
             cts_flag = 0;
         }
