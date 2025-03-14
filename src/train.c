@@ -555,6 +555,7 @@ void train_task()
                             }
 
                             if (distance_to_stop <= train_data.stopping_distance[t->id][t->speed]) {
+                                printf(CONSOLE, "stopping at node %s, offset %d", track[t->path.nodes[t->cur_node]].name, t->cur_offset);
                                 int64_t reverse_task_id = create(1, &train_reverse_task);
                                 char c = t->id;
                                 int64_t ret = send(reverse_task_id, &c, 1, NULL, 0);
@@ -612,6 +613,7 @@ void train_task()
 
             track_node* old_node = &track[t->path.nodes[t->cur_node]];
             t->path = get_shortest_path(track, t, dest, offset);
+            t->cur_node = 0;
             printf(CONSOLE, "old node: %s, reverse: %s, new node index: %d, new node: %s \r\n", old_node->name, old_node->reverse->name, t->path.nodes[0], track[t->path.nodes[0]].name);
             if (&track[t->path.nodes[0]] == old_node->reverse) {
                 marklin_reverse(t->id);
@@ -639,7 +641,6 @@ void train_task()
             t->stop_node = t->path.stop_node;
             t->stop_time_offset = t->path.stop_time_offset;
             t->stop_distance_offset = t->path.stop_distance_offset;
-            t->cur_node = 0;
 
             break;
         }
