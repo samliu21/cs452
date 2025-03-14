@@ -37,6 +37,13 @@ void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
 
+    track_node track[TRACK_MAX];
+    #ifdef TRACKA
+    init_tracka(track);
+    #else
+    init_trackb(track);
+    #endif
+
     uint64_t old_usage = 0;
     uint64_t old_ticks = 0;
     char old_sensors[128];
@@ -116,7 +123,7 @@ void display_state_task()
         int train_cur_node = train_get_cur_node(55);
         int train_cur_offset = train_get_cur_offset(55);
         if (c == FORCE || train_cur_node != old_train_cur_node || train_cur_offset != old_train_cur_offset) {
-            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %d, and offset: %d\033[u", train_cur_node, train_cur_offset);
+            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %s, and offset: %d\033[u", track[train_cur_node].name, train_cur_offset);
             old_train_cur_node = train_cur_node;
             old_train_cur_offset = train_cur_offset;
         }

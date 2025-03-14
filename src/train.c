@@ -523,8 +523,9 @@ void train_task()
                 t->distance_overflow_nm -= update_distance * 1000000;
 
                 t->cur_offset += update_distance;
-                if (t->cur_offset >= t->path.distances[t->cur_node]) {
+                while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
+                    printf(CONSOLE, "node %s, offset %d\r\n", track[t->path.nodes[t->cur_node]].name, t->cur_offset);
                     // if (t->path.nodes[t->cur_node] == 38) {
                     //     marklin_set_speed(55, 15);
                     //     // printf(CONSOLE, "end time: %d\r\n", timer_get_ms());
@@ -545,8 +546,11 @@ void train_task()
                     track_node* next_node = &track[t->path.nodes[t->cur_node + 1]];
                     track_node* next_next_node = &track[t->path.nodes[t->cur_node + 2]];
                     if (t->speed > 0 && next_node->reverse == next_next_node) {
-                        int distance_to_stop = t->path.distances[t->cur_node] + train_data.train_length[t->id] + REVERSE_OVER_MERGE_OFFSET
-                            - t->cur_offset;
+                        int distance_to_stop = t->path.distances[t->cur_node] - t->cur_offset;
+                        
+                        if (next_node->type == NODE_MERGE) {
+                            distance_to_stop += train_data.train_length[t->id] + REVERSE_OVER_MERGE_OFFSET;
+                        }
 
                         if (distance_to_stop <= train_data.stopping_distance[t->id][t->speed]) {
                             int64_t reverse_task_id = create(1, &train_reverse_task);
@@ -601,7 +605,16 @@ void train_task()
             int offset = a2i(buf + 3, 10);
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
+            track_node * old_node = &track[t->path.nodes[t->cur_node]];
             t->path = get_shortest_path(track, t, dest, offset);
+            printf(CONSOLE, "old node: %s, reverse: %s, new node index: %d, new node: %s \r\n", old_node->name, old_node->reverse->name, t->path.nodes[0], track[t->path.nodes[0]].name);
+            if (&track[t->path.nodes[0]] == old_node->reverse) {
+                marklin_reverse(t->id);
+                t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
+                while (t->cur_offset >= t->path.distances[t->cur_node]) {
+                    t->cur_offset -= t->path.distances[t->cur_node++];
+                }
+            }
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 

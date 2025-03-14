@@ -44,6 +44,13 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     dist[src] = 0;
     prev[src] = -1;
 
+    int reverse_node = get_node_index(track, track[src].reverse);
+    nodes[nodes_pos].weight = 0;
+    nodes[nodes_pos].id = reverse_node;
+    pq_pi_add(&pq, &nodes[nodes_pos++]);
+    dist[reverse_node] = 0;
+    prev[reverse_node] = -1;
+
     int speed = train_data.speed[train->id][train->speed];
     int stopping_distance = train_data.stopping_distance[train->id][train->speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
@@ -61,7 +68,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 path_reverse[path_length++] = node;
                 node = prev[node];
             }
-            path_reverse[path_length++] = node;
 
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 1; i < path_length; ++i) {
@@ -79,9 +85,16 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             }
             for (int i = path_length - 1; i >= 0; --i) {
                 int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
-                // for reverse edge, update distance to be train length + offset for reservation calculations
+                // for reverse edge, update distance accordingly for reservation calculations
                 if (dist_between == reverse_edge_weight) {
-                    dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
+                    if (track[path_reverse[i]].type == NODE_MERGE){
+                        dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
+                    } else if (track[path_reverse[i]].type == NODE_EXIT) {
+                        printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
+                        dist_between = - train_data.train_length[train->id];
+                    } else {
+                        ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
+                    }
                 }
                 track_path_add(&path, path_reverse[i], dist_between);
             }
