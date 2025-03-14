@@ -615,6 +615,7 @@ void train_task()
             printf(CONSOLE, "old node: %s, reverse: %s, new node index: %d, new node: %s \r\n", old_node->name, old_node->reverse->name, t->path.nodes[0], track[t->path.nodes[0]].name);
             if (&track[t->path.nodes[0]] == old_node->reverse) {
                 marklin_reverse(t->id);
+                t->reverse_direction = !t->reverse_direction;
                 t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
