@@ -19,6 +19,8 @@ train_data_t init_train_data_a()
     // data.starting_time[55][6] =
     data.starting_time[55][10] = 4567;
 
+    data.starting_distance[55][10] = data.speed[55][10] * data.starting_time[55][10] / 2000;
+
     data.stopping_time[55][6] = 2 * data.stopping_distance[55][6] * 1000 / data.speed[55][10];
     data.stopping_time[55][10] = 2 * data.stopping_distance[55][10] * 1000 / data.speed[55][10];
 

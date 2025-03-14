@@ -543,13 +543,12 @@ void train_task()
 
                 // handle reversing
                 track_node* next_nodes[3];
-                int distance_to_stop = - t->cur_offset;
+                int distance_to_stop = -t->cur_offset;
                 for (int i = 0; i < 3 && t->cur_node + 1 + i < t->path.path_length; ++i) {
                     next_nodes[i] = &track[t->path.nodes[t->cur_node + 1 + i]];
                     if (i >= 1) {
                         distance_to_stop += t->path.distances[t->cur_node + i - 1];
-                        if (t->speed > 0 && next_nodes[i-1]->reverse == next_nodes[i]) {
-
+                        if (t->speed > 0 && next_nodes[i - 1]->reverse == next_nodes[i]) {
                             if (next_nodes[i - 1]->type == NODE_MERGE) {
                                 distance_to_stop += train_data.train_length[t->id] + REVERSE_OVER_MERGE_OFFSET;
                             }
@@ -614,7 +613,6 @@ void train_task()
             track_node* old_node = &track[t->path.nodes[t->cur_node]];
             t->path = get_shortest_path(track, t, dest, offset);
             t->cur_node = 0;
-            printf(CONSOLE, "old node: %s, reverse: %s, new node index: %d, new node: %s \r\n", old_node->name, old_node->reverse->name, t->path.nodes[0], track[t->path.nodes[0]].name);
             if (&track[t->path.nodes[0]] == old_node->reverse) {
                 marklin_reverse(t->id);
                 t->reverse_direction = !t->reverse_direction;

@@ -6,6 +6,7 @@
 typedef struct train_data_t {
     int64_t speed[256][16]; // [train][speed]
     int64_t stopping_distance[256][16]; // [train][speed][is_reversed]
+	int64_t starting_distance[256][16];
     int64_t stopping_time[256][16];
     int64_t starting_time[256][16];
     int64_t reverse_stopping_distance_offset;

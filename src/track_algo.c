@@ -69,6 +69,27 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 node = prev[node];
             }
 
+            int total_path_distance = dist[dest] + node_offset - train->cur_offset;
+            int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
+            if (total_path_distance < fully_stop_fully_start) {
+                // starting time is at most 4567ms...
+                int lo = 0, hi = train_data.starting_time[train->id][train->speed], accelerate_for;
+                while (lo <= hi) {
+                    int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
+
+                    int distance_acc = train_data.acc_start[train->id][train->speed] * md * md / 2000000;
+                    int vf = train_data.acc_start[train->id][train->speed] * md / 1000;
+                    int distance_dec = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2);
+                    int distance_travelled = distance_acc + distance_dec;
+                    if (distance_travelled >= total_path_distance) {
+                        accelerate_for = md;
+                        hi = md - 1;
+                    } else {
+                        lo = md + 1;
+                    }
+                }
+            }
+
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 1; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
@@ -87,11 +108,11 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
                 // for reverse edge, update distance accordingly for reservation calculations
                 if (dist_between == reverse_edge_weight) {
-                    if (track[path_reverse[i]].type == NODE_MERGE){
+                    if (track[path_reverse[i]].type == NODE_MERGE) {
                         dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
                     } else if (track[path_reverse[i]].type == NODE_EXIT) {
                         printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
-                        dist_between = - train_data.train_length[train->id];
+                        dist_between = -train_data.train_length[train->id];
                     } else {
                         ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
                     }
