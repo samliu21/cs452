@@ -10,6 +10,5 @@ typedef struct train_t train_t;
 int get_node_index(track_node* track_begin, track_node* node);
 track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset);
 int reachable_segments_within_distance(int* reachable_nodes, track_node* track, int src, int max_distance);
-track_path_t get_closest_node(track_node* track, int src, int* dests, int n);
 
 #endif

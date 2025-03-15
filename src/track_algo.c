@@ -53,6 +53,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
     int stopping_distance = train_data.stopping_distance[train->id][train->speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
+    int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
 
     track_path_t path = track_path_new();
 
@@ -84,16 +85,81 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 track_path_add(&path, path_reverse[i], dist_between);
             }
 
-            int total_path_distance = dist[dest] + node_offset;
-            if (path.nodes[0] == reverse_node) {
-                total_path_distance += train->cur_offset - train_data.train_length[train->id];
-            } else {
-                total_path_distance -= train->cur_offset;
+            int stop_node_count = 0;
+            int prev_node = -1;
+            for (int i = 0; i < path.path_length - 1; ++i) {
+                if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
+                    printf(CONSOLE, "reversing at %s\r\n", track[path.nodes[i]].name);
+
+                    int total_path_distance = 0;
+                    if (track[path.nodes[i]].type == NODE_MERGE) {
+                        total_path_distance = train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
+                    }
+                    if (prev_node == -1) {
+                        total_path_distance -= train->cur_offset;
+                    }
+                    for (int j = i - 1; j > prev_node; --j) {
+                        total_path_distance += path.distances[j];
+                    }
+                    printf(CONSOLE, "total path distance: %d\r\n", total_path_distance);
+
+                    int distance_from_end = stopping_distance;
+                    if (total_path_distance < fully_stop_fully_start) {
+                        int lo = 0, hi = train_data.starting_time[train->id][train->speed], accelerate_for = -1;
+                        while (lo <= hi) {
+                            int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
+
+                            int64_t distance_acc = train_data.acc_start[train->id][train->speed] * md * md / 2;
+                            int64_t vf = train_data.acc_start[train->id][train->speed] * md;
+                            int64_t distance_dec = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2);
+                            int distance_travelled = (distance_acc + distance_dec) / 1000000;
+                            if (distance_travelled >= total_path_distance) {
+                                accelerate_for = md;
+                                hi = md - 1;
+                            } else {
+                                lo = md + 1;
+                            }
+                        }
+
+                        ASSERTF(accelerate_for >= 0 && accelerate_for <= train_data.starting_time[train->id][train->speed], "accelerate_for of %d is invalid for distance %d", accelerate_for, total_path_distance);
+
+                        int64_t vf = train_data.acc_start[train->id][train->speed] * accelerate_for;
+                        distance_from_end = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2) / 1000000;
+                    }
+                    if (track[path.nodes[i]].type == NODE_MERGE) {
+                        distance_from_end -= train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
+                    }
+
+                    printf(CONSOLE, "distance from end: %d\r\n", distance_from_end);
+                    int j;
+                    for (j = i - 1; j > prev_node && distance_from_end >= 0; --j) {
+                        distance_from_end -= path.distances[j];
+                    }
+                    path.stop_nodes[stop_node_count] = path.nodes[j + 1];
+                    path.stop_offsets[stop_node_count] = -distance_from_end;
+                    stop_node_count++;
+
+                    prev_node = i;
+                }
             }
-            int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
+            path.stop_node_count = stop_node_count;
+
+            // if no reverses in path
+            int total_path_distance = dist[dest] + node_offset - train->cur_offset;
+
+            for (int i = path.path_length - 2; i >= 0; --i) {
+                if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
+                    if (track[path.nodes[i]].type == NODE_MERGE) {
+                        total_path_distance = dist[dest] + node_offset - dist[path.nodes[i + 1]] + REVERSE_OVER_MERGE_OFFSET;
+                    } else {
+                        total_path_distance = dist[dest] + node_offset - dist[path.nodes[i + 1]] - train_data.train_length[train->id];
+                    }
+                    break;
+                }
+            }
 
             if (total_path_distance < fully_stop_fully_start) {
-                // printf(CONSOLE, "total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
+                printf(CONSOLE, "total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
                 int lo = 0, hi = train_data.starting_time[train->id][train->speed], accelerate_for = -1;
                 while (lo <= hi) {
                     int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
@@ -117,7 +183,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             }
 
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
-            for (int i = 1; i < path_length; ++i) {
+            for (int i = 0; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
                 int distance_from_end = dist[dest] - dist[cur_node] + node_offset;
                 if (distance_from_end >= stopping_distance) {
@@ -237,82 +303,4 @@ int reachable_segments_within_distance(int* reachable_segments, track_node* trac
     }
 
     return num_reachable_segments;
-}
-
-track_path_t get_closest_node(track_node* track, int src, int* dests, int n)
-{
-    priority_queue_pi_t pq = pq_pi_new();
-    pi_t nodes[256];
-    int nodes_pos = 0;
-    int prev[TRACK_MAX], dist[TRACK_MAX];
-    for (int i = 0; i < TRACK_MAX; ++i) {
-        dist[i] = 1e9;
-    }
-
-    nodes[nodes_pos].weight = 0;
-    nodes[nodes_pos].id = src;
-    pq_pi_add(&pq, &nodes[nodes_pos++]);
-    dist[src] = 0;
-    prev[src] = -1;
-
-    track_path_t path = track_path_new();
-    int dest = -1;
-
-    while (!pq_pi_empty(&pq)) {
-        pi_t* pi = pq_pi_pop(&pq);
-        int node = pi->id;
-        int weight = pi->weight;
-        for (int i = 0; i < n; ++i) {
-            if (node == dests[i]) {
-                dest = dests[i];
-            }
-        }
-        if (dest >= 0) {
-            int path_reverse[TRACK_MAX];
-            int path_length = 0;
-            while (node != -1) {
-                path_reverse[path_length++] = node;
-                node = prev[node];
-            }
-            for (int i = path_length - 1; i >= 0; --i) {
-                int dist_between = (i == 0) ? -1 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
-                track_path_add(&path, path_reverse[i], dist_between);
-            }
-            break;
-        }
-        if (dist[node] < weight) {
-            continue;
-        }
-
-        switch (track[node].type) {
-        case NODE_BRANCH: {
-            // two edges
-            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
-            track_edge curved_edge = track[node].edge[DIR_CURVED];
-            int node_straight = get_node_index(track, straight_edge.dest);
-            int node_curved = get_node_index(track, curved_edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
-            break;
-        }
-
-        case NODE_SENSOR:
-        case NODE_MERGE:
-        case NODE_ENTER: {
-            // one edge
-            track_edge edge = track[node].edge[DIR_AHEAD];
-            int node_ahead = get_node_index(track, edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
-            break;
-        }
-
-        case NODE_EXIT:
-            break;
-
-        default:
-            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
-        }
-    }
-
-    return path;
 }

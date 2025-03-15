@@ -45,6 +45,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].acc_start = 0;
     tlist->trains[tlist->size].acc_end = 0;
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
+    tlist->trains[tlist->size].cur_stop_node = 0;
 
     tlist->size++;
 }
@@ -525,27 +526,13 @@ void train_task()
                     t->stop_node = -1;
                 }
 
-                // handle reversing
-                track_node* next_nodes[3];
-                int distance_to_stop = -t->cur_offset;
-                for (int i = 0; i < 3 && t->cur_node + 1 + i < t->path.path_length; ++i) {
-                    next_nodes[i] = &track[t->path.nodes[t->cur_node + 1 + i]];
-                    if (i >= 1) {
-                        distance_to_stop += t->path.distances[t->cur_node + i - 1];
-                        if (t->speed > 0 && next_nodes[i - 1]->reverse == next_nodes[i]) {
-                            if (next_nodes[i - 1]->type == NODE_MERGE) {
-                                distance_to_stop += train_data.train_length[t->id] + REVERSE_OVER_MERGE_OFFSET;
-                            }
-
-                            if (distance_to_stop <= train_data.stopping_distance[t->id][t->speed]) {
-                                printf(CONSOLE, "stopping at node %s, offset %d", track[t->path.nodes[t->cur_node]].name, t->cur_offset);
-                                int64_t reverse_task_id = create(1, &train_reverse_task);
-                                char c = t->id;
-                                int64_t ret = send(reverse_task_id, &c, 1, NULL, 0);
-                                ASSERT(ret >= 0, "send failed");
-                            }
-                            break;
-                        }
+                if (t->cur_stop_node < t->path.stop_node_count) {
+                    if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
+                        int64_t reverse_task_id = create(1, &train_reverse_task);
+                        char c = t->id;
+                        int64_t ret = send(reverse_task_id, &c, 1, NULL, 0);
+                        ASSERT(ret >= 0, "send failed");
+                        t->cur_stop_node++;
                     }
                 }
 
@@ -628,6 +615,11 @@ void train_task()
 
             t->stop_node = t->path.stop_node;
             t->stop_distance_offset = t->path.stop_distance_offset;
+
+            printf(CONSOLE, "stop node count: %d\r\n", t->path.stop_node_count);
+            for (int i = 0; i < t->path.stop_node_count; ++i) {
+                printf(CONSOLE, "stop node: %s, offset: %d\r\n", track[t->path.stop_nodes[i]].name, t->path.stop_offsets[i]);
+            }
             // printf(CONSOLE, "stop node: %s, offset: %d, reverse direction: %d\r\n", track[t->stop_node].name, t->stop_distance_offset, t->reverse_direction);
 
             break;

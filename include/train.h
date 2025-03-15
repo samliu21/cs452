@@ -27,6 +27,7 @@ typedef struct train_t {
     int inst_speed;
 
     int distance_overflow_nm;
+	int cur_stop_node;
 } train_t;
 
 typedef struct trainlist_t {

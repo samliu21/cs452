@@ -9,6 +9,9 @@ typedef struct track_path_t {
     int path_length;
     int stop_node;
     int stop_distance_offset;
+    int stop_nodes[8];
+    int stop_offsets[8];
+	int stop_node_count;
 } track_path_t;
 
 track_path_t track_path_new();

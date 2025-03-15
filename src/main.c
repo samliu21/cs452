@@ -38,21 +38,14 @@ int kmain()
     // t.path = track_path_new();
     // track_path_add(&t.path, 140, 1e9); // EN9 hardcoded for train 55
     // t.cur_node = 0;
-    // uart_puts(CONSOLE, "before shortest path\r\n");
-    // track_path_t path = get_shortest_path(track, &t, 37, 0);
-    // uart_puts(CONSOLE, "after shortest path\r\n");
+    // t.cur_offset = 212;
+    // track_path_t path = get_shortest_path(track, &t, 41, 0);
     // for (int i = 0; i < path.path_length; ++i) {
     //     uart_printf(CONSOLE, "%s:%d ", track[path.nodes[i]].name, path.distances[i]);
     // }
     // uart_puts(CONSOLE, "\r\n");
-
-    // track_node track[TRACK_MAX];
-    // init_tracka(track);
-    // int reachable_segments[16];
-    // int num_reachable_segments = reachable_segments_within_distance(reachable_segments, track, 115, 262); // MR18
-    // uart_printf(CONSOLE, "num reachable segments: %d\r\n", num_reachable_segments);
-    // for (int i = 0; i < num_reachable_segments; ++i) {
-    //     uart_printf(CONSOLE, "%d ", reachable_segments[i]);
+    // for (int i = 0; i < path.stop_node_count; ++i) {
+    //     uart_printf(CONSOLE, "stop node: %s, offset: %d\r\n", track[path.stop_nodes[i]].name, path.stop_offsets[i]);
     // }
 
     // for (;;) { }
