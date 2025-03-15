@@ -8,7 +8,6 @@ typedef struct track_path_t {
     int distances[TRACK_MAX];
     int path_length;
     int stop_node;
-    int stop_time_offset;
     int stop_distance_offset;
 } track_path_t;
 

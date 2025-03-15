@@ -66,13 +66,12 @@ typedef enum {
     SENSOR_READING = 5,
     GET_TRAIN_TIMES = 6,
     TRAIN_LAST_SENSOR = 7,
-    SET_STOP_NODE = 8,
-    SET_TRAIN_REVERSE = 9,
-    GET_TRAIN_REVERSE = 10,
-    SHOULD_UPDATE_TRAIN_STATE = 11,
-    GET_CUR_NODE = 12,
-    GET_CUR_OFFSET = 13,
-    ROUTE_TRAIN = 14,
+    SET_TRAIN_REVERSE = 8,
+    GET_TRAIN_REVERSE = 9,
+    SHOULD_UPDATE_TRAIN_STATE = 10,
+    GET_CUR_NODE = 11,
+    GET_CUR_OFFSET = 12,
+    ROUTE_TRAIN = 13,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -99,7 +98,6 @@ void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t spee
         t->acc = train_data->acc_stop[t->id][old_speed];
         t->acc_start = timer_get_ms();
         t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
-        // printf(CONSOLE, "train %d stopping acc: %d, start: %d, end: %d\r\n", t->id, t->acc, t->acc_start, t->acc_end);
     }
     t->speed = speed;
     t->old_speed = old_speed;
@@ -185,20 +183,6 @@ int train_last_sensor(uint64_t train)
         return -1;
     }
     return response;
-}
-
-void train_set_stop_node(uint64_t train, int node, int time_offset)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char buf[32];
-    buf[0] = SET_STOP_NODE;
-    buf[1] = train;
-    buf[2] = node;
-    ui2a(time_offset, 10, buf + 3);
-    int64_t ret = send(train_task_tid, buf, 32, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
 }
 
 void train_set_reverse(uint64_t train)
@@ -474,7 +458,6 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             t->stop_node = node;
-            t->stop_time_offset = time_offset;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -637,7 +620,6 @@ void train_task()
             ASSERT(ret >= 0, "create failed");
 
             t->stop_node = t->path.stop_node;
-            t->stop_time_offset = t->path.stop_time_offset;
             t->stop_distance_offset = t->path.stop_distance_offset;
 
             break;

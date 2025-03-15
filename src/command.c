@@ -169,9 +169,6 @@ void command_task()
             int64_t ret = create(1, &deactivate_solenoid_task);
             ASSERT(ret >= 0, "create failed");
 
-            // printf(CONSOLE, "stop node: %d, time offset: %d\r\n", path.stop_node, path.stop_time_offset);
-            train_set_stop_node(train, path.stop_node, path.stop_time_offset);
-
             result.type = COMMAND_SUCCESS;
         }
         */

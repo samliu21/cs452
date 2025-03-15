@@ -13,7 +13,6 @@ typedef struct train_t {
     uint64_t old_speed;
     int speed_time_begin;
     int stop_node;
-    int stop_time_offset;
     int stop_distance_offset;
     int last_sensor;
     int reverse_direction;
@@ -45,7 +44,6 @@ int train_exists(uint64_t train);
 void train_sensor_reading(track_node* track, char* sensor);
 void train_get_times(char* response);
 int train_last_sensor(uint64_t train);
-void train_set_stop_node(uint64_t train, int node, int time_offset);
 void train_set_reverse(uint64_t train);
 int train_get_reverse(uint64_t train);
 int train_get_cur_node(uint64_t train);
