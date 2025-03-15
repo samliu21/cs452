@@ -615,6 +615,7 @@ void train_task()
 
             t->stop_node = t->path.stop_node;
             t->stop_distance_offset = t->path.stop_distance_offset;
+            t->cur_stop_node = 0;
 
             printf(CONSOLE, "stop node count: %d\r\n", t->path.stop_node_count);
             for (int i = 0; i < t->path.stop_node_count; ++i) {
