@@ -84,10 +84,16 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 track_path_add(&path, path_reverse[i], dist_between);
             }
 
-            int total_path_distance = dist[dest] + node_offset - train->cur_offset;
+            int total_path_distance = dist[dest] + node_offset;
+            if (path.nodes[0] == reverse_node) {
+                total_path_distance += train->cur_offset - train_data.train_length[train->id];
+            } else {
+                total_path_distance -= train->cur_offset;
+            }
             int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
 
             if (total_path_distance < fully_stop_fully_start) {
+                // printf(CONSOLE, "total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
                 int lo = 0, hi = train_data.starting_time[train->id][train->speed], accelerate_for = -1;
                 while (lo <= hi) {
                     int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
@@ -96,18 +102,18 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     int64_t vf = train_data.acc_start[train->id][train->speed] * md;
                     int64_t distance_dec = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2);
                     int distance_travelled = (distance_acc + distance_dec) / 1000000;
-                    if (distance_travelled > total_path_distance) {
+                    if (distance_travelled >= total_path_distance) {
+                        accelerate_for = md;
                         hi = md - 1;
                     } else {
                         lo = md + 1;
-                        accelerate_for = md;
                     }
                 }
 
                 ASSERTF(accelerate_for >= 0 && accelerate_for <= train_data.starting_time[train->id][train->speed], "accelerate_for of %d is invalid for distance %d", accelerate_for, total_path_distance);
 
-                int vf = train_data.acc_start[train->id][train->speed] * accelerate_for / 1000;
-                stopping_distance = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2);
+                int64_t vf = train_data.acc_start[train->id][train->speed] * accelerate_for;
+                stopping_distance = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2) / 1000000;
             }
 
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command

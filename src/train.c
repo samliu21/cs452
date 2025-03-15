@@ -496,7 +496,7 @@ void train_task()
                     t->acc_end = 0;
                     t->inst_speed = 0;
                     t->acc = 0;
-                    puts(CONSOLE, "train stopped\r\n");
+                    // puts(CONSOLE, "train stopped\r\n");
                 }
 
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
@@ -594,8 +594,14 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
 
+            if (t->cur_node == t->path.path_length - 2 && abs(t->cur_offset - t->path.distances[t->cur_node]) < 50) {
+                t->cur_offset = 0;
+                t->cur_node++;
+            }
+
             track_node* old_node = &track[t->path.nodes[t->cur_node]];
             t->path = get_shortest_path(track, t, dest, offset);
+
             t->cur_node = 0;
             if (&track[t->path.nodes[0]] == old_node->reverse) {
                 marklin_reverse(t->id);
@@ -622,6 +628,7 @@ void train_task()
 
             t->stop_node = t->path.stop_node;
             t->stop_distance_offset = t->path.stop_distance_offset;
+            // printf(CONSOLE, "stop node: %s, offset: %d, reverse direction: %d\r\n", track[t->stop_node].name, t->stop_distance_offset, t->reverse_direction);
 
             break;
         }
