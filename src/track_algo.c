@@ -51,7 +51,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     dist[reverse_node] = 0;
     prev[reverse_node] = -1;
 
-    int speed = train_data.speed[train->id][train->speed];
     int stopping_distance = train_data.stopping_distance[train->id][train->speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
 
@@ -69,11 +68,26 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 node = prev[node];
             }
 
+            for (int i = path_length - 1; i >= 0; --i) {
+                int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
+                // for reverse edge, update distance accordingly for reservation calculations
+                if (dist_between == reverse_edge_weight) {
+                    if (track[path_reverse[i]].type == NODE_MERGE) {
+                        dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
+                    } else if (track[path_reverse[i]].type == NODE_EXIT) {
+                        printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
+                        dist_between = -train_data.train_length[train->id];
+                    } else {
+                        ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
+                    }
+                }
+                track_path_add(&path, path_reverse[i], dist_between);
+            }
+
             int total_path_distance = dist[dest] + node_offset - train->cur_offset;
             int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
 
             if (total_path_distance < fully_stop_fully_start) {
-                // starting time is at most 4567ms...
                 int lo = 0, hi = train_data.starting_time[train->id][train->speed], accelerate_for = -1;
                 while (lo <= hi) {
                     int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
@@ -90,7 +104,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     }
                 }
 
-                ASSERT(accelerate_for >= 0 && accelerate_for <= train_data.starting_time[train->id][train->speed], "accelerate_for is invalid");
+                ASSERTF(accelerate_for >= 0 && accelerate_for <= train_data.starting_time[train->id][train->speed], "accelerate_for of %d is invalid for distance %d", accelerate_for, total_path_distance);
 
                 int vf = train_data.acc_start[train->id][train->speed] * accelerate_for / 1000;
                 stopping_distance = vf * vf / (-train_data.acc_stop[train->id][train->speed] * 2);
@@ -108,21 +122,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 if (i == path_length - 1) {
                     ASSERT(0, "could not find stop node");
                 }
-            }
-            for (int i = path_length - 1; i >= 0; --i) {
-                int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
-                // for reverse edge, update distance accordingly for reservation calculations
-                if (dist_between == reverse_edge_weight) {
-                    if (track[path_reverse[i]].type == NODE_MERGE) {
-                        dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
-                    } else if (track[path_reverse[i]].type == NODE_EXIT) {
-                        printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
-                        dist_between = -train_data.train_length[train->id];
-                    } else {
-                        ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
-                    }
-                }
-                track_path_add(&path, path_reverse[i], dist_between);
             }
             break;
         }

@@ -24,6 +24,7 @@ typedef struct train_t {
     int acc;
     int acc_start;
     int acc_end;
+    int inst_speed;
 
     int distance_overflow_nm;
 } train_t;

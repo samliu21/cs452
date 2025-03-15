@@ -32,6 +32,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
     tlist->trains[tlist->size].old_speed = 0;
+    tlist->trains[tlist->size].inst_speed = 0;
     tlist->trains[tlist->size].speed_time_begin = 0;
     tlist->trains[tlist->size].last_sensor = -1;
     tlist->trains[tlist->size].stop_node = -1;
@@ -451,17 +452,6 @@ void train_task()
             ASSERT(ret >= 0, "reply failed");
             break;
         }
-        case SET_STOP_NODE: {
-            uint64_t train = buf[1];
-            int node = buf[2];
-            int time_offset = a2ui(buf + 3, 10);
-            train_t* t = trainlist_find(&trainlist, train);
-            ASSERT(t != NULL, "train not found");
-            t->stop_node = node;
-            ret = reply_empty(caller_tid);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
         case SET_TRAIN_REVERSE: {
             uint64_t train = buf[1];
             train_t* t = trainlist_find(&trainlist, train);
@@ -488,6 +478,10 @@ void train_task()
                 int interval_end = timer_get_ms();
                 int interval_start = interval_end - 50;
 
+                if (t->acc_end < interval_start) {
+                    t->acc = 0;
+                }
+
                 int acc_start = min(interval_end, max(interval_start, t->acc_start));
                 int acc_end = min(interval_end, max(interval_start, t->acc_end));
 
@@ -495,8 +489,15 @@ void train_task()
                 int new_speed_duration = interval_end - acc_end;
                 int old_speed_duration = acc_start - interval_start;
 
-                int vi = train_data.speed[t->id][t->old_speed] * 1000 + max(0, (interval_start - t->speed_time_begin)) * t->acc;
-                int acc_distance = vi * acc_duration + t->acc * acc_duration * acc_duration / 2;
+                int acc_distance = t->inst_speed * acc_duration + t->acc * acc_duration * acc_duration / 2;
+                t->inst_speed += t->acc * (acc_end - acc_start);
+                // in a short route, the train doesn't need the full decceleration time, so manually stop if inst_speed < 0
+                if (t->inst_speed < 0 && t->acc < 0) {
+                    t->acc_end = 0;
+                    t->inst_speed = 0;
+                    t->acc = 0;
+                    puts(CONSOLE, "train stopped\r\n");
+                }
 
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
                 int old_speed_distance = old_speed_duration * train_data.speed[t->id][t->old_speed];
