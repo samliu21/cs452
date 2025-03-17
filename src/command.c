@@ -174,14 +174,15 @@ void command_task()
         */
 
         else if (strcmp(command_type, "route") == 0) { // route <train> <dest> <offset>
-            if (argc != 4) {
+            if (argc < 3 || argc > 4) {
                 result.type = COMMAND_FAIL;
-                error_message = "route command expects 3 arguments";
+                error_message = "route command expects 3-4 arguments";
                 goto end;
             }
             uint64_t train = a2ui(args[1], 10);
             int dest = name_to_node_index(track, args[2]);
-            int node_offset = a2i(args[3], 10);
+            
+            int node_offset = (argc == 4) ? a2i(args[3], 10) : 0;
 
             if (!train_exists(train)) {
                 result.type = COMMAND_FAIL;
