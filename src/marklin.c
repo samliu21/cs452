@@ -37,10 +37,13 @@ void train_reverse_task()
 {
     // get train tid
     uint64_t caller_tid;
-    char train;
-    receive(&caller_tid, &train, 1);
+    char args[3];
+    receive(&caller_tid, args, 10);
     reply_empty(caller_tid);
-
+    int train = args[0];
+    int dest_node = args[1];
+    int dest_offset = a2i(&args[2], 10);
+    
     // stop train
     train_set_speed(train, 0);
     marklin_set_speed(train, 0);
@@ -48,6 +51,10 @@ void train_reverse_task()
     // delay
     int64_t ret = delay(350);
     ASSERT(ret >= 0, "delay failed");
+
+    printf(CONSOLE, "setting cur node to %d, offset to %d", dest_node, dest_offset);
+    train_set_cur_node(train, dest_node);
+    train_set_cur_offset(train, dest_offset);
 
     train_set_reverse(train);
     marklin_reverse(train);

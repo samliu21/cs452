@@ -296,7 +296,7 @@ void state_task()
             // check that reservations[segment] == train because reservations are attempted every 5 ticks
             // thus allow reserve_segment to be idempotent
             // TODO: look into this
-            ASSERTF(!reservations[segment] || reservations[segment] == train, "segment %d is already reserved by train %d", segment, train);
+            ASSERTF(!reservations[segment] || reservations[segment] == train, "train %d tried to reserve segment %d, which is reserved by train %d", train, segment, reservations[segment]);
             reservations[segment] = train;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
@@ -305,7 +305,7 @@ void state_task()
         case RELEASE_SEGMENT: {
             int segment = buf[1];
             int train = buf[2];
-            ASSERTF(reservations[segment] == train || !reservations[segment], "tried to release non-reserved segment %d", segment);
+            ASSERTF(reservations[segment] == train || !reservations[segment], "train %d tried to release segment %d, which is reserved by train %d", train, segment, reservations[segment]);
             reservations[segment] = 0;
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");

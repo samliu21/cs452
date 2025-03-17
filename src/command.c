@@ -212,6 +212,24 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "rs") == 0) { // rs <segment>
+            if (argc != 2) {
+                result.type = COMMAND_FAIL;
+                error_message = "route command expects 1 argument";
+                goto end;
+            }
+            uint64_t segment = a2ui(args[1], 10);
+            
+            int reserver = state_is_reserved(segment);
+            if (reserver) {
+                state_release_segment(segment, reserver);
+            } else {
+                state_reserve_segment(segment, '\255');
+            }
+
+            result.type = COMMAND_SUCCESS;
+        }
+
         else if (strcmp(command_type, "q") == 0) {
             result.type = COMMAND_QUIT;
         }

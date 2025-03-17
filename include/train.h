@@ -5,7 +5,7 @@
 #include "track_algo.h"
 #include "track_node.h"
 
-#define REVERSE_OVER_MERGE_OFFSET 50
+#define REVERSE_OVER_MERGE_OFFSET 100
 
 typedef struct train_t {
     uint64_t id;
@@ -50,6 +50,8 @@ void train_set_reverse(uint64_t train);
 int train_get_reverse(uint64_t train);
 int train_get_cur_node(uint64_t train);
 int train_get_cur_offset(uint64_t train);
+int train_set_cur_node(uint64_t train, int node);
+int train_set_cur_offset(uint64_t train, int offset);
 void train_route(uint64_t train, int dest, int offset);
 
 void train_model_notifier();

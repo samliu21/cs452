@@ -16,7 +16,6 @@
 #include <stdlib.h>
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
-#define REVERSE_LOOKAHEAD_DISTANCE 200
 #define SENSOR_PREDICTION_WINDOW 300
 
 trainlist_t trainlist_create(train_t* trains)
@@ -73,7 +72,9 @@ typedef enum {
     SHOULD_UPDATE_TRAIN_STATE = 10,
     GET_CUR_NODE = 11,
     GET_CUR_OFFSET = 12,
-    ROUTE_TRAIN = 13,
+    SET_CUR_NODE = 13,
+    SET_CUR_OFFSET = 14,
+    ROUTE_TRAIN = 15,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -261,6 +262,34 @@ int train_get_cur_offset(uint64_t train)
     int64_t ret = send(train_task_tid, buf, 2, response, 8);
     ASSERT(ret >= 0, "send failed");
     return a2i(response, 10);
+}
+
+int train_set_cur_node(uint64_t train, int node)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[10];
+    buf[0] = SET_CUR_NODE;
+    buf[1] = train;
+    buf[2] = node;
+    int64_t ret = send(train_task_tid, buf, 3, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+    return 0;
+}
+
+int train_set_cur_offset(uint64_t train, int offset)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[10];
+    buf[0] = SET_CUR_OFFSET;
+    buf[1] = train;
+    i2a(offset, &buf[2]);
+    int64_t ret = send(train_task_tid, buf, 10, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+    return 0;
 }
 
 void train_route(uint64_t train, int dest, int offset)
@@ -529,8 +558,11 @@ void train_task()
                 if (t->cur_stop_node < t->path.stop_node_count) {
                     if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
                         int64_t reverse_task_id = create(1, &train_reverse_task);
-                        char c = t->id;
-                        int64_t ret = send(reverse_task_id, &c, 1, NULL, 0);
+                        char args[10];
+                        args[0] = t->id;
+                        args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
+                        i2a(t->path.stop_dest_offsets[t->cur_stop_node] , &args[2]);
+                        int64_t ret = send(reverse_task_id, args, 10, NULL, 0);
                         ASSERT(ret >= 0, "send failed");
                         t->cur_stop_node++;
                     }
@@ -571,6 +603,26 @@ void train_task()
             char response[8];
             i2a(t->cur_offset, response);
             ret = reply(caller_tid, response, 8);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_CUR_NODE: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            int node = buf[2];
+            t->cur_node = node;
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_CUR_OFFSET: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            int offset = a2i(&buf[2], 10);
+            t->cur_offset = offset;
+            ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
