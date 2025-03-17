@@ -37,7 +37,7 @@ void temp_task()
     syscall_exit();
 }
 
-// total distance=2408mm, distance without stop=2068mm
+// total distance=2408mm, distance without stop=1818mm
 // computing duration and put into Python script
 
 void sensor_task()

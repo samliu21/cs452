@@ -38,11 +38,11 @@ void display_state_task()
     register_as(DISPLAY_STATE_TASK_NAME);
 
     track_node track[TRACK_MAX];
-    #ifdef TRACKA
+#ifdef TRACKA
     init_tracka(track);
-    #else
+#else
     init_trackb(track);
-    #endif
+#endif
 
     uint64_t old_usage = 0;
     uint64_t old_ticks = 0;
@@ -61,8 +61,10 @@ void display_state_task()
     memset(&old_reservations, 0, 1024);
     old_reservations[0] = 255;
 
-    int old_train_cur_node = 0;
-    int old_train_cur_offset = 0;
+    int old_cur_node_55 = 0;
+    int old_cur_offset_55 = 0;
+    int old_cur_node_77 = 0;
+    int old_cur_offset_77 = 0;
 
     char c;
     uint64_t notifier_tid;
@@ -119,20 +121,29 @@ void display_state_task()
             strcpy(old_train_times, train_times);
         }
 
-        // node + offset
-        int train_cur_node = train_get_cur_node(55);
-        int train_cur_offset = train_get_cur_offset(55);
-        if (c == FORCE || train_cur_node != old_train_cur_node || train_cur_offset != old_train_cur_offset) {
-            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %s, and offset: %d\033[u", track[train_cur_node].name, train_cur_offset);
-            old_train_cur_node = train_cur_node;
-            old_train_cur_offset = train_cur_offset;
+        // train 55
+        int cur_node_55 = train_get_cur_node(55);
+        int cur_offset_55 = train_get_cur_offset(55);
+        if (c == FORCE || cur_node_55 != old_cur_node_55 || cur_offset_55 != old_cur_offset_55) {
+            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %s, and offset: %d\033[u", track[cur_node_55].name, cur_offset_55);
+            old_cur_node_55 = cur_node_55;
+            old_cur_offset_55 = cur_offset_55;
+        }
+
+        // train 77
+        int cur_node_77 = train_get_cur_node(77);
+        int cur_offset_77 = train_get_cur_offset(77);
+        if (c == FORCE || cur_node_77 != old_cur_node_77 || cur_offset_77 != old_cur_offset_77) {
+            printf(CONSOLE, "\033[s\033[7;1H\033[2Ktrain 77 is at node: %s, and offset: %d\033[u", track[cur_node_77].name, cur_offset_77);
+            old_cur_node_77 = cur_node_77;
+            old_cur_offset_77 = cur_offset_77;
         }
 
         // reservations
         char reservations[1024];
         state_get_reservations(reservations);
         if (c == FORCE || strcmp(reservations, old_reservations)) {
-            printf(CONSOLE, "\033[s\033[7;1H\033[2Kreservations: [ %s]\033[u", reservations);
+            printf(CONSOLE, "\033[s\033[8;1H\033[2Kreservations: [ %s]\033[u", reservations);
             strcpy(old_reservations, reservations);
         }
     }

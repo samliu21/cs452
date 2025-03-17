@@ -51,17 +51,27 @@ train_data_t init_train_data_a()
     data.speed[77][10] = 337;
 
     // mm
+    // data.stopping_distance[77][6] =
     data.stopping_distance[77][10] = 590;
-    // data.stopping_distance[77][10][1] = data.stopping_distance[77][10][0] + data.reverse_stopping_distance_offset;
 
-    data.starting_time[77][10] = 2586;
+    // ms
+    // data.starting_time[77][6] =
+    data.starting_time[77][10] = 4065;
 
+    // mm
+    data.starting_distance[77][10] = data.speed[77][10] * data.starting_time[77][10] / 2000;
+
+    // ms
     data.stopping_time[77][6] = 2 * data.stopping_distance[77][6] * 1000 / data.speed[77][10];
     data.stopping_time[77][10] = 2 * data.stopping_distance[77][10] * 1000 / data.speed[77][10];
 
     // mm/s^2
     data.acc_stop[77][6] = -1 * data.speed[77][6] * data.speed[77][6] / (2 * data.stopping_distance[77][6]);
     data.acc_stop[77][10] = -1 * data.speed[77][10] * data.speed[77][10] / (2 * data.stopping_distance[77][10]);
+
+    // mm/s^2
+    // data.acc_start[77][6] =
+    data.acc_start[77][10] = data.speed[77][10] * 1000 / data.starting_time[77][10];
 
     data.reverse_edge_weight[77] = 1000;
 

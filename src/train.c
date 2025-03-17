@@ -38,7 +38,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].reverse_direction = 0;
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
-    track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 135, 1e9); // EN9 hardcoded for train 55
+    track_path_add(&tlist->trains[tlist->size].path, 140, 1e9); // EN9 hardcoded for train 55
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
@@ -359,6 +359,7 @@ void train_task()
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
+    putc(MARKLIN, 64);
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -561,7 +562,7 @@ void train_task()
                         char args[10];
                         args[0] = t->id;
                         args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
-                        i2a(t->path.stop_dest_offsets[t->cur_stop_node] , &args[2]);
+                        i2a(t->path.stop_dest_offsets[t->cur_stop_node], &args[2]);
                         int64_t ret = send(reverse_task_id, args, 10, NULL, 0);
                         ASSERT(ret >= 0, "send failed");
                         t->cur_stop_node++;
