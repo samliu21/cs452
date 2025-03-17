@@ -98,15 +98,15 @@ void sensor_task()
                     }
                     train_sensor_reading(track, sensor_name);
 
-                    if (strcmp(sensor_name, "E11") == 0) {
-                        marklin_set_speed(77, 0);
-                        create(50, temp_task);
-                    }
-                    if (strcmp(sensor_name, "C14") == 0) {
-                        end_time = timer_get_ms();
-                        printf(CONSOLE, "start: %d, end: %d\r\n", start_time, end_time);
-                        marklin_set_speed(77, 0);
-                    }
+                    // if (strcmp(sensor_name, "E11") == 0) {
+                    //     marklin_set_speed(77, 0);
+                    //     create(50, temp_task);
+                    // }
+                    // if (strcmp(sensor_name, "C14") == 0) {
+                    //     end_time = timer_get_ms();
+                    //     printf(CONSOLE, "start: %d, end: %d\r\n", start_time, end_time);
+                    //     marklin_set_speed(77, 0);
+                    // }
 
 #if defined(MEASURE_TRAIN_SPEED)
                     int idx = clock_index(bank, i + 1);
