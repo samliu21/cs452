@@ -41,29 +41,29 @@ train_data_t init_train_data_a()
     data.reverse_edge_weight[55] = 1000;
 
     // train 77
-    // data.speed[77][0] = 0;
-    // data.speed[77][6] = 133;
-    // data.speed[77][10] = 337;
 
-    // data.stopping_distance[77][6][0] = 190;
-    // data.stopping_distance[77][6][1] = data.stopping_distance[77][6][0] + data.reverse_stopping_distance_offset;
-    // data.stopping_distance[77][10][0] = 630;
+    // mm
+    data.train_length[77] = 225;
+
+    // mm/s
+    data.speed[77][0] = 0;
+    data.speed[77][6] = 133;
+    data.speed[77][10] = 337;
+
+    // mm
+    data.stopping_distance[77][10] = 590;
     // data.stopping_distance[77][10][1] = data.stopping_distance[77][10][0] + data.reverse_stopping_distance_offset;
 
-    // data.stopping_time[77][6][0] = 2857;
-    // data.stopping_time[77][6][1] = 4737;
-    // data.stopping_time[77][10][0] = 3739;
-    // data.stopping_time[77][10][1] = 4481;
+    data.starting_time[77][10] = 2586;
 
-    // data.train_length[77] = 225;
+    data.stopping_time[77][6] = 2 * data.stopping_distance[77][6] * 1000 / data.speed[77][10];
+    data.stopping_time[77][10] = 2 * data.stopping_distance[77][10] * 1000 / data.speed[77][10];
 
-    // data.acc_stop[77][6] = -90;
-    // data.acc_stop[77][10] = -90;
-    // data.acc_start[77][6] = 90;
-    // data.acc_start[77][10] = 90;
+    // mm/s^2
+    data.acc_stop[77][6] = -1 * data.speed[77][6] * data.speed[77][6] / (2 * data.stopping_distance[77][6]);
+    data.acc_stop[77][10] = -1 * data.speed[77][10] * data.speed[77][10] / (2 * data.stopping_distance[77][10]);
 
-    // data.reverse_edge_weight[77][6] = 1000;
-    // data.reverse_edge_weight[77][10] = 1000;
+    data.reverse_edge_weight[77] = 1000;
 
     return data;
 }
