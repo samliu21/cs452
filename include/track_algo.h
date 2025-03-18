@@ -5,6 +5,8 @@
 #include "track_node.h"
 #include "track_path.h"
 
+#define NO_FORBIDDEN_SEGMENT -1
+
 typedef struct train_t train_t;
 
 int get_node_index(track_node* track_begin, track_node* node);
