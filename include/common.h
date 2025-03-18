@@ -12,7 +12,7 @@ typedef struct pi_t {
     struct pi_t* next;
 } pi_t;
 
-#define NUM_TASKS 128
+#define NUM_TASKS 64
 #define STACK_SIZE (2 * 1024 * 1024)
 #define MAX_RAND 32767
 

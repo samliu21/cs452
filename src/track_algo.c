@@ -60,7 +60,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
     return stop_distance;
 }
 
-track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg)
+track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg, int is_full_speed)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -88,7 +88,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
     int stopping_distance = train_data.stopping_distance[train->id][train->speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
-    int fully_stop_fully_start = train_data.starting_distance[train->id][train->speed] + train_data.stopping_distance[train->id][train->speed];
+    int fully_stop_fully_start = (is_full_speed ? 0 : train_data.starting_distance[train->id][train->speed]) + train_data.stopping_distance[train->id][train->speed];
 
     track_path_t path = track_path_new();
 
@@ -177,6 +177,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 stopping_distance = get_short_stop_distance(&train_data, train, total_path_distance);
             }
 
+            // uart_printf(CONSOLE, "total path distance: %d, stopping distance: %d\r\n", total_path_distance, stopping_distance);
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 0; i < path_length; ++i) {
                 int cur_node = path_reverse[i];

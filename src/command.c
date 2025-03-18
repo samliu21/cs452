@@ -114,64 +114,6 @@ void command_task()
 
             result.type = COMMAND_SUCCESS;
         }
-        /*
-        else if (strcmp(command_type, "go") == 0) {
-            if (argc != 4) {
-                result.type = COMMAND_FAIL;
-                error_message = "go command expects 3 arguments";
-                goto end;
-            }
-            uint64_t train = a2ui(args[1], 10);
-            int dest = name_to_node_index(track, args[2]);
-            int node_offset = a2i(args[3], 10);
-
-            if (!train_exists(train)) {
-                result.type = COMMAND_FAIL;
-                error_message = "train does not exist";
-                goto end;
-            }
-            uint64_t speed_level = train_get_speed(train);
-            if (speed_level != 6 && speed_level != 10) {
-                result.type = COMMAND_FAIL;
-                error_message = "train must be at speed 6 (LOW) or 10 (HIGH)";
-                goto end;
-            }
-            if (dest == -1) {
-                result.type = COMMAND_FAIL;
-                error_message = "invalid destination node";
-                goto end;
-            }
-
-            int last_sensor = train_last_sensor(train);
-
-            if (last_sensor == -1) {
-                result.type = COMMAND_FAIL;
-                error_message = "train is not ready to go";
-                goto end;
-            }
-
-            int src = state_next_sensor(last_sensor);
-            if (last_sensor == -1) {
-                result.type = COMMAND_FAIL;
-                error_message = "no next sensor";
-                goto end;
-            }
-
-            track_path_t path = get_shortest_path(track, src, dest, node_offset, train);
-            for (int i = path.path_length - 2; i >= 0; --i) {
-                track_node node = track[path.nodes[i]];
-                if (node.type == NODE_BRANCH) {
-                    char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == path.nodes[i + 1]) ? S : C;
-
-                    create_switch_task(node.num, switch_type);
-                }
-            }
-            int64_t ret = create(1, &deactivate_solenoid_task);
-            ASSERT(ret >= 0, "create failed");
-
-            result.type = COMMAND_SUCCESS;
-        }
-        */
 
         else if (strcmp(command_type, "route") == 0) { // route <train> <dest> <offset>
             if (argc < 3 || argc > 4) {

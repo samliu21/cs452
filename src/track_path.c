@@ -1,5 +1,6 @@
 #include "track_path.h"
 #include "rpi.h"
+#include "uart_server.h"
 
 track_path_t track_path_new()
 {
@@ -23,4 +24,16 @@ int track_path_lookahead(track_path_t* path, int node, int lookahead)
         node++;
     }
     return node;
+}
+
+void track_path_debug(track_path_t* path, track_node* track)
+{
+    puts(CONSOLE, "----------------------------------\r\n");
+    printf(CONSOLE, "path length: %d\r\n", path->path_length);
+    for (int i = 0; i < path->path_length; ++i) {
+        printf(CONSOLE, "node: %s, dist: %d\r\n", track[path->nodes[i]].name, path->distances[i]);
+    }
+    puts(CONSOLE, "\r\n");
+    printf(CONSOLE, "stop node: %s, stop offset: %d\r\n", track[path->stop_node].name, path->stop_distance_offset);
+    puts(CONSOLE, "----------------------------------\r\n");
 }
