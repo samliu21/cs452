@@ -359,7 +359,7 @@ void train_task()
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
-    putc(MARKLIN, 64);
+    // putc(MARKLIN, 64);
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -444,7 +444,7 @@ void train_task()
                         train->cur_node++;
                     }
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
-                    train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset : 25;
+                    train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
 
                     // release reservations behind sensor
                     int segments_to_release[16];
