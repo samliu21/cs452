@@ -43,7 +43,7 @@ void train_reverse_task()
     int train = args[0];
     int dest_node = args[1];
     int dest_offset = a2i(&args[2], 10);
-    
+
     // stop train
     train_set_speed(train, 0);
     marklin_set_speed(train, 0);

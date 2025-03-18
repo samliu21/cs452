@@ -13,7 +13,7 @@ typedef struct track_path_t {
     int stop_offsets[8];
     int stop_dest_nodes[8];
     int stop_dest_offsets[8];
-	int stop_node_count;
+    int stop_node_count;
 } track_path_t;
 
 track_path_t track_path_new();

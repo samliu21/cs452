@@ -45,7 +45,7 @@ void terminal_task()
 
             command_pos = 0;
             puts(CONSOLE, "\033[999;1H> ");
-            
+
         } else if (c == '\b') {
             command_pos--;
             if (command_pos > 0) {

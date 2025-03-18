@@ -181,7 +181,7 @@ void command_task()
             }
             uint64_t train = a2ui(args[1], 10);
             int dest = name_to_node_index(track, args[2]);
-            
+
             int node_offset = (argc == 4) ? a2i(args[3], 10) : 0;
 
             if (!train_exists(train)) {
@@ -207,7 +207,7 @@ void command_task()
             train_route(train, dest, node_offset);
 
             marklin_set_speed(train, 10);
-            
+
             // printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
 
             result.type = COMMAND_SUCCESS;
@@ -220,7 +220,7 @@ void command_task()
                 goto end;
             }
             uint64_t segment = a2ui(args[1], 10);
-            
+
             int reserver = state_is_reserved(segment);
             if (reserver) {
                 state_release_segment(segment, reserver);

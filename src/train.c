@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
-#define SENSOR_PREDICTION_WINDOW 300
+#define SENSOR_PREDICTION_WINDOW 50
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -38,7 +38,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].reverse_direction = 0;
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
-    track_path_add(&tlist->trains[tlist->size].path, 140, 1e9); // EN9 hardcoded for train 55
+    track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 130, 1e9);
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
@@ -449,7 +449,7 @@ void train_task()
                     // release reservations behind sensor
                     int segments_to_release[16];
                     int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, node_index);
-                    for (int j = 0; j < num_segments_to_release; ++j) {
+                    for (int j = 0; j < num_segments_to_release - 1; ++j) { // don't release segment that sensor is on
                         state_release_segment(segments_to_release[j], train->id);
                     }
 
@@ -581,6 +581,10 @@ void train_task()
                 for (int j = 0; j < num_segments_to_reserve; ++j) {
                     uint64_t reserver = state_is_reserved(segments_to_reserve[j]);
                     if (reserver && reserver != t->id) {
+                        marklin_set_speed(t->id, 0);
+                        set_train_speed_handler(&train_data, t, 0);
+                        marklin_set_speed(reserver, 0);
+                        set_train_speed_handler(&train_data, trainlist_find(&trainlist, reserver), 0);
                         printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
                     } else {
                         state_reserve_segment(segments_to_reserve[j], t->id);
@@ -670,10 +674,10 @@ void train_task()
             t->stop_distance_offset = t->path.stop_distance_offset;
             t->cur_stop_node = 0;
 
-            printf(CONSOLE, "stop node count: %d\r\n", t->path.stop_node_count);
-            for (int i = 0; i < t->path.stop_node_count; ++i) {
-                printf(CONSOLE, "stop node: %s, offset: %d\r\n", track[t->path.stop_nodes[i]].name, t->path.stop_offsets[i]);
-            }
+            // printf(CONSOLE, "stop node count: %d\r\n", t->path.stop_node_count);
+            // for (int i = 0; i < t->path.stop_node_count; ++i) {
+            //     printf(CONSOLE, "stop node: %s, offset: %d\r\n", track[t->path.stop_nodes[i]].name, t->path.stop_offsets[i]);
+            // }
             // printf(CONSOLE, "stop node: %s, offset: %d, reverse direction: %d\r\n", track[t->stop_node].name, t->stop_distance_offset, t->reverse_direction);
 
             break;

@@ -25,7 +25,8 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
     }
 }
 
-int get_short_stop_distance (train_data_t *train_data, train_t *train, int total_path_distance) {
+int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_path_distance)
+{
     int acc_start = train_data->acc_start[train->id][train->speed];
     int acc_stop = train_data->acc_stop[train->id][train->speed];
 
@@ -35,15 +36,15 @@ int get_short_stop_distance (train_data_t *train_data, train_t *train, int total
         acc_start /= acc_factor;
         acc_stop *= acc_factor;
     }
-    
+
     int lo = 0, hi = train_data->starting_time[train->id][train->speed];
-    
+
     int stop_distance = -1;
     while (lo <= hi) {
         int md = (lo + hi) / 2; // allow train to accelerate for "md" ms
 
         int64_t distance_acc = acc_start * md * md / 2;
-        int64_t vf = acc_start * md; 
+        int64_t vf = acc_start * md;
         int64_t distance_dec = vf * vf / (-acc_stop * 2);
         int distance_travelled = (distance_acc + distance_dec) / 1000000;
         if (distance_travelled >= total_path_distance) {
@@ -124,7 +125,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             int prev_node = -1;
             for (int i = 0; i < path.path_length - 1; ++i) {
                 if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
-                    printf(CONSOLE, "reversing at %s\r\n", track[path.nodes[i]].name);
                     path.stop_dest_nodes[stop_node_count] = i + 1;
                     path.stop_dest_offsets[stop_node_count] = train_data.train_length[train->id];
                     int total_path_distance = 0;
@@ -138,7 +138,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     for (int j = i - 1; j > prev_node; --j) {
                         total_path_distance += path.distances[j];
                     }
-                    printf(CONSOLE, "total path distance: %d\r\n", total_path_distance);
 
                     int distance_from_end = stopping_distance;
                     if (total_path_distance < fully_stop_fully_start) {
@@ -148,7 +147,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                         distance_from_end -= train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
                     }
 
-                    printf(CONSOLE, "distance from end: %d\r\n", distance_from_end);
                     int j;
                     for (j = i - 1; j > prev_node && distance_from_end >= 0; --j) {
                         distance_from_end -= path.distances[j];
@@ -177,7 +175,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             }
 
             if (total_path_distance < fully_stop_fully_start) {
-                printf(CONSOLE, "total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
                 stopping_distance = get_short_stop_distance(&train_data, train, total_path_distance);
             }
 

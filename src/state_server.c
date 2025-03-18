@@ -145,13 +145,15 @@ int state_release_segment(int segment, int train)
     return 0;
 }
 
-void state_get_reservations(char* response)
+void state_get_reservations(char* response, int train)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
 
-    char c = GET_RESERVATIONS;
-    int64_t ret = send(state_task_tid, &c, 1, response, 1024);
+    char buf[2];
+    buf[0] = GET_RESERVATIONS;
+    buf[1] = train;
+    int64_t ret = send(state_task_tid, buf, 2, response, 1024);
     ASSERT(ret >= 0, "send failed");
 }
 
@@ -312,10 +314,11 @@ void state_task()
             break;
         }
         case GET_RESERVATIONS: {
+            int train = buf[1];
             char response[1024];
             memset(response, 0, 1024);
             for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
-                if (reservations[i]) {
+                if (reservations[i] == train) {
                     char buf[32];
                     memset(buf, 0, 32);
                     sprintf(buf, "%d; ", i);
