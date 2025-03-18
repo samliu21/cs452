@@ -644,7 +644,7 @@ void train_task()
             }
 
             track_node* old_node = &track[t->path.nodes[t->cur_node]];
-            t->path = get_shortest_path(track, t, dest, offset);
+            t->path = get_shortest_path(track, t, dest, offset, -1);
 
             t->cur_node = 0;
             if (&track[t->path.nodes[0]] == old_node->reverse) {

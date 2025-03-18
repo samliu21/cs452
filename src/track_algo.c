@@ -61,7 +61,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
     return stop_distance;
 }
 
-track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset)
+track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -199,12 +199,16 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
         switch (track[node].type) {
         case NODE_BRANCH: {
-            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
-            track_edge curved_edge = track[node].edge[DIR_CURVED];
-            int node_straight = get_node_index(track, straight_edge.dest);
-            int node_curved = get_node_index(track, curved_edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            if (track[node].enters_seg[DIR_STRAIGHT] != forbidden_seg) {
+                track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
+                int node_straight = get_node_index(track, straight_edge.dest);
+                add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
+            }
+            if (track[node].enters_seg[DIR_CURVED] != forbidden_seg) {
+                track_edge curved_edge = track[node].edge[DIR_CURVED];
+                int node_curved = get_node_index(track, curved_edge.dest);
+                add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
+            }
             break;
         }
 
@@ -212,9 +216,11 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
         case NODE_MERGE:
         case NODE_ENTER: {
             // one edge
-            track_edge edge = track[node].edge[DIR_AHEAD];
-            int node_ahead = get_node_index(track, edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            if (track[node].enters_seg[DIR_AHEAD] != forbidden_seg) {
+                track_edge edge = track[node].edge[DIR_AHEAD];
+                int node_ahead = get_node_index(track, edge.dest);
+                add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
+            }
             break;
         }
 
