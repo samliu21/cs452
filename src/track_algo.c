@@ -57,7 +57,6 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
 
     stop_distance /= 1000000;
     ASSERTF(stop_distance >= 0 && stop_distance <= total_path_distance, "stop_distance of %d is invalid for distance %d", stop_distance, total_path_distance);
-    printf(CONSOLE, "adjusted distance %d, stop distance %d\r\n", total_path_distance, stop_distance);
     return stop_distance;
 }
 
@@ -191,6 +190,10 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     ASSERT(0, "could not find stop node");
                 }
             }
+
+            path.dest = dest;
+            path.dest_offset = node_offset;
+            path.path_distance = dist[dest];
             break;
         }
         if (dist[node] < weight) {

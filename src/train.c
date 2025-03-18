@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
-#define SENSOR_PREDICTION_WINDOW 50
+#define SENSOR_PREDICTION_WINDOW 200
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -345,6 +345,50 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
     return segment_index;
 }
 
+void route_train_handler(track_node* track, train_t* t, train_data_t* train_data, track_path_t* path)
+{
+    int segments_to_release[16];
+    int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &t->path, 0, t->path.path_length - 1);
+    for (int i = 0; i < num_segments_to_release - 1; ++i) {
+        if (state_is_reserved(segments_to_release[i]) == (int)t->id) {
+            state_release_segment(segments_to_release[i], t->id);
+        }
+    }
+
+    if (t->cur_node == t->path.path_length - 2 && abs(t->cur_offset - t->path.distances[t->cur_node]) < 50) {
+        t->cur_offset = 0;
+        t->cur_node++;
+    }
+
+    track_node* old_node = &track[t->path.nodes[t->cur_node]];
+    t->path = *path;
+
+    t->cur_node = 0;
+    if (&track[t->path.nodes[0]] == old_node->reverse) {
+        marklin_reverse(t->id);
+        t->reverse_direction = !t->reverse_direction;
+        t->cur_offset = train_data->train_length[t->id] - t->cur_offset;
+        while (t->cur_offset >= t->path.distances[t->cur_node]) {
+            t->cur_offset -= t->path.distances[t->cur_node++];
+        }
+    }
+
+    for (int i = t->path.path_length - 2; i >= 0; --i) {
+        track_node node = track[t->path.nodes[i]];
+        if (node.type == NODE_BRANCH) {
+            char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
+
+            create_switch_task(node.num, switch_type);
+        }
+    }
+    int64_t ret = create(1, &deactivate_solenoid_task);
+    ASSERTF(ret >= 0, "create failed: %d", ret);
+
+    t->stop_node = t->path.stop_node;
+    t->stop_distance_offset = t->path.stop_distance_offset;
+    t->cur_stop_node = 0;
+}
+
 void train_task()
 {
     int64_t ret;
@@ -438,6 +482,7 @@ void train_task()
                 }
 
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
+                    // printf(CONSOLE, "attributing sensor %s to train %d\r\n", track[node_index].name, train->id);
                     sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
                     if (distance_to_sensor < 0) {
@@ -448,7 +493,7 @@ void train_task()
 
                     // release reservations behind sensor
                     int segments_to_release[16];
-                    int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, node_index);
+                    int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, train->cur_node);
                     for (int j = 0; j < num_segments_to_release - 1; ++j) { // don't release segment that sensor is on
                         state_release_segment(segments_to_release[j], train->id);
                     }
@@ -527,7 +572,6 @@ void train_task()
                     t->acc_end = 0;
                     t->inst_speed = 0;
                     t->acc = 0;
-                    // puts(CONSOLE, "train stopped\r\n");
                 }
 
                 int new_speed_distance = new_speed_duration * train_data.speed[t->id][t->speed];
@@ -540,11 +584,6 @@ void train_task()
                 t->cur_offset += update_distance;
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
-                    // printf(CONSOLE, "node %s, offset %d\r\n", track[t->path.nodes[t->cur_node]].name, t->cur_offset);
-                    //  if (t->path.nodes[t->cur_node] == 38) {
-                    //      marklin_set_speed(55, 15);
-                    //      // printf(CONSOLE, "end time: %d\r\n", timer_get_ms());
-                    //  }
                 }
 
                 // handle stopping.
@@ -579,13 +618,42 @@ void train_task()
                 int segments_to_reserve[16];
                 int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, cur_node_index);
                 for (int j = 0; j < num_segments_to_reserve; ++j) {
-                    uint64_t reserver = state_is_reserved(segments_to_reserve[j]);
+                    int conflict_seg = segments_to_reserve[j];
+                    uint64_t reserver = state_is_reserved(conflict_seg);
                     if (reserver && reserver != t->id) {
-                        marklin_set_speed(t->id, 0);
-                        set_train_speed_handler(&train_data, t, 0);
-                        marklin_set_speed(reserver, 0);
-                        set_train_speed_handler(&train_data, trainlist_find(&trainlist, reserver), 0);
-                        printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+                        // printf(CONSOLE, "collision detected: %d %d", t->id, reserver);
+
+                        train_t* train_one = trainlist_find(&trainlist, reserver);
+                        train_t* train_two = t;
+                        track_path_t train_one_path, train_two_path;
+
+                        // printf(CONSOLE, "%s, %d, %s, %d\r\n", track[t->path.nodes[t->cur_node]].name, t->cur_offset, track[train_one->path.nodes[train_one->cur_node]].name, train_one->cur_offset);
+
+                        // CASE 1: keep 1 on path, reroute 2
+                        train_one_path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, NO_FORBIDDEN_SEGMENT);
+                        train_two_path = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, conflict_seg);
+                        int case_one_dist = 0;
+                        case_one_dist += train_one_path.path_length == 0 ? (int)1e9 : train_one_path.path_distance;
+                        case_one_dist += train_two_path.path_length == 0 ? (int)1e9 : train_two_path.path_distance;
+
+                        // CASE 2: keep 2 on path, reroute 1
+                        train_one_path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
+                        train_two_path = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, NO_FORBIDDEN_SEGMENT);
+                        int case_two_dist = 0;
+                        case_two_dist += train_one_path.path_length == 0 ? (int)1e9 : train_one_path.path_distance;
+                        case_two_dist += train_two_path.path_length == 0 ? (int)1e9 : train_two_path.path_distance;
+
+                        // printf(CONSOLE, "case one dist: %d, case two dist: %d\r\n", case_one_dist, case_two_dist);
+
+                        if (case_one_dist < case_two_dist) {
+                            route_train_handler(track, train_two, &train_data, &train_two_path);
+                            marklin_set_speed(train_one->id, 0);
+                            set_train_speed_handler(&train_data, train_one, 0);
+                        } else {
+                            route_train_handler(track, train_one, &train_data, &train_one_path);
+                            marklin_set_speed(train_two->id, 0);
+                            set_train_speed_handler(&train_data, train_two, 0);
+                        }
                     } else {
                         state_reserve_segment(segments_to_reserve[j], t->id);
                     }
@@ -638,47 +706,16 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
 
-            if (t->cur_node == t->path.path_length - 2 && abs(t->cur_offset - t->path.distances[t->cur_node]) < 50) {
-                t->cur_offset = 0;
-                t->cur_node++;
-            }
-
-            track_node* old_node = &track[t->path.nodes[t->cur_node]];
-            t->path = get_shortest_path(track, t, dest, offset, -1);
-
-            t->cur_node = 0;
-            if (&track[t->path.nodes[0]] == old_node->reverse) {
-                marklin_reverse(t->id);
-                t->reverse_direction = !t->reverse_direction;
-                t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
-                while (t->cur_offset >= t->path.distances[t->cur_node]) {
-                    t->cur_offset -= t->path.distances[t->cur_node++];
-                }
-            }
-
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 
-            for (int i = t->path.path_length - 2; i >= 0; --i) {
-                track_node node = track[t->path.nodes[i]];
-                if (node.type == NODE_BRANCH) {
-                    char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
+            track_path_t path = get_shortest_path(track, t, dest, offset, NO_FORBIDDEN_SEGMENT);
+            route_train_handler(track, t, &train_data, &path);
 
-                    create_switch_task(node.num, switch_type);
-                }
-            }
-            int64_t ret = create(1, &deactivate_solenoid_task);
-            ASSERT(ret >= 0, "create failed");
-
-            t->stop_node = t->path.stop_node;
-            t->stop_distance_offset = t->path.stop_distance_offset;
-            t->cur_stop_node = 0;
-
-            // printf(CONSOLE, "stop node count: %d\r\n", t->path.stop_node_count);
-            // for (int i = 0; i < t->path.stop_node_count; ++i) {
-            //     printf(CONSOLE, "stop node: %s, offset: %d\r\n", track[t->path.stop_nodes[i]].name, t->path.stop_offsets[i]);
+            // for (int i = 0; i < t->path.path_length - 1; ++i) {
+            //     printf(CONSOLE, "%s \r\n", track[t->path.nodes[i]].name);
             // }
-            // printf(CONSOLE, "stop node: %s, offset: %d, reverse direction: %d\r\n", track[t->stop_node].name, t->stop_distance_offset, t->reverse_direction);
+            // puts(CONSOLE, "\r\n");
 
             break;
         }

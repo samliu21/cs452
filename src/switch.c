@@ -104,7 +104,7 @@ void set_switch_task()
 void create_switch_task(int switch_num, char switch_type)
 {
     int64_t task_tid = create(1, &set_switch_task);
-    ASSERT(task_tid >= 0, "create failed");
+    ASSERTF(task_tid >= 0, "create failed: %d", task_tid);
     char buf[2];
     buf[0] = switch_num;
     buf[1] = switch_type;

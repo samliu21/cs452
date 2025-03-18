@@ -110,7 +110,7 @@ void command_task()
 
             create_switch_task(num, d);
             int64_t ret = create(1, &deactivate_solenoid_task);
-            ASSERT(ret >= 0, "create failed");
+            ASSERTF(ret >= 0, "create failed: %d", ret);
 
             result.type = COMMAND_SUCCESS;
         }
