@@ -52,7 +52,7 @@ void train_reverse_task()
     int64_t ret = delay(350);
     ASSERT(ret >= 0, "delay failed");
 
-    printf(CONSOLE, "setting cur node to %d, offset to %d", dest_node, dest_offset);
+    // printf(CONSOLE, "setting cur node to %d, offset to %d", dest_node, dest_offset);
     train_set_cur_node(train, dest_node);
     train_set_cur_offset(train, dest_offset);
 
