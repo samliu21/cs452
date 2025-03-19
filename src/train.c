@@ -506,11 +506,13 @@ void train_task()
                 if (train->last_sensor == node_index) {
                     continue;
                 }
+
                 int distance_to_sensor = 1e9;
+                int expected_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
                 if (train->path.nodes[train->cur_node] == node_index) {
-                    distance_to_sensor = train->cur_offset;
+                    distance_to_sensor = expected_offset - train->cur_offset;
                 } else if (train->cur_node + 1 < train->path.path_length && train->path.nodes[train->cur_node + 1] == node_index) {
-                    distance_to_sensor = train->cur_offset - train->path.distances[train->cur_node]; // neg number
+                    distance_to_sensor = train->cur_offset - train->path.distances[train->cur_node] - expected_offset; // neg number
                 }
 
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
