@@ -71,8 +71,8 @@ void display_state_task()
     int old_cur_node_77 = 0;
     int old_cur_offset_77 = 0;
 
-    char old_forbidden_segments[TRACK_SEGMENTS_MAX + 1];
-    memset(&old_forbidden_segments, 0, TRACK_SEGMENTS_MAX + 1);
+    char old_forbidden_segments[TRACK_SEGMENTS_MAX];
+    memset(&old_forbidden_segments, 0, TRACK_SEGMENTS_MAX);
     old_forbidden_segments[0] = 255;
 
     char c;
@@ -165,18 +165,20 @@ void display_state_task()
         }
 
         // forbidden segments
-        char forbidden_segments[TRACK_SEGMENTS_MAX + 1];
+        char forbidden_segments[TRACK_SEGMENTS_MAX];
+        memset(forbidden_segments, 0, TRACK_SEGMENTS_MAX);
         state_get_forbidden_segments(forbidden_segments);
-        if (c == FORCE || memcmp(forbidden_segments, old_forbidden_segments, TRACK_SEGMENTS_MAX + 1)) {
+        if (c == FORCE || memcmp(forbidden_segments, old_forbidden_segments, TRACK_SEGMENTS_MAX)) {
             char forbidden_segments_text[1024];
+            memset(forbidden_segments_text, 0, 1024);
             int text_index = 0;
-            for (int i = 0; i < TRACK_SEGMENTS_MAX + 1; ++i) {
+            for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
                 if (forbidden_segments[i] && i != TRACK_SEGMENTS_MAX) {
                     text_index += sprintf(forbidden_segments_text + text_index, "%d ", i);
                 }
             }
             printf(CONSOLE, "\033[s\033[10;1H\033[2Kforbidden segments: [ %s]\033[u", forbidden_segments_text);
-            memcpy(old_forbidden_segments, forbidden_segments, TRACK_SEGMENTS_MAX + 1);
+            memcpy(old_forbidden_segments, forbidden_segments, TRACK_SEGMENTS_MAX);
         }
     }
 }

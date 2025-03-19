@@ -74,7 +74,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
     train_data_t train_data = init_train_data_a();
 
-    char forbidden_segments[TRACK_SEGMENTS_MAX + 1];
+    char forbidden_segments[TRACK_SEGMENTS_MAX];
     state_get_forbidden_segments(forbidden_segments);
 
     int src = train->path.nodes[train->cur_node];

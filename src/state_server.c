@@ -214,8 +214,8 @@ void state_task()
         reservations[i] = 0;
     }
 
-    char forbidden_segments[TRACK_SEGMENTS_MAX + 1];
-    memset(forbidden_segments, 0, TRACK_SEGMENTS_MAX + 1);
+    char forbidden_segments[TRACK_SEGMENTS_MAX];
+    memset(forbidden_segments, 0, TRACK_SEGMENTS_MAX);
 
     uint64_t caller_tid;
     char buf[256];
@@ -367,8 +367,8 @@ void state_task()
             break;
         }
         case GET_FORBIDDEN_SEGMENTS: {
-            char response[TRACK_SEGMENTS_MAX + 1];
-            memcpy(response, forbidden_segments, TRACK_SEGMENTS_MAX + 1);
+            char response[TRACK_SEGMENTS_MAX];
+            memcpy(response, forbidden_segments, TRACK_SEGMENTS_MAX);
             ret = reply(caller_tid, response, TRACK_SEGMENTS_MAX);
             ASSERT(ret >= 0, "reply failed");
             break;
