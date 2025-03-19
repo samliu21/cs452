@@ -6,6 +6,7 @@
 #include "state_server.h"
 #include "switch.h"
 #include "syscall_func.h"
+#include "track_seg.h"
 #include "train.h"
 #include "uart_server.h"
 
@@ -69,6 +70,10 @@ void display_state_task()
     int old_cur_offset_55 = 0;
     int old_cur_node_77 = 0;
     int old_cur_offset_77 = 0;
+
+    char old_forbidden_segments[TRACK_SEGMENTS_MAX + 1];
+    memset(&old_forbidden_segments, 0, TRACK_SEGMENTS_MAX + 1);
+    old_forbidden_segments[0] = 255;
 
     char c;
     uint64_t notifier_tid;
@@ -157,6 +162,21 @@ void display_state_task()
         if (c == FORCE || strcmp(reservations_77, old_reservations_77)) {
             printf(CONSOLE, "\033[s\033[9;1H\033[2Kreservations for 77: [ %s]\033[u", reservations_77);
             strcpy(old_reservations_77, reservations_77);
+        }
+
+        // forbidden segments
+        char forbidden_segments[TRACK_SEGMENTS_MAX];
+        state_get_forbidden_segments(forbidden_segments);
+        if (c == FORCE || memcmp(forbidden_segments, old_forbidden_segments, TRACK_SEGMENTS_MAX)) {
+            char forbidden_segments_text[1024];
+            int text_index = 0;
+            for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
+                if (forbidden_segments[i]) {
+                    text_index += sprintf(forbidden_segments_text + text_index, "%d ", i);
+                }
+            }
+            printf(CONSOLE, "\033[s\033[10;1H\033[2Kforbidden segments: [ %s]\033[u", forbidden_segments_text);
+            memcpy(old_forbidden_segments, forbidden_segments, TRACK_SEGMENTS_MAX);
         }
     }
 }

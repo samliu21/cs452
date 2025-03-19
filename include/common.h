@@ -18,6 +18,7 @@ typedef struct pi_t {
 
 void memcpy(void* dest, const void* src, int n);
 void memset(void* s, int c, int n);
+int memcmp(const void* b1, const void* b2, int n);
 void strcpy(char* dest, const char* src);
 int strlen(const char* s);
 int strcmp(const char* s1, const char* s2);

@@ -19,6 +19,19 @@ void memset(void* s, int c, int n)
     }
 }
 
+int memcmp(const void* b1, const void* b2, int n)
+{
+    char* s1 = (char*)b1;
+    char* s2 = (char*)b2;
+
+    for (int i = 0; i < n; i++) {
+        if (*s1 != *s2) {
+            return *(const unsigned char*)s1 - *(const unsigned char*)s2;
+        }
+    }
+    return 0;
+}
+
 void strcpy(char* dest, const char* src)
 {
     while ((*(dest++) = *src++))

@@ -25,6 +25,8 @@ typedef enum {
     RESERVE_SEGMENT = 9,
     RELEASE_SEGMENT = 10,
     GET_RESERVATIONS = 11,
+    FORBID_SEGMENT = 12,
+    GET_FORBIDDEN_SEGMENTS = 13,
 } state_server_request_t;
 
 void state_set_recent_sensor(char bank, char sensor)
@@ -157,6 +159,32 @@ void state_get_reservations(char* response, int train)
     ASSERT(ret >= 0, "send failed");
 }
 
+int state_forbid_segment(int segment)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = FORBID_SEGMENT;
+    buf[1] = segment;
+    int64_t ret = send(state_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "send failed");
+    return 0;
+}
+
+void state_get_forbidden_segments(char* response)
+{
+    int64_t state_task_tid = who_is(STATE_TASK_NAME);
+    ASSERT(state_task_tid >= 0, "who_is failed");
+    
+    char buf[1];
+    buf[0] = GET_FORBIDDEN_SEGMENTS;
+    int64_t ret = send(state_task_tid, buf, 1, response, TRACK_SEGMENTS_MAX);
+    printf(CONSOLE, "calling the state server for forbidden segments, sent %d bytes.\r\n", ret);
+    ASSERT(ret >= 0, "send failed");
+    return;
+}
+
 void state_task()
 {
     int64_t ret;
@@ -186,6 +214,9 @@ void state_task()
     for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
         reservations[i] = 0;
     }
+
+    char forbidden_segments[TRACK_SEGMENTS_MAX];
+    memset(forbidden_segments, 0, TRACK_SEGMENTS_MAX);
 
     uint64_t caller_tid;
     char buf[256];
@@ -326,6 +357,21 @@ void state_task()
                 }
             }
             ret = reply(caller_tid, response, 1024);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case FORBID_SEGMENT: {
+            int segment = buf[1];
+            forbidden_segments[segment] = 1 - forbidden_segments[segment];
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_FORBIDDEN_SEGMENTS: {
+            char response[TRACK_SEGMENTS_MAX];
+            memset(response, 0, TRACK_SEGMENTS_MAX);
+            memcpy(response, forbidden_segments, TRACK_SEGMENTS_MAX);
+            ret = reply(caller_tid, response, TRACK_SEGMENTS_MAX);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

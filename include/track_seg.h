@@ -5,7 +5,6 @@
 #include "track_node.h"
 
 #define TRACK_SEGMENTS_MAX 38
-
 void init_sega(track_node* track);
 
 #endif

@@ -17,5 +17,7 @@ int state_is_reserved(int segment);
 int state_reserve_segment(int segment, int train);
 int state_release_segment(int segment, int train);
 void state_get_reservations(char* response, int train);
+int state_forbid_segment(int segment);
+void state_get_forbidden_segments(char* response);
 
 #endif

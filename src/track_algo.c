@@ -1,8 +1,10 @@
 #include "track_algo.h"
 #include "priority_queue_pi.h"
 #include "rpi.h"
+#include "state_server.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "track_seg.h"
 #include "train.h"
 #include "train_data.h"
 #include "uart_server.h"
@@ -71,6 +73,9 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     }
 
     train_data_t train_data = init_train_data_a();
+
+    char forbidden_segments[TRACK_SEGMENTS_MAX];
+    state_get_forbidden_segments(forbidden_segments);
 
     int src = train->path.nodes[train->cur_node];
     nodes[nodes_pos].weight = 0;
@@ -203,12 +208,14 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
         switch (track[node].type) {
         case NODE_BRANCH: {
-            if (track[node].enters_seg[DIR_STRAIGHT] != forbidden_seg || forbidden_seg == NO_FORBIDDEN_SEGMENT) {
+            int straight_seg = track[node].enters_seg[DIR_STRAIGHT];
+            if (straight_seg < 0 || !(straight_seg == forbidden_seg || forbidden_segments[straight_seg])) {
                 track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
                 int node_straight = get_node_index(track, straight_edge.dest);
                 add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
             }
-            if (track[node].enters_seg[DIR_CURVED] != forbidden_seg || forbidden_seg == NO_FORBIDDEN_SEGMENT) {
+            int curved_seg = track[node].enters_seg[DIR_CURVED];
+            if (curved_seg < 0 || !(curved_seg == forbidden_seg || forbidden_segments[curved_seg])) {
                 track_edge curved_edge = track[node].edge[DIR_CURVED];
                 int node_curved = get_node_index(track, curved_edge.dest);
                 add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
@@ -220,7 +227,8 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
         case NODE_MERGE:
         case NODE_ENTER: {
             // one edge
-            if (track[node].enters_seg[DIR_AHEAD] != forbidden_seg || forbidden_seg == NO_FORBIDDEN_SEGMENT) {
+            int ahead_seg = track[node].enters_seg[DIR_AHEAD];
+            if (ahead_seg < 0 || !(ahead_seg == forbidden_seg || forbidden_segments[ahead_seg])) {
                 track_edge edge = track[node].edge[DIR_AHEAD];
                 int node_ahead = get_node_index(track, edge.dest);
                 add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
