@@ -16,7 +16,7 @@
 #include <stdlib.h>
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
-#define SENSOR_PREDICTION_WINDOW 200
+#define SENSOR_PREDICTION_WINDOW 300
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -360,18 +360,21 @@ void clear_reservations(track_node* track, train_t* t)
 void reroute_task()
 {
     uint64_t caller_tid;
-    char args[10];
-    receive(&caller_tid, args, 10);
+    char args[16];
+    receive(&caller_tid, args, 16);
     reply_empty(caller_tid);
     uint64_t train = args[0];
     int dest_node = args[1];
-    int dest_offset = a2i(&args[2], 10);
+    int delay_sec = args[2];
+    int dest_offset = a2i(&args[3], 10);
 
-    delay(350);
-    printf(CONSOLE, "after: rerouting train %d to node %d and offset %d...\r\n", train, dest_node, dest_offset);
+    delay(delay_sec * 100);
 
     train_set_speed(train, 10);
     train_route(train, dest_node, dest_offset);
+
+    // a short delay after reversing before setting train speed
+    delay(25);
     marklin_set_speed(train, 10);
 
     syscall_exit();
@@ -398,6 +401,7 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
             t->cur_offset -= t->path.distances[t->cur_node++];
         }
     }
+    // printf(CONSOLE, "new node: %s, new offset: %d\r\n", track[t->path.nodes[t->cur_node]].name, t->cur_offset);
     t->avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
 
     for (int i = t->path.path_length - 2; i >= 0; --i) {
@@ -416,35 +420,6 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     // printf(CONSOLE, "stop node: %s, stop offset: %d\r\n", track[t->stop_node].name, t->stop_distance_offset);
     t->cur_stop_node = 0;
 }
-
-// void reroute_task()
-// {
-//     track_node track[TRACK_MAX];
-// #ifdef TRACKA
-//     init_tracka(track);
-// #else
-//     init_trackb(track);
-// #endif
-
-//     train_data_t train_data = init_train_data_a();
-
-//     int64_t ret;
-//     uint64_t caller_tid;
-//     char buf[2048];
-
-//     ret = receive(&caller_tid, buf, 2048);
-//     ASSERT(ret >= 0, "receive failed");
-
-//     uint64_t train = buf[0];
-//     track_path_t* path = (track_path_t*)buf[1];
-
-// 	delay(350);
-
-// 	train_t* t = trainlist_find(&trainlist, train);
-// 	route_train_handler(track, t, &train_data, path);
-
-//     syscall_exit();
-// }
 
 void train_task()
 {
@@ -539,7 +514,7 @@ void train_task()
                 }
 
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
-                    // printf(CONSOLE, "attributing sensor %s to train %d\r\n", track[node_index].name, train->id);
+                    printf(CONSOLE, "attributing sensor %s to train %d\r\n", track[node_index].name, train->id);
                     sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
                     if (distance_to_sensor < 0) {
@@ -714,33 +689,21 @@ void train_task()
                             case_2_dist += case_2_path_1.path_length == 0 ? (int)1e9 : case_2_path_1.path_distance;
                             case_2_dist += case_2_path_2.path_length == 0 ? (int)1e9 : case_2_path_2.path_distance;
 
-                            // int64_t route_task_tid = create(1, &reroute_task);
-                            // ASSERT(route_task_tid >= 0, "create failed");
-                            // char buf[2048];
-                            // buf[0] = train_one->id;
-                            // memcpy(&buf[1], case_1_dist < case_2_dist ? &case_1_path_1 : &case_2_path_1, sizeof(track_path_t));
-                            // send(route_task_tid, buf, 2048, NULL, 0);
-                            // ASSERT(ret >= 0, "send failed");
-
-                            // route_task_tid = create(1, &reroute_task);
-                            // ASSERT(route_task_tid >= 0, "create failed");
-                            // buf[0] = train_two->id;
-                            // memcpy(&buf[1], case_1_dist < case_2_dist ? &case_1_path_2 : &case_2_path_2, sizeof(track_path_t));
-                            // send(route_task_tid, buf, 2048, NULL, 0);
-                            // ASSERT(ret >= 0, "send failed");
-
                             marklin_set_speed(train_one->id, 0);
                             marklin_set_speed(train_two->id, 0);
 
                             set_train_speed_handler(&train_data, train_one, 0);
                             set_train_speed_handler(&train_data, train_two, 0);
 
+                            int train_one_delay, train_two_delay;
                             if (case_1_dist < case_2_dist) { // reroute 2
                                 train_two->avoid_seg_on_reroute = conflict_seg;
-                                // route_train_handler(track, train_one, &train_data, &case_1_path_1);
+                                train_one_delay = 5;
+                                train_two_delay = 4;
                             } else { // reroute 1
                                 train_one->avoid_seg_on_reroute = conflict_seg;
-                                // route_train_handler(track, train_one, &train_data, &case_2_path_1);
+                                train_one_delay = 4;
+                                train_two_delay = 5;
                             }
 
                             int64_t reroute_task_id = create(1, &reroute_task);
@@ -748,7 +711,8 @@ void train_task()
                             char args[10];
                             args[0] = train_one->id;
                             args[1] = train_one->path.dest;
-                            i2a(train_one->path.dest_offset, &args[2]);
+                            args[2] = train_one_delay;
+                            i2a(train_one->path.dest_offset, &args[3]);
                             int64_t ret = send(reroute_task_id, args, 10, NULL, 0);
                             ASSERT(ret >= 0, "send failed");
 
@@ -756,7 +720,8 @@ void train_task()
                             ASSERT(reroute_task_id >= 0, "create failed");
                             args[0] = train_two->id;
                             args[1] = train_two->path.dest;
-                            i2a(train_two->path.dest_offset, &args[2]);
+                            args[2] = train_two_delay;
+                            i2a(train_two->path.dest_offset, &args[3]);
                             ret = send(reroute_task_id, args, 10, NULL, 0);
                             ASSERT(ret >= 0, "send failed");
 
