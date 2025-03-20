@@ -89,7 +89,7 @@ void train_set_speed(uint64_t train, uint64_t speed)
     buf[1] = speed;
     buf[2] = train;
     int64_t ret = send(train_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "set train speed send failed");
 }
 
 void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
@@ -118,7 +118,7 @@ uint64_t train_get_speed(uint64_t train)
     buf[0] = GET_TRAIN_SPEED;
     buf[1] = train;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get train speed send failed");
     return response;
 }
 
@@ -131,7 +131,7 @@ uint64_t train_get_old_speed(uint64_t train)
     buf[0] = GET_TRAIN_OLD_SPEED;
     buf[1] = train;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get train old speed send failed");
     return response;
 }
 
@@ -145,7 +145,7 @@ int train_exists(uint64_t train)
     buf[1] = train;
     char response;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "train exists send failed");
     return response;
 }
 
@@ -160,7 +160,7 @@ void train_sensor_reading(track_node* track, char* sensor)
     buf[0] = SENSOR_READING;
     buf[1] = node_index;
     int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "sensor reading send failed");
 }
 
 void train_get_times(char* response)
@@ -170,7 +170,7 @@ void train_get_times(char* response)
 
     char c = GET_TRAIN_TIMES;
     int64_t ret = send(train_task_tid, &c, 1, response, 256);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get train times send failed");
 }
 
 int train_last_sensor(uint64_t train)
@@ -183,7 +183,7 @@ int train_last_sensor(uint64_t train)
     buf[1] = train;
     char response;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "last sensor send failed");
     if (ret == 0) {
         return -1;
     }
@@ -199,7 +199,7 @@ void train_set_reverse(uint64_t train)
     buf[0] = SET_TRAIN_REVERSE;
     buf[1] = train;
     int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "train set reverse send failed");
 }
 
 int train_get_reverse(uint64_t train)
@@ -212,7 +212,7 @@ int train_get_reverse(uint64_t train)
     buf[1] = train;
     char response;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get reverse send failed");
     return response;
 }
 
@@ -248,7 +248,7 @@ int train_get_cur_node(uint64_t train)
     buf[1] = train;
     char response;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get cur node send failed");
     return response;
 }
 
@@ -262,7 +262,7 @@ int train_get_cur_offset(uint64_t train)
     buf[1] = train;
     char response[8];
     int64_t ret = send(train_task_tid, buf, 2, response, 8);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get cur offset send failed");
     return a2i(response, 10);
 }
 
@@ -276,7 +276,7 @@ int train_set_cur_node(uint64_t train, int node)
     buf[1] = train;
     buf[2] = node;
     int64_t ret = send(train_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "set cur node send failed");
     return 0;
 }
 
@@ -290,7 +290,7 @@ int train_set_cur_offset(uint64_t train, int offset)
     buf[1] = train;
     i2a(offset, &buf[2]);
     int64_t ret = send(train_task_tid, buf, 10, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "set cur offset send failed");
     return 0;
 }
 
@@ -305,7 +305,7 @@ void train_route(uint64_t train, int dest, int offset)
     buf[2] = dest;
     i2a(offset, buf + 3);
     int64_t ret = send(train_task_tid, buf, 8, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "train route send failed");
 }
 
 void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
@@ -319,7 +319,7 @@ void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
     buf[2] = t2;
     buf[3] = conflict_seg;
     int64_t ret = send(train_task_tid, buf, 4, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "train reroute send failed");
 }
 
 void train_model_notifier()
@@ -331,7 +331,7 @@ void train_model_notifier()
 
     for (;;) {
         int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
-        ASSERT(ret >= 0, "send failed");
+        ASSERT(ret >= 0, "model notifier send failed");
 
         cur_time += 5;
         delay_until(cur_time);
@@ -665,7 +665,7 @@ void train_task()
                         args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
                         i2a(t->path.stop_dest_offsets[t->cur_stop_node], &args[2]);
                         int64_t ret = send(reverse_task_id, args, 10, NULL, 0);
-                        ASSERT(ret >= 0, "send failed");
+                        ASSERT(ret >= 0, "create reverse task send failed");
                         t->cur_stop_node++;
                     }
                 }
@@ -718,7 +718,7 @@ void train_task()
                             args[1] = train_two->id;
                             args[2] = conflict_seg;
                             int64_t ret = send(reroute_task_id, args, 3, NULL, 0);
-                            ASSERT(ret >= 0, "send failed");
+                            ASSERT(ret >= 0, "create reroute task send failed");
 
                             goto should_update_train_state_end;
                         } else {

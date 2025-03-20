@@ -18,7 +18,7 @@ int64_t getc(int channel)
     char c;
     char msg = REQUEST_UART_READ;
     int64_t ret = send(tid, &msg, 1, &c, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "getc send failed");
     return c;
 }
 
@@ -34,7 +34,7 @@ int64_t putc(int channel, char c)
     buf[0] = REQUEST_UART_WRITE;
     buf[1] = c;
     int64_t ret = send(tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "putc send failed");
     return 0;
 }
 
@@ -52,7 +52,7 @@ int64_t puts(int channel, const char* buf)
     strcpy(sendbuf + 1, buf);
     sendbuf[len + 1] = 0;
     int64_t ret = send(tid, sendbuf, len + 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "puts send failed");
     return 0;
 }
 

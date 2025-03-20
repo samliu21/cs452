@@ -16,7 +16,7 @@ void clock_notifier_task()
     for (;;) {
         await_event(EVENT_TICK);
         int ret = send(clock_task_tid, tick_msg, 2, NULL, 0);
-        ASSERT(ret >= 0, "send failed");
+        ASSERT(ret >= 0, "clock notifier send failed");
     }
 
     exit();

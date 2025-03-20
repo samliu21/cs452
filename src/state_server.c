@@ -39,7 +39,7 @@ void state_set_recent_sensor(char bank, char sensor)
     buf[1] = bank;
     buf[2] = sensor;
     int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "set recent sensor send failed");
 }
 
 void state_get_recent_sensors(char* response)
@@ -49,7 +49,7 @@ void state_get_recent_sensors(char* response)
 
     char c = GET_RECENT_SENSORS;
     int64_t ret = send(state_task_tid, &c, 1, response, 4 * NUM_RECENT_SENSORS + 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get recent sensors send failed");
 }
 
 void state_set_switch(uint64_t sw, char d)
@@ -62,7 +62,7 @@ void state_set_switch(uint64_t sw, char d)
     buf[1] = sw;
     buf[2] = d;
     int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "set switch send failed");
 }
 
 void state_get_switches(char* response)
@@ -72,7 +72,7 @@ void state_get_switches(char* response)
 
     char c = GET_SWITCHES;
     int64_t ret = send(state_task_tid, &c, 1, response, 128);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get switches send failed");
 }
 
 int state_switch_exists(uint64_t sw)
@@ -85,7 +85,7 @@ int state_switch_exists(uint64_t sw)
     buf[1] = sw;
     char response;
     int64_t ret = send(state_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "switch exists send failed");
     return response;
 }
 
@@ -99,7 +99,7 @@ int state_next_sensor(int sensor)
     buf[1] = sensor;
     char response;
     int64_t ret = send(state_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "next sensor send failed");
     if (ret == 0)
         return -1;
     return response;
@@ -115,7 +115,7 @@ int state_is_reserved(int segment)
     buf[1] = segment;
     char response;
     int64_t ret = send(state_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "is reserved send failed");
     return response;
 }
 
@@ -129,7 +129,7 @@ int state_reserve_segment(int segment, int train)
     buf[1] = segment;
     buf[2] = train;
     int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "reserve segment send failed");
     return 0;
 }
 
@@ -143,7 +143,7 @@ int state_release_segment(int segment, int train)
     buf[1] = segment;
     buf[2] = train;
     int64_t ret = send(state_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "release segment send failed");
     return 0;
 }
 
@@ -156,7 +156,7 @@ void state_get_reservations(char* response, int train)
     buf[0] = GET_RESERVATIONS;
     buf[1] = train;
     int64_t ret = send(state_task_tid, buf, 2, response, 1024);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get reservations send failed");
 }
 
 int state_forbid_segment(int segment)
@@ -168,7 +168,7 @@ int state_forbid_segment(int segment)
     buf[0] = FORBID_SEGMENT;
     buf[1] = segment;
     int64_t ret = send(state_task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "forbid segment send failed");
     return 0;
 }
 
@@ -180,7 +180,7 @@ void state_get_forbidden_segments(char* response)
     char buf[1];
     buf[0] = GET_FORBIDDEN_SEGMENTS;
     int64_t ret = send(state_task_tid, buf, 1, response, TRACK_SEGMENTS_MAX);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "get forbidden segments send failed");
     return;
 }
 

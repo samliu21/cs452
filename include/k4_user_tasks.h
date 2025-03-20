@@ -34,7 +34,7 @@ void terminal_task()
 
             command[command_pos] = 0;
             int64_t ret = send(command_task_tid, command, command_pos + 1, (char*)&command_result, sizeof(command_result_t));
-            ASSERT(ret >= 0, "send failed");
+            ASSERT(ret >= 0, "command enter send failed");
 
             if (command_result.type == COMMAND_QUIT) {
                 terminate();
@@ -71,11 +71,11 @@ void k4_initial_user_task()
     uint64_t terminal_task_tid = create(1, &uart_server_task);
     c = CONSOLE;
     int64_t ret = send(terminal_task_tid, &c, 1, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "terminal task startup send failed");
     uint64_t marklin_task_tid = create(1, &uart_server_task);
     c = MARKLIN;
     ret = send(marklin_task_tid, &c, 1, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "marklin task startup send failed");
     create(1, &terminal_notifier);
     create(1, &marklin_notifier);
 

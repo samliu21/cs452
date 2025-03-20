@@ -82,7 +82,7 @@ void command_task()
 
             int64_t reverse_task_id = create(1, &train_reverse_task);
             int64_t ret = send(reverse_task_id, (char*)&train, 1, NULL, 0);
-            ASSERT(ret >= 0, "send failed");
+            ASSERT(ret >= 0, "reverse task startup send failed");
 
             result.type = COMMAND_SUCCESS;
         }

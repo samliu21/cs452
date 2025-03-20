@@ -21,7 +21,7 @@ void display(char type)
     ASSERT(display_state_task_tid >= 0, "who_is failed");
 
     int64_t ret = send(display_state_task_tid, &type, 1, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "display send failed");
 }
 
 void display_lazy()

@@ -109,5 +109,5 @@ void create_switch_task(int switch_num, char switch_type)
     buf[0] = switch_num;
     buf[1] = switch_type;
     int64_t ret = send(task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "send failed");
+    ASSERT(ret >= 0, "create switch task send failed");
 }
