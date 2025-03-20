@@ -13,7 +13,7 @@
 #include "track_node.h"
 #include "train_data.h"
 #include "uart_server.h"
-#include <stdlib.h>
+// #include <stdlib.h>
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
 #define SENSOR_PREDICTION_WINDOW 300
@@ -235,9 +235,7 @@ void train_stop_task()
     marklin_set_speed(train, 0);
     train_set_speed(train, 0);
 
-    // printf(CONSOLE, "calling syscall_exit from train_stop_task\r\n");
-    delay(20);
-    syscall_exit();
+    exit();
 }
 
 int train_get_cur_node(uint64_t train)
@@ -389,15 +387,14 @@ void reroute_task()
 
     train_reroute(t1, t2, conflict_seg);
 
-    delay(20);
-    syscall_exit();
+    exit();
 }
 
 void route_train_handler(track_node* track, train_t* t, train_data_t* train_data, track_path_t* path)
 {
     clear_reservations(track, t);
 
-    // if (t->cur_node == t->path.path_length - 2 && abs(t->cur_offset - t->path.distances[t->cur_node]) < 50) {
+    // if (t->cur_node == t->path.path_length - 2 && t->path.distances[t->cur_node] - t->cur_offset < 50) {
     //     t->cur_offset = 0;
     //     t->cur_node++;
     // }
@@ -448,7 +445,6 @@ void train_task()
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
-    // putc(MARKLIN, 64);
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -796,7 +792,6 @@ void train_task()
             train_t* train_two = trainlist_find(&trainlist, t2);
 
             // CASE 1: keep 1 on path, reroute 2
-            // printf(CONSOLE, "calculating case 1. \r\n");
             track_path_t case_1_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, NO_FORBIDDEN_SEGMENT, 1);
             track_path_t case_1_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, conflict_seg, 0);
             int case_1_dist = 0;
@@ -804,7 +799,6 @@ void train_task()
             case_1_dist += case_1_path_2.path_length == 0 ? (int)1e9 : case_1_path_2.path_distance;
 
             // CASE 2: keep 2 on path, reroute 1
-            // printf(CONSOLE, "calculating case 2. \r\n");
             track_path_t case_2_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
             track_path_t case_2_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, NO_FORBIDDEN_SEGMENT, 1);
             int case_2_dist = 0;
@@ -817,18 +811,11 @@ void train_task()
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
                 path_2 = case_1_path_2;
-                // train_one_delay = 5;
-                // train_two_delay = 4;
             } else { // reroute 1
                 train_one->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_2_path_1;
                 path_2 = case_2_path_2;
-                // train_one_delay = 4;
-                // train_two_delay = 5;
             }
-
-            route_train_handler(track, train_one, &train_data, &path_1);
-            route_train_handler(track, train_two, &train_data, &path_2);
 
             marklin_set_speed(train_one->id, train_one->old_speed);
             marklin_set_speed(train_two->id, train_two->old_speed);

@@ -148,6 +148,10 @@ int kmain()
         }
 
         uint64_t syndrome = esr & 0xFFFF;
+        if (syndrome != INTERRUPT_CODE) {
+            int type = (esr >> 26) & 0x3F;
+            ASSERTF(type == 21, "not an svc call; type: %d, syndrome: %d\r\n", type, syndrome);
+        }
 
         switch (syndrome) {
         case SYSCALL_CREATE: {
@@ -166,6 +170,10 @@ int kmain()
             break;
         }
         case SYSCALL_EXIT: {
+            if (context.active_task->tid == 10) {
+                pq_task_add(&scheduler, context.active_task);
+                break;
+            }
             exit_handler(&context);
             break;
         }
