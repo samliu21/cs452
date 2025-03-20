@@ -13,7 +13,7 @@ typedef struct pi_t {
 } pi_t;
 
 #define NUM_TASKS 64
-#define STACK_SIZE (2 * 1024 * 1024)
+#define STACK_SIZE (1024 * 1024)
 #define MAX_RAND 32767
 
 void memcpy(void* dest, const void* src, int n);
