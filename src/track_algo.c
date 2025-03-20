@@ -91,9 +91,10 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     dist[reverse_node] = 0;
     prev[reverse_node] = -1;
 
-    int stopping_distance = train_data.stopping_distance[train->id][train->speed];
+    int speed = (train->speed > 0) ? train->speed : train->old_speed;
+    int stopping_distance = train_data.stopping_distance[train->id][speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
-    int fully_stop_fully_start = (is_full_speed ? 0 : train_data.starting_distance[train->id][train->speed]) + train_data.stopping_distance[train->id][train->speed];
+    int fully_stop_fully_start = (is_full_speed ? 0 : train_data.starting_distance[train->id][speed]) + train_data.stopping_distance[train->id][speed];
 
     track_path_t path = track_path_new();
 
@@ -248,7 +249,13 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, reverse_node, reverse_edge_weight);
         }
     }
-
+    // if (path.path_length == 0) printf(CONSOLE, "train %d path impossible!\r\n", train->id);
+    // for (int i = 0; i < path.path_length; ++i) {
+    //     printf(CONSOLE, "train %d path node %d: %s\r\n", train->id, i, track[path.nodes[i]].name);
+    // }
+    ASSERTF(path.path_length == 0 || path.nodes[0] == src || path.nodes[0] == reverse_node, 
+        "new path for train %d starts on node %s, not cur node %s or reverse node %s\r\n",
+        train->id, track[path.nodes[0]].name, track[src].name, track[reverse_node].name);
     return path;
 }
 

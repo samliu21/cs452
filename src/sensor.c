@@ -107,9 +107,9 @@ void sensor_task()
                     //     printf(CONSOLE, "start: %d, end: %d\r\n", start_time, end_time);
                     //     marklin_set_speed(77, 0);
                     // }
-                    if (strcmp(sensor_name, "B1") == 0) {
-                        marklin_set_speed(77, 15);
-                    }
+                    // if (strcmp(sensor_name, "B1") == 0) {
+                    //     marklin_set_speed(77, 15);
+                    // }
 
 #if defined(MEASURE_TRAIN_SPEED)
                     int idx = clock_index(bank, i + 1);
