@@ -17,6 +17,7 @@
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1000
 #define SENSOR_PREDICTION_WINDOW 300
+#define NO_TRAIN 255
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -419,8 +420,13 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
             char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
 
             create_switch_task(node.num, switch_type);
+
+            //track_edge *branch_fail_edge = &node.edge[switch_type == S ? 1 : 0];
+            //int branch_fail_offset = track_path_total_offset(&t->path, get_node_index(track, &node), 0) + branch_fail_edge->dist;
+            //find_branch_fail_sensors(track, branch_fail_edge->dest, branch_fail_offset);
         }
     }
+
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERTF(ret >= 0, "create failed: %d", ret);
 
@@ -685,20 +691,6 @@ void train_task()
                             printf(CONSOLE, "conflicting seg: %d\r\n", conflict_seg);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
-                            // if train one has started stopping, reroute train two
-                            if (train_one->speed == 0) {
-                                marklin_set_speed(train_two->id, 0);
-                                set_train_speed_handler(&train_data, train_two, 0);
-                                goto should_update_train_state_end;
-                            }
-
-                            // if train two has started stopping, reroute train one
-                            if (train_two->speed == 0) {
-                                marklin_set_speed(train_one->id, 0);
-                                set_train_speed_handler(&train_data, train_one, 0);
-                                goto should_update_train_state_end;
-                            }
-
                             marklin_set_speed(train_one->id, 0);
                             marklin_set_speed(train_two->id, 0);
 
@@ -708,9 +700,21 @@ void train_task()
                             int64_t reroute_task_id = create(1, &reroute_task);
                             ASSERT(reroute_task_id >= 0, "create failed");
                             char args[3];
-                            args[0] = train_one->id;
-                            args[1] = train_two->id;
-                            args[2] = conflict_seg;
+
+                            if (train_one->speed == 0) {
+                                // if train one has started stopping, reroute train two
+                                args[0] = train_two->id;
+                                args[1] = NO_TRAIN;
+                            } else if (train_two->speed == 0) {
+                                // if train two has started stopping, reroute train one
+                                args[0] = train_one->id;
+                                args[1] = NO_TRAIN;
+                            } else {
+                                args[0] = train_one->id;
+                                args[1] = train_two->id;
+                                args[2] = conflict_seg;
+                            }
+                            
                             int64_t ret = send(reroute_task_id, args, 3, NULL, 0);
                             ASSERT(ret >= 0, "create reroute task send failed");
 
@@ -789,6 +793,16 @@ void train_task()
             int conflict_seg = buf[3];
 
             train_t* train_one = trainlist_find(&trainlist, t1);
+
+            // rerouting just one train
+            if (t2 == NO_TRAIN) {
+                track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
+                route_train_handler(track, train_one, &train_data, &path);
+                marklin_set_speed(train_one->id, train_one->old_speed);
+                set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+                break;
+            }
+
             train_t* train_two = trainlist_find(&trainlist, t2);
 
             // CASE 1: keep 1 on path, reroute 2
