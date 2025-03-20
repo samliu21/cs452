@@ -150,7 +150,18 @@ int kmain()
         uint64_t syndrome = esr & 0xFFFF;
         if (syndrome != INTERRUPT_CODE) {
             int type = (esr >> 26) & 0x3F;
-            ASSERTF(type == 21, "not an svc call; type: %d, syndrome: %d\r\n", type, syndrome);
+            char ISS[64];
+            memset(ISS, 0, 64);
+            int index = 0;
+            ISS[index++] = '0' + ((esr >> 24) & 1);
+            ISS[index++] = ' ';
+            for (int i = 0; i < 24; ++i) {
+                ISS[index++] = '0' + ((esr >> (23 - i)) & 1);
+                if (i % 4 == 3) {
+                    ISS[index++] = ' ';
+                }
+            }
+            ASSERTF(type == 21, "not an svc call; type: %d, ISS: %s\r\n", type, ISS);
         }
 
         switch (syndrome) {
