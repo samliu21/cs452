@@ -15,7 +15,7 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1200
+#define RESERVATION_LOOKAHEAD_DISTANCE 1100
 #define SENSOR_PREDICTION_WINDOW 300
 #define NO_TRAIN 255
 
@@ -758,7 +758,7 @@ void train_task()
                             train_t* train_one = trainlist_find(&trainlist, reserver);
                             train_t* train_two = t;
 
-                            log("conflicting seg: %d\r\n", conflict_seg);
+                            log("conflicting segment: %d\r\n", conflict_seg);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
                             marklin_set_speed(train_one->id, 0);
@@ -896,7 +896,7 @@ void train_task()
             track_path_t path_1, path_2;
             int train_one_on_seg = train_one->cur_seg == conflict_seg;
             int train_two_on_seg = train_two->cur_seg == conflict_seg;
-            log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one->cur_seg, train_two->cur_seg);
+            // log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one->cur_seg, train_two->cur_seg);
             if (train_one_on_seg || (!train_two_on_seg && case_1_dist < case_2_dist)) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
@@ -922,7 +922,7 @@ void train_task()
                 state_reserve_segment(train_one->cur_seg, train_one->id);
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
-                track_path_debug(&train_one->path, track);
+                // track_path_debug(&train_one->path, track);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
             }
@@ -942,7 +942,7 @@ void train_task()
                 state_reserve_segment(train_two->cur_seg, train_two->id);
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
-                track_path_debug(&train_two->path, track);
+                // track_path_debug(&train_two->path, track);
                 marklin_set_speed(train_two->id, train_two->old_speed);
                 set_train_speed_handler(&train_data, train_two, train_two->old_speed);
             }
@@ -959,7 +959,7 @@ void train_task()
             track_node* cur_node = &track[t->path.nodes[t->cur_node]];
             int new_offset = train_data.train_length[t->id] - t->cur_offset + 500;
 
-            log("backing up train %d to node %s, offset %d\r\n", t->id, cur_node->reverse->name, new_offset);
+            // log("backing up train %d to node %s, offset %d\r\n", t->id, cur_node->reverse->name, new_offset);
             track_path_t path = get_shortest_path(track, t, cur_node->reverse->num, new_offset, NO_FORBIDDEN_SEGMENT);
             marklin_set_speed(t->id, t->old_speed);
             set_train_speed_handler(&train_data, t, t->old_speed);
