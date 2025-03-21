@@ -165,7 +165,6 @@ void command_task()
             for (int i = 0; i < ((argc - 1) / 2); ++i) {
                 uint64_t train = a2ui(args[(i * 2) + 1], 10);
                 int dest = name_to_node_index(track, args[(i * 2) + 2]);
-                int node_offset = a2i(args[(i * 2) + 3], 10);
 
                 if (!train_exists(train)) {
                     result.type = COMMAND_FAIL;
@@ -187,7 +186,7 @@ void command_task()
                 // set speed for routing purposes
                 train_set_speed(train, 10);
 
-                train_route(train, dest, node_offset);
+                train_route(train, dest, 0);
 
                 marklin_set_speed(train, 10);
             }

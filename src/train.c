@@ -40,7 +40,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
     track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 130, 1e9);
-    tlist->trains[tlist->size].cur_seg = (id = 55 ? 4 : 7);
+    tlist->trains[tlist->size].cur_seg = (id == 55 ? 4 : 7);
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
