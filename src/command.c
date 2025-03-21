@@ -155,6 +155,48 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "routemany") == 0) { // route <train> <dest> <offset>
+            if (argc < 3 || argc % 2 != 1) {
+                result.type = COMMAND_FAIL;
+                error_message = "routemany command expects sets of 2 arguments";
+                
+                goto end;
+            }
+            for (int i = 0; i < ((argc - 1) / 2); ++i) {
+                uint64_t train = a2ui(args[(i * 2) + 1], 10);
+                int dest = name_to_node_index(track, args[(i * 2) + 2]);
+                int node_offset = a2i(args[(i * 2) + 3], 10);
+
+                if (!train_exists(train)) {
+                    result.type = COMMAND_FAIL;
+                    error_message = "train does not exist";
+                    goto end;
+                }
+                uint64_t speed_level = train_get_speed(train);
+                if (speed_level != 0) {
+                    result.type = COMMAND_FAIL;
+                    error_message = "train must be at a stop";
+                    goto end;
+                }
+                if (dest == -1) {
+                    result.type = COMMAND_FAIL;
+                    error_message = "invalid destination node";
+                    goto end;
+                }
+
+                // set speed for routing purposes
+                train_set_speed(train, 10);
+
+                train_route(train, dest, node_offset);
+
+                marklin_set_speed(train, 10);
+            }
+
+            // printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
+
+            result.type = COMMAND_SUCCESS;
+        }
+
         else if (strcmp(command_type, "rs") == 0) { // rs <segment>
             if (argc != 2) {
                 result.type = COMMAND_FAIL;
