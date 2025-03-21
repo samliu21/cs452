@@ -15,7 +15,7 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1000
+#define RESERVATION_LOOKAHEAD_DISTANCE 1300
 #define SENSOR_PREDICTION_WINDOW 300
 #define NO_TRAIN 255
 
@@ -378,15 +378,16 @@ void clear_reservations(track_node* track, train_t* t)
 void reroute_task()
 {
     uint64_t caller_tid;
-    char args[3];
-    receive(&caller_tid, args, 3);
+    char args[4];
+    receive(&caller_tid, args, 4);
     reply_empty(caller_tid);
 
     uint64_t t1 = args[0];
     uint64_t t2 = args[1];
     int conflict_seg = args[2];
+    int delay_sec = args[3];
 
-    delay(350);
+    delay(delay_sec * 100);
 
     train_reroute(t1, t2, conflict_seg);
 
@@ -427,6 +428,14 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     t->stop_distance_offset = t->path.stop_distance_offset;
     t->cur_stop_node = 0;
     t->last_sensor = -1;
+}
+
+int get_cur_seg(track_node* track, train_t* t)
+{
+    int segments[16];
+    int num_segments = segments_in_path_up_to(segments, track, &t->path, 0, min(t->cur_node, t->path.path_length - 1));
+    ASSERT(num_segments > 0, "no segments in path so far");
+    return segments[num_segments - 1];
 }
 
 void train_task()
@@ -515,34 +524,40 @@ void train_task()
                     continue;
                 }
 
-                // these are displacement values, i.e. negative means before the sensor, positive is after.
+                // these are displacement values, i.e. negative means before the sensor, positive is after
                 int distance_to_sensor = 1e9, head_distance_to_sensor = 1e9;
                 int expected_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
+                int ofs;
                 for (int i = -3; i < 3; ++i) {
                     if (train->cur_node + i >= 0 && train->cur_node + i < train->path.path_length && train->path.nodes[train->cur_node + i] == node_index) {
                         head_distance_to_sensor = train->cur_offset;
-                        for (int j = i; j < 0; ++j) {
-                            head_distance_to_sensor -= train->path.distances[train->cur_node + j];
+                        if (i >= 0) {
+                            for (int j = 0; j < i; ++j) {
+                                head_distance_to_sensor += train->path.distances[train->cur_node + j];
+                            }
+                        } else {
+                            for (int j = i; j < 0; ++j) {
+                                head_distance_to_sensor -= train->path.distances[train->cur_node + j];
+                            }
                         }
-                        for (int j = i; j > 0; --j) {
-                            head_distance_to_sensor += train->path.distances[train->cur_node + j];
-                        }
+
+                        ofs = i;
                         distance_to_sensor = head_distance_to_sensor - expected_offset;
                         break;
                     }
                 }
+                // if (train->id == 77 && distance_to_sensor < 1000) {
+                //     printf(CONSOLE, "sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->cur_node].name, train->cur_offset);
+                // }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
+                    printf(CONSOLE, "attrbituing sensor %s to train %d\r\n", track[node_index].name, train->id);
                     sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
-                    if (head_distance_to_sensor < 0) {
-                        while (train->path.nodes[train->cur_node] != node_index) {
-                            train->cur_node++;
-                        }
-                    } else {
-                        while (train->path.nodes[train->cur_node] != node_index) {
-                            train->cur_node--;
-                        }
-                    }
+                    // if (train->path.nodes[ofs] != node_index) {
+                    //     puts(CONSOLE, "train isn't at sensor node?\r\n");
+                    //     goto sensor_reading_end;
+                    // }
+                    train->cur_node += ofs;
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
 
@@ -637,18 +652,18 @@ void train_task()
                 int update_distance = t->distance_overflow_nm / 1000000;
                 t->distance_overflow_nm -= update_distance * 1000000;
 
-                t->cur_offset += update_distance;
-                while (t->cur_offset >= t->path.distances[t->cur_node]) {
-                    t->cur_offset -= t->path.distances[t->cur_node++];
-                }
-
-                // handle stopping.
+                // handle stopping
                 if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
                     marklin_set_speed(t->id, 0);
 
                     set_train_speed_handler(&train_data, t, 0);
 
                     t->stop_node = -1;
+                }
+
+                t->cur_offset += update_distance;
+                while (t->cur_offset >= t->path.distances[t->cur_node]) {
+                    t->cur_offset -= t->path.distances[t->cur_node++];
                 }
 
                 if (t->cur_stop_node < t->path.stop_node_count) {
@@ -690,26 +705,31 @@ void train_task()
 
                             int64_t reroute_task_id = create(1, &reroute_task);
                             ASSERT(reroute_task_id >= 0, "create failed");
-                            char args[3];
+                            char args[4];
 
                             if (train_one->speed == 0) {
                                 // if train one has started stopping, reroute train two
+                                puts(CONSOLE, "rerouting only train two\r\n");
                                 args[0] = train_two->id;
                                 args[1] = NO_TRAIN;
+                                args[3] = 4;
                             } else if (train_two->speed == 0) {
                                 // if train two has started stopping, reroute train one
+                                puts(CONSOLE, "rerouting only train one\r\n");
                                 args[0] = train_one->id;
                                 args[1] = NO_TRAIN;
+                                args[3] = 4;
                             } else {
                                 args[0] = train_one->id;
                                 args[1] = train_two->id;
                                 args[2] = conflict_seg;
+                                args[3] = 4;
                             }
 
                             set_train_speed_handler(&train_data, train_one, 0);
                             set_train_speed_handler(&train_data, train_two, 0);
 
-                            int64_t ret = send(reroute_task_id, args, 3, NULL, 0);
+                            int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                             ASSERT(ret >= 0, "create reroute task send failed");
 
                             goto should_update_train_state_end;
@@ -786,6 +806,8 @@ void train_task()
             // rerouting just one train
             if (t2 == NO_TRAIN) {
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
+                ASSERT(path.path_length > 0, "no path found");
+                track_path_debug(&path, track);
                 route_train_handler(track, train_one, &train_data, &path);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
@@ -808,43 +830,14 @@ void train_task()
             case_2_dist += case_2_path_1.path_length == 0 ? (int)1e9 : case_2_path_1.path_distance;
             case_2_dist += case_2_path_2.path_length == 0 ? (int)1e9 : case_2_path_2.path_distance;
 
-            printf(CONSOLE, "case 1 dist: %d, case 2 dist: %d\r\n", case_1_dist, case_2_dist);
-            if (case_1_dist >= 1e9 && case_2_dist >= 1e9) {
-                if (state_is_reserved(conflict_seg) == (int)t1) {
-                    // make train two wait
-                    route_train_handler(track, train_one, &train_data, &case_1_path_1);
-                    marklin_set_speed(train_one->id, train_one->old_speed);
-                    set_train_speed_handler(&train_data, train_one, train_one->old_speed);
-
-                    ret = create(1, &reroute_task);
-                    ASSERT(ret >= 0, "create failed");
-                    char args[3];
-                    args[0] = train_two->id;
-                    args[1] = NO_TRAIN;
-                    args[2] = NO_FORBIDDEN_SEGMENT;
-                    ret = send(ret, args, 3, NULL, 0);
-                    ASSERT(ret >= 0, "send failed");
-                } else {
-                    // make train one wait
-                    route_train_handler(track, train_two, &train_data, &case_2_path_2);
-                    marklin_set_speed(train_two->id, train_two->old_speed);
-                    set_train_speed_handler(&train_data, train_two, train_two->old_speed);
-
-                    ret = create(1, &reroute_task);
-                    ASSERT(ret >= 0, "create failed");
-                    char args[3];
-                    args[0] = train_one->id;
-                    args[1] = NO_TRAIN;
-                    args[2] = NO_FORBIDDEN_SEGMENT;
-                    ret = send(ret, args, 3, NULL, 0);
-                    ASSERT(ret >= 0, "send failed");
-                }
-                break;
-            }
-
             // int train_one_delay, train_two_delay;
             track_path_t path_1, path_2;
-            if (case_1_dist < case_2_dist) { // reroute 2
+            int train_one_cur_seg = get_cur_seg(track, train_one);
+            int train_two_cur_seg = get_cur_seg(track, train_two);
+            int train_one_on_seg = train_one_cur_seg == conflict_seg;
+            int train_two_on_seg = train_two_cur_seg == conflict_seg;
+            printf(CONSOLE, "train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one_on_seg, train_two_on_seg);
+            if (train_one_on_seg || (!train_two_on_seg && case_1_dist < case_2_dist)) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
                 path_2 = case_1_path_2;
@@ -854,17 +847,47 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
-            route_train_handler(track, train_one, &train_data, &path_1);
-            route_train_handler(track, train_two, &train_data, &path_2);
+            if (path_1.path_length == 0) {
+                int64_t reroute_task_id = create(1, &reroute_task);
+                ASSERT(reroute_task_id >= 0, "create failed");
+                char args[4];
+                args[0] = train_one->id;
+                args[1] = NO_TRAIN;
+                args[3] = 8;
 
-            track_path_debug(&train_one->path, track);
-            track_path_debug(&train_two->path, track);
+                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                ASSERT(ret >= 0, "create reroute task send failed");
 
-            marklin_set_speed(train_one->id, train_one->old_speed);
-            marklin_set_speed(train_two->id, train_two->old_speed);
+                clear_reservations(track, train_one);
+                state_reserve_segment(train_one_cur_seg, train_one->id);
+            } else {
+                route_train_handler(track, train_one, &train_data, &path_1);
+                track_path_debug(&train_one->path, track);
+                delay(1);
+                marklin_set_speed(train_one->id, train_one->old_speed);
+                set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+            }
 
-            set_train_speed_handler(&train_data, train_one, train_one->old_speed);
-            set_train_speed_handler(&train_data, train_two, train_two->old_speed);
+            if (path_2.path_length == 0) {
+                int64_t reroute_task_id = create(1, &reroute_task);
+                ASSERT(reroute_task_id >= 0, "create failed");
+                char args[4];
+                args[0] = train_two->id;
+                args[1] = NO_TRAIN;
+                args[3] = 8;
+
+                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                ASSERT(ret >= 0, "create reroute task send failed");
+
+                clear_reservations(track, train_two);
+                state_reserve_segment(train_two_cur_seg, train_two->id);
+            } else {
+                route_train_handler(track, train_two, &train_data, &path_2);
+                track_path_debug(&train_two->path, track);
+                delay(1);
+                marklin_set_speed(train_two->id, train_two->old_speed);
+                set_train_speed_handler(&train_data, train_two, train_two->old_speed);
+            }
 
             break;
         }
