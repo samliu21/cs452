@@ -29,6 +29,8 @@ trainlist_t trainlist_create(train_t* trains)
 
 void trainlist_add(trainlist_t* tlist, uint64_t id)
 {
+    train_data_t train_data = init_train_data_a();
+
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
     tlist->trains[tlist->size].old_speed = 0;
@@ -39,9 +41,8 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].reverse_direction = 0;
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
-    track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 130, 1e9);
-    tlist->trains[tlist->size].cur_seg = (id == 55 ? 4 : 7);
-    train_data_t train_data = init_train_data_a();
+    track_path_add(&tlist->trains[tlist->size].path, train_data.start_node[id], 1e9);
+    tlist->trains[tlist->size].cur_seg = train_data.start_seg[id];
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
     tlist->trains[tlist->size].acc_end = 0;
@@ -497,6 +498,7 @@ void train_task()
     trainlist_t trainlist = trainlist_create(trains);
     trainlist_add(&trainlist, 55);
     trainlist_add(&trainlist, 77);
+    trainlist_add(&trainlist, 58);
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
@@ -851,7 +853,7 @@ void train_task()
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
 
-            track_path_t path = get_shortest_path(track, t, dest, offset, t->avoid_seg_on_reroute, 0);
+            track_path_t path = get_shortest_path(track, t, dest, offset, t->avoid_seg_on_reroute);
             route_train_handler(track, t, &train_data, &path);
 
             break;
@@ -865,7 +867,7 @@ void train_task()
 
             // rerouting just one train
             if (t2 == NO_TRAIN) {
-                track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
+                track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
                 ASSERT(path.path_length > 0, "no path found");
                 // track_path_debug(&path, track);
                 route_train_handler(track, train_one, &train_data, &path);
@@ -877,15 +879,15 @@ void train_task()
             train_t* train_two = trainlist_find(&trainlist, t2);
 
             // CASE 1: keep 1 on path, reroute 2
-            track_path_t case_1_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, NO_FORBIDDEN_SEGMENT, 1);
-            track_path_t case_1_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, conflict_seg, 0);
+            track_path_t case_1_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, NO_FORBIDDEN_SEGMENT);
+            track_path_t case_1_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, conflict_seg);
             int case_1_dist = 0;
             case_1_dist += case_1_path_1.path_length == 0 ? (int)1e9 : case_1_path_1.path_distance;
             case_1_dist += case_1_path_2.path_length == 0 ? (int)1e9 : case_1_path_2.path_distance;
 
             // CASE 2: keep 2 on path, reroute 1
-            track_path_t case_2_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
-            track_path_t case_2_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, NO_FORBIDDEN_SEGMENT, 1);
+            track_path_t case_2_path_1 = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
+            track_path_t case_2_path_2 = get_shortest_path(track, train_two, train_two->path.dest, train_two->path.dest_offset, NO_FORBIDDEN_SEGMENT);
             int case_2_dist = 0;
             case_2_dist += case_2_path_1.path_length == 0 ? (int)1e9 : case_2_path_1.path_distance;
             case_2_dist += case_2_path_2.path_length == 0 ? (int)1e9 : case_2_path_2.path_distance;
@@ -958,7 +960,7 @@ void train_task()
             int new_offset = train_data.train_length[t->id] - t->cur_offset + 500;
 
             log("backing up train %d to node %s, offset %d\r\n", t->id, cur_node->reverse->name, new_offset);
-            track_path_t path = get_shortest_path(track, t, cur_node->reverse->num, new_offset, NO_FORBIDDEN_SEGMENT, 0);
+            track_path_t path = get_shortest_path(track, t, cur_node->reverse->num, new_offset, NO_FORBIDDEN_SEGMENT);
             marklin_set_speed(t->id, t->old_speed);
             set_train_speed_handler(&train_data, t, t->old_speed);
             route_train_handler(track, t, &train_data, &path);

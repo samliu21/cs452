@@ -30,14 +30,14 @@ int start_time, end_time;
 
 void temp_task()
 {
-    delay(340);
-    marklin_set_speed(77, 10);
+    delay(400);
+    marklin_set_speed(58, 10);
     start_time = timer_get_ms();
 
     syscall_exit();
 }
 
-// total distance=2408mm, distance without stop=1818mm
+// total distance=2408mm, distance without stop=1983mm
 // computing duration and put into Python script
 
 void sensor_task()
@@ -98,17 +98,17 @@ void sensor_task()
                     }
                     train_sensor_reading(track, sensor_name);
 
-                    // if (strcmp(sensor_name, "E11") == 0) {
-                    //     marklin_set_speed(77, 0);
-                    //     create(50, temp_task);
-                    // }
-                    // if (strcmp(sensor_name, "C14") == 0) {
-                    //     end_time = timer_get_ms();
-                    //     printf(CONSOLE, "start: %d, end: %d\r\n", start_time, end_time);
-                    //     marklin_set_speed(77, 0);
-                    // }
-                    // if (strcmp(sensor_name, "B1") == 0) {
-                    //     marklin_set_speed(77, 15);
+                    if (strcmp(sensor_name, "E11") == 0) {
+                        marklin_set_speed(58, 0);
+                        create(50, temp_task);
+                    }
+                    if (strcmp(sensor_name, "C14") == 0) {
+                        end_time = timer_get_ms();
+                        printf(CONSOLE, "start: %d, end: %d\r\n", start_time, end_time);
+                        marklin_set_speed(58, 0);
+                    }
+                    // if (strcmp(sensor_name, "C5") == 0) {
+                    //     marklin_set_speed(58, 0);
                     // }
 
 #if defined(MEASURE_TRAIN_SPEED)

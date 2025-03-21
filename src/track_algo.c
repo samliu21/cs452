@@ -63,7 +63,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
     return stop_distance;
 }
 
-track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg, int is_full_speed)
+track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -95,7 +95,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     int speed = (train->speed > 0) ? train->speed : train->old_speed;
     int stopping_distance = train_data.stopping_distance[train->id][speed];
     int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
-    int fully_stop_fully_start = (is_full_speed ? 0 : train_data.starting_distance[train->id][speed]) + train_data.stopping_distance[train->id][speed];
+    int fully_stop_fully_start = train_data.starting_distance[train->id][speed] + train_data.stopping_distance[train->id][speed];
 
     track_path_t path = track_path_new();
 
