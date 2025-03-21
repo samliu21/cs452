@@ -62,12 +62,18 @@ void display_state_task()
     memset(&old_reservations_55, 0, 1024);
     old_reservations_55[0] = 255;
 
+    char old_reservations_58[1024];
+    memset(&old_reservations_58, 0, 1024);
+    old_reservations_58[0] = 255;
+
     char old_reservations_77[1024];
     memset(&old_reservations_77, 0, 1024);
     old_reservations_77[0] = 255;
 
     int old_cur_node_55 = 0;
     int old_cur_offset_55 = 0;
+    int old_cur_node_58 = 0;
+    int old_cur_offset_58 = 0;
     int old_cur_node_77 = 0;
     int old_cur_offset_77 = 0;
 
@@ -139,11 +145,20 @@ void display_state_task()
             old_cur_offset_55 = cur_offset_55;
         }
 
+        // train 58 model
+        int cur_node_58 = train_get_cur_node(58);
+        int cur_offset_58 = train_get_cur_offset(58);
+        if (c == FORCE || cur_node_58 != old_cur_node_58 || cur_offset_58 != old_cur_offset_58) {
+            printf(CONSOLE, "\033[s\033[7;1H\033[2Ktrain 58 is at node: %s, and offset: %d\033[u", track[cur_node_58].name, cur_offset_58);
+            old_cur_node_58 = cur_node_58;
+            old_cur_offset_58 = cur_offset_58;
+        }
+
         // train 77 model
         int cur_node_77 = train_get_cur_node(77);
         int cur_offset_77 = train_get_cur_offset(77);
         if (c == FORCE || cur_node_77 != old_cur_node_77 || cur_offset_77 != old_cur_offset_77) {
-            printf(CONSOLE, "\033[s\033[7;1H\033[2Ktrain 77 is at node: %s, and offset: %d\033[u", track[cur_node_77].name, cur_offset_77);
+            printf(CONSOLE, "\033[s\033[8;1H\033[2Ktrain 77 is at node: %s, and offset: %d\033[u", track[cur_node_77].name, cur_offset_77);
             old_cur_node_77 = cur_node_77;
             old_cur_offset_77 = cur_offset_77;
         }
@@ -152,15 +167,23 @@ void display_state_task()
         char reservations_55[1024];
         state_get_reservations(reservations_55, 55);
         if (c == FORCE || strcmp(reservations_55, old_reservations_55)) {
-            printf(CONSOLE, "\033[s\033[8;1H\033[2Kreservations for 55: [ %s]\033[u", reservations_55);
+            printf(CONSOLE, "\033[s\033[9;1H\033[2Kreservations for 55: [ %s]\033[u", reservations_55);
             strcpy(old_reservations_55, reservations_55);
+        }
+
+        // train 58 reservations
+        char reservations_58[1024];
+        state_get_reservations(reservations_58, 58);
+        if (c == FORCE || strcmp(reservations_58, old_reservations_58)) {
+            printf(CONSOLE, "\033[s\033[10;1H\033[2Kreservations for 58: [ %s]\033[u", reservations_58);
+            strcpy(old_reservations_58, reservations_58);
         }
 
         // train 77 reservations
         char reservations_77[1024];
         state_get_reservations(reservations_77, 77);
         if (c == FORCE || strcmp(reservations_77, old_reservations_77)) {
-            printf(CONSOLE, "\033[s\033[9;1H\033[2Kreservations for 77: [ %s]\033[u", reservations_77);
+            printf(CONSOLE, "\033[s\033[11;1H\033[2Kreservations for 77: [ %s]\033[u", reservations_77);
             strcpy(old_reservations_77, reservations_77);
         }
 
@@ -177,7 +200,7 @@ void display_state_task()
                     text_index += sprintf(forbidden_segments_text + text_index, "%d ", i);
                 }
             }
-            printf(CONSOLE, "\033[s\033[10;1H\033[2Kforbidden segments: [ %s]\033[u", forbidden_segments_text);
+            printf(CONSOLE, "\033[s\033[12;1H\033[2Kforbidden segments: [ %s]\033[u", forbidden_segments_text);
             memcpy(old_forbidden_segments, forbidden_segments, TRACK_SEGMENTS_MAX);
         }
     }
