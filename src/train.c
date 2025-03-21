@@ -40,6 +40,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
     track_path_add(&tlist->trains[tlist->size].path, id == 55 ? 140 : 130, 1e9);
+    tlist->trains[tlist->size].cur_seg = (id = 55 ? 4 : 7);
     train_data_t train_data = init_train_data_a();
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
@@ -339,8 +340,27 @@ void train_model_notifier()
     }
 }
 
-int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)
-{
+void resolve_cur_seg(track_node* track, train_t* t) {
+    track_node* cur_node = &track[t->path.nodes[t->cur_node]];
+    if (cur_node->type == NODE_MERGE) {
+        t->cur_seg = cur_node->enters_seg[DIR_AHEAD];
+    } else if (cur_node->type == NODE_BRANCH) {
+        if (t->cur_node == t->path.path_length - 1) {
+            t->cur_seg = cur_node->enters_seg[DIR_STRAIGHT];
+        } else {
+            track_node* nxt_node = &track[t->path.nodes[t->cur_node + 1]];
+            for (int j = 0; j < 2; ++j) {
+                int seg = cur_node->enters_seg[j];
+                if (seg >= 0 && cur_node->edge[j].dest == nxt_node) {
+                    t->cur_seg = cur_node->enters_seg[j];
+                }
+            }
+        }
+    }
+}
+
+int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)  
+{  
     int segment_index = 0;
     for (int i = start_node; i < end_node; ++i) {
         ASSERTF(i >= 0 && i < path->path_length - 1, "i: %d, path length: %d", i, path->path_length);
@@ -408,6 +428,7 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
         t->cur_offset = train_data->train_length[t->id] - t->cur_offset;
         while (t->cur_offset >= t->path.distances[t->cur_node]) {
             t->cur_offset -= t->path.distances[t->cur_node++];
+            resolve_cur_seg(track, t);
         }
     }
     t->avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
@@ -428,14 +449,6 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     t->stop_distance_offset = t->path.stop_distance_offset;
     t->cur_stop_node = 0;
     t->last_sensor = -1;
-}
-
-int get_cur_seg(track_node* track, train_t* t)
-{
-    int segments[16];
-    int num_segments = segments_in_path_up_to(segments, track, &t->path, 0, min(t->cur_node, t->path.path_length - 1));
-    ASSERT(num_segments > 0, "no segments in path so far");
-    return segments[num_segments - 1];
 }
 
 void backup_task()
@@ -575,7 +588,15 @@ void train_task()
                     //     puts(CONSOLE, "train isn't at sensor node?\r\n");
                     //     goto sensor_reading_end;
                     // }
-                    train->cur_node += ofs;
+                    if (ofs > 0) {
+                        for (int i = 0; i < ofs; ++i) {
+                            train->cur_node++;
+                            resolve_cur_seg(track, train);
+                        }
+                    } else {
+                        train->cur_node += ofs;
+                    }
+                    
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
 
@@ -670,6 +691,8 @@ void train_task()
                 int update_distance = t->distance_overflow_nm / 1000000;
                 t->distance_overflow_nm -= update_distance * 1000000;
 
+                t->cur_offset += update_distance;
+
                 // handle stopping
                 if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
                     marklin_set_speed(t->id, 0);
@@ -677,11 +700,6 @@ void train_task()
                     set_train_speed_handler(&train_data, t, 0);
 
                     t->stop_node = -1;
-                }
-
-                t->cur_offset += update_distance;
-                while (t->cur_offset >= t->path.distances[t->cur_node]) {
-                    t->cur_offset -= t->path.distances[t->cur_node++];
                 }
 
                 if (t->cur_stop_node < t->path.stop_node_count) {
@@ -695,6 +713,12 @@ void train_task()
                         ASSERT(ret >= 0, "create reverse task send failed");
                         t->cur_stop_node++;
                     }
+                }
+
+                while (t->cur_offset >= t->path.distances[t->cur_node]) {
+                    t->cur_offset -= t->path.distances[t->cur_node++];
+
+                    resolve_cur_seg(track, t);
                 }
 
                 // don't reserve if train is stopping
@@ -785,6 +809,7 @@ void train_task()
             ASSERT(t != NULL, "train not found");
             int node = buf[2];
             t->cur_node = node;
+            resolve_cur_seg(track, t);
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -850,11 +875,9 @@ void train_task()
 
             // int train_one_delay, train_two_delay;
             track_path_t path_1, path_2;
-            int train_one_cur_seg = get_cur_seg(track, train_one);
-            int train_two_cur_seg = get_cur_seg(track, train_two);
-            int train_one_on_seg = train_one_cur_seg == conflict_seg;
-            int train_two_on_seg = train_two_cur_seg == conflict_seg;
-            log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one cur seg: %d, train two cur seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one_cur_seg, train_two_cur_seg);
+            int train_one_on_seg = train_one->cur_seg == conflict_seg;
+            int train_two_on_seg = train_two->cur_seg == conflict_seg;
+            log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one->cur_seg, train_two->cur_seg);
             if (train_one_on_seg || (!train_two_on_seg && case_1_dist < case_2_dist)) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
@@ -877,7 +900,7 @@ void train_task()
                 ASSERT(ret >= 0, "create reroute task send failed");
 
                 clear_reservations(track, train_one);
-                state_reserve_segment(train_one_cur_seg, train_one->id);
+                state_reserve_segment(train_one->cur_seg, train_one->id);
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
                 track_path_debug(&train_one->path, track);
@@ -898,7 +921,7 @@ void train_task()
                 ASSERT(ret >= 0, "create reroute task send failed");
 
                 clear_reservations(track, train_two);
-                state_reserve_segment(train_two_cur_seg, train_two->id);
+                state_reserve_segment(train_two->cur_seg, train_two->id);
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
                 track_path_debug(&train_two->path, track);

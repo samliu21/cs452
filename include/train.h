@@ -21,6 +21,7 @@ typedef struct train_t {
     int cur_node;
     int cur_offset;
     track_path_t path;
+    int cur_seg;
     int acc;
     int acc_start;
     int acc_end;
