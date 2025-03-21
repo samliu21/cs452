@@ -857,6 +857,9 @@ void train_task()
             route_train_handler(track, train_one, &train_data, &path_1);
             route_train_handler(track, train_two, &train_data, &path_2);
 
+            track_path_debug(&train_one->path, track);
+            track_path_debug(&train_two->path, track);
+
             marklin_set_speed(train_one->id, train_one->old_speed);
             marklin_set_speed(train_two->id, train_two->old_speed);
 

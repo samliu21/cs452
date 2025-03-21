@@ -29,8 +29,9 @@ void add_to_queue(priority_queue_pi_t* pq, int* dist, int* prev, pi_t* nodes, in
 
 int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_path_distance)
 {
-    int acc_start = train_data->acc_start[train->id][train->speed];
-    int acc_stop = train_data->acc_stop[train->id][train->speed];
+    int speed = (train->speed > 0) ? train->speed : train->old_speed;
+    int acc_start = train_data->acc_start[train->id][speed];
+    int acc_stop = train_data->acc_stop[train->id][speed];
 
     // unphysical magic formula
     if (total_path_distance < 350) {
@@ -39,7 +40,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
         acc_stop *= acc_factor;
     }
 
-    int lo = 0, hi = train_data->starting_time[train->id][train->speed];
+    int lo = 0, hi = train_data->starting_time[train->id][speed];
 
     int stop_distance = -1;
     while (lo <= hi) {
@@ -253,7 +254,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     // for (int i = 0; i < path.path_length; ++i) {
     //     printf(CONSOLE, "train %d path node %d: %s\r\n", train->id, i, track[path.nodes[i]].name);
     // }
-    ASSERTF(path.path_length == 0 || path.nodes[0] == src || path.nodes[0] == reverse_node, 
+    ASSERTF(path.path_length == 0 || path.nodes[0] == src || path.nodes[0] == reverse_node,
         "new path for train %d starts on node %s, not cur node %s or reverse node %s\r\n",
         train->id, track[path.nodes[0]].name, track[src].name, track[reverse_node].name);
     return path;
