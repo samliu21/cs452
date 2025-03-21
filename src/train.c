@@ -550,7 +550,9 @@ void train_task()
                     int segments_to_release[16];
                     int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, min(train->cur_node, train->path.path_length - 1));
                     for (int j = 0; j < num_segments_to_release - 1; ++j) { // don't release segment that sensor is on
-                        state_release_segment(segments_to_release[j], train->id);
+                        if (state_is_reserved(segments_to_release[j]) == (int)train->id) {
+                            state_release_segment(segments_to_release[j], train->id);
+                        }
                     }
 
                     // train->sensors = get_reachable_sensors(track, node_index);
