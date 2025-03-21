@@ -712,12 +712,14 @@ void train_task()
                                 puts(CONSOLE, "rerouting only train two\r\n");
                                 args[0] = train_two->id;
                                 args[1] = NO_TRAIN;
+                                args[2] = conflict_seg;
                                 args[3] = 4;
                             } else if (train_two->speed == 0) {
                                 // if train two has started stopping, reroute train one
                                 puts(CONSOLE, "rerouting only train one\r\n");
                                 args[0] = train_one->id;
                                 args[1] = NO_TRAIN;
+                                args[2] = conflict_seg;
                                 args[3] = 4;
                             } else {
                                 args[0] = train_one->id;
