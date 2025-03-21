@@ -2,6 +2,7 @@
 #define _uart_server_h_
 
 #include "common.h"
+#include <stdarg.h>
 
 typedef enum {
     REQUEST_UART_READ = 1,
@@ -15,6 +16,7 @@ typedef enum {
 int64_t getc(int channel);
 int64_t putc(int channel, char c);
 int64_t puts(int channel, const char* buf);
+int64_t va_printf(int channel, const char* fmt, va_list va);
 int64_t printf(int channel, const char* fmt, ...);
 int64_t log(const char* fmt, ...);
 int64_t warn(const char* fmt, ...);

@@ -1,5 +1,6 @@
 #include "rpi.h"
 #include "common.h"
+#include "uart_server.h"
 #include "util.h"
 #include <stdarg.h>
 // #include <stdint.h>
@@ -213,9 +214,9 @@ void uart_assert_putc(size_t line, char c)
 void ASSERT(int condition, const char* message)
 {
     if (!condition) {
-        uart_puts(CONSOLE, "ASSERTION FAILED: ");
-        uart_puts(CONSOLE, message);
-        uart_puts(CONSOLE, "\r\n");
+        puts(CONSOLE, "ASSERTION FAILED: ");
+        puts(CONSOLE, message);
+        puts(CONSOLE, "\r\n");
         for (;;) { }
     }
 }
@@ -223,12 +224,12 @@ void ASSERT(int condition, const char* message)
 void ASSERTF(int condition, const char* message, ...)
 {
     if (!condition) {
-        uart_puts(CONSOLE, "ASSERTION FAILED: ");
+        puts(CONSOLE, "ASSERTION FAILED: ");
         va_list va;
         va_start(va, message);
-        va_uart_printf(CONSOLE, message, va);
+        va_printf(CONSOLE, message, va);
         va_end(va);
-        uart_puts(CONSOLE, "\r\n");
+        puts(CONSOLE, "\r\n");
         for (;;) { }
     }
 }

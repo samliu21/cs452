@@ -146,28 +146,28 @@ int64_t printf(int channel, const char* fmt, ...)
 
 int64_t log(const char* fmt, ...)
 {
-    printf(CONSOLE, "\033[s\033[15:40r\033[30;1H[%d] ", time());
+    printf(CONSOLE, "\033[s\033[15;60r\033[60;1H[%d] ", time());
 
     va_list va;
     va_start(va, fmt);
     va_printf(CONSOLE, fmt, va);
     va_end(va);
 
-    printf(CONSOLE, "\033[41:999r\033[u");
+    printf(CONSOLE, "\033[61;999r\033[u");
 
     return 0;
 }
 
 int64_t warn(const char* fmt, ...)
 {
-    printf(CONSOLE, "\033[s\033[15:40r\033[30;1H\033[33m[%d] ", time());
+    printf(CONSOLE, "\033[s\033[15;60r\033[60;1H\033[33m[%d] ", time());
 
     va_list va;
     va_start(va, fmt);
     va_printf(CONSOLE, fmt, va);
     va_end(va);
 
-    printf(CONSOLE, "\033[37m\033[41:999r\033[u");
+    printf(CONSOLE, "\033[37m\033[61;999r\033[u");
 
     return 0;
 }

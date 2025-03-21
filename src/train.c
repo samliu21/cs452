@@ -15,7 +15,7 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1300
+#define RESERVATION_LOOKAHEAD_DISTANCE 1200
 #define SENSOR_PREDICTION_WINDOW 300
 #define NO_TRAIN 255
 
@@ -79,6 +79,7 @@ typedef enum {
     SET_CUR_OFFSET = 14,
     ROUTE_TRAIN = 15,
     REROUTE_TRAINS = 16,
+    BACKUP_TRAIN = 17,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -340,7 +341,8 @@ void train_model_notifier()
     }
 }
 
-void resolve_cur_seg(track_node* track, train_t* t) {
+void resolve_cur_seg(track_node* track, train_t* t)
+{
     track_node* cur_node = &track[t->path.nodes[t->cur_node]];
     if (cur_node->type == NODE_MERGE) {
         t->cur_seg = cur_node->enters_seg[DIR_AHEAD];
@@ -359,8 +361,8 @@ void resolve_cur_seg(track_node* track, train_t* t) {
     }
 }
 
-int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)  
-{  
+int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path, int start_node, int end_node)
+{
     int segment_index = 0;
     for (int i = start_node; i < end_node; ++i) {
         ASSERTF(i >= 0 && i < path->path_length - 1, "i: %d, path length: %d", i, path->path_length);
@@ -395,6 +397,25 @@ void clear_reservations(track_node* track, train_t* t)
     }
 }
 
+void backup_task()
+{
+    uint64_t caller_tid;
+    char args[1];
+    receive(&caller_tid, args, 1);
+    reply_empty(caller_tid);
+
+    uint64_t train = args[0];
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+    char buf[2];
+    buf[0] = BACKUP_TRAIN;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "backup train send failed");
+
+    exit();
+}
+
 void reroute_task()
 {
     uint64_t caller_tid;
@@ -408,6 +429,20 @@ void reroute_task()
     int delay_sec = args[3];
 
     delay(delay_sec * 100);
+
+    // int64_t backup_task_id = create(1, &backup_task);
+    // ASSERT(backup_task_id >= 0, "create failed");
+    // char c = t1;
+    // int64_t ret = send(backup_task_id, &c, 1, NULL, 0);
+    // ASSERT(ret >= 0, "create backup task send failed");
+
+    // backup_task_id = create(1, &backup_task);
+    // ASSERT(backup_task_id >= 0, "create failed");
+    // c = t2;
+    // ret = send(backup_task_id, &c, 1, NULL, 0);
+    // ASSERT(ret >= 0, "create backup task send failed");
+
+    // delay(400);
 
     train_reroute(t1, t2, conflict_seg);
 
@@ -449,24 +484,6 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     t->stop_distance_offset = t->path.stop_distance_offset;
     t->cur_stop_node = 0;
     t->last_sensor = -1;
-}
-
-void backup_task()
-{
-    uint64_t caller_tid;
-    char args[1];
-    receive(&caller_tid, args, 1);
-    reply_empty(caller_tid);
-
-    // uint64_t train = args[0];
-
-    // delay(delay_sec * 100);
-    // train_set_speed(train, speed);
-    // if (reverse) {
-    //     train_set_reverse(train);
-    // }
-
-    exit();
 }
 
 void train_task()
@@ -596,7 +613,7 @@ void train_task()
                     } else {
                         train->cur_node += ofs;
                     }
-                    
+
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
 
@@ -850,7 +867,7 @@ void train_task()
             if (t2 == NO_TRAIN) {
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg, 0);
                 ASSERT(path.path_length > 0, "no path found");
-                track_path_debug(&path, track);
+                // track_path_debug(&path, track);
                 route_train_handler(track, train_one, &train_data, &path);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
@@ -904,7 +921,6 @@ void train_task()
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
                 track_path_debug(&train_one->path, track);
-                delay(1);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
             }
@@ -925,10 +941,27 @@ void train_task()
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
                 track_path_debug(&train_two->path, track);
-                delay(1);
                 marklin_set_speed(train_two->id, train_two->old_speed);
                 set_train_speed_handler(&train_data, train_two, train_two->old_speed);
             }
+
+            break;
+        }
+        case BACKUP_TRAIN: {
+            reply_empty(caller_tid);
+
+            uint64_t train_id = buf[1];
+            train_t* t = trainlist_find(&trainlist, train_id);
+            ASSERT(t != NULL, "train not found");
+
+            track_node* cur_node = &track[t->path.nodes[t->cur_node]];
+            int new_offset = train_data.train_length[t->id] - t->cur_offset + 500;
+
+            log("backing up train %d to node %s, offset %d\r\n", t->id, cur_node->reverse->name, new_offset);
+            track_path_t path = get_shortest_path(track, t, cur_node->reverse->num, new_offset, NO_FORBIDDEN_SEGMENT, 0);
+            marklin_set_speed(t->id, t->old_speed);
+            set_train_speed_handler(&train_data, t, t->old_speed);
+            route_train_handler(track, t, &train_data, &path);
 
             break;
         }
