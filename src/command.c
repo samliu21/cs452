@@ -227,6 +227,29 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "rr") == 0) { // fb <segment>
+            if (argc < 2) {
+                result.type = COMMAND_FAIL;
+                error_message = "random reroute command expects at least 1 argument";
+                goto end;
+            }
+
+            for (int i = 0; i < argc - 1; ++i) {
+                uint64_t train = a2ui(args[i + 1], 10);
+
+                if (!train_exists(train)) {
+                    result.type = COMMAND_FAIL;
+                    error_message = "train does not exist";
+                    goto end;
+                }
+                
+                train_random_reroute(train);
+                log("train %d was set to randomly reroute after arriving at its destination.\r\n", train);
+
+                result.type = COMMAND_SUCCESS;
+            }
+        }
+
         else if (strcmp(command_type, "q") == 0) {
             result.type = COMMAND_QUIT;
         }

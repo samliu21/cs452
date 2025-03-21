@@ -30,6 +30,8 @@ typedef struct train_t {
     int distance_overflow_nm;
     int cur_stop_node;
     int avoid_seg_on_reroute;
+
+    int random_reroute;
 } train_t;
 
 typedef struct trainlist_t {
@@ -55,6 +57,7 @@ int train_get_cur_offset(uint64_t train);
 int train_set_cur_node(uint64_t train, int node);
 int train_set_cur_offset(uint64_t train, int offset);
 void train_route(uint64_t train, int dest, int offset);
+void train_random_reroute(uint64_t train);
 
 void train_model_notifier();
 void train_task();

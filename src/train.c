@@ -17,6 +17,7 @@
 
 #define RESERVATION_LOOKAHEAD_DISTANCE 1100
 #define SENSOR_PREDICTION_WINDOW 300
+#define DESTINATION_REACHED_WINDOW 150
 #define NO_TRAIN 255
 
 trainlist_t trainlist_create(train_t* trains)
@@ -49,6 +50,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
     tlist->trains[tlist->size].cur_stop_node = 0;
     tlist->trains[tlist->size].avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
+    tlist->trains[tlist->size].random_reroute = 0;
 
     tlist->size++;
 }
@@ -81,6 +83,7 @@ typedef enum {
     ROUTE_TRAIN = 15,
     REROUTE_TRAINS = 16,
     BACKUP_TRAIN = 17,
+    RANDOM_REROUTE = 18,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -310,6 +313,18 @@ void train_route(uint64_t train, int dest, int offset)
     i2a(offset, buf + 3);
     int64_t ret = send(train_task_tid, buf, 16, NULL, 0);
     ASSERT(ret >= 0, "train route send failed");
+}
+
+void train_random_reroute(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = RANDOM_REROUTE;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "train random reroute send failed");
 }
 
 void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
@@ -799,6 +814,35 @@ void train_task()
                         }
                     }
                 }
+
+                if (t->speed == 0 && t->random_reroute) {
+                    int arrived_at_destination = t->cur_node == t->path.path_length - 1;
+                    for (int i = 0; i < 2; ++i) {
+                        if (t->cur_node == t->path.path_length - 2 - i) {
+                            int dist_from_dest = -t->cur_offset;
+                            for (int j = 0; j <=i; ++j) {
+                                dist_from_dest += t->path.distances[t->path.path_length - 2 - j];
+                            }
+                            if (dist_from_dest <= DESTINATION_REACHED_WINDOW) {
+                                arrived_at_destination = 1;
+                            }
+                        }
+                    }
+                    if (arrived_at_destination) {
+                        int new_dest = myrand() % TRACK_MAX;
+                        t->path.nodes[t->path.path_length - 1] = new_dest;
+                        
+                        int reroute_task_id = create(1, &reroute_task);
+                        ASSERT(reroute_task_id >= 0, "create failed");
+                        char args[4];
+                        args[0] = t->id;
+                        args[1] = NO_TRAIN;
+                        args[2] = NO_FORBIDDEN_SEGMENT;
+                        args[3] = 8;
+                        send(reroute_task_id, args, 4, NULL, 0);
+                        log("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
+                    }
+                }
             }
 
         should_update_train_state_end:
@@ -862,6 +906,9 @@ void train_task()
             uint64_t t1 = buf[1];
             uint64_t t2 = buf[2];
             int conflict_seg = buf[3];
+            if ((char) conflict_seg == (char) NO_FORBIDDEN_SEGMENT) {
+                conflict_seg = NO_FORBIDDEN_SEGMENT;
+            }
 
             train_t* train_one = trainlist_find(&trainlist, t1);
 
@@ -913,6 +960,7 @@ void train_task()
                 char args[4];
                 args[0] = train_one->id;
                 args[1] = NO_TRAIN;
+                args[2] = NO_FORBIDDEN_SEGMENT;
                 args[3] = 8;
 
                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
@@ -933,6 +981,7 @@ void train_task()
                 char args[4];
                 args[0] = train_two->id;
                 args[1] = NO_TRAIN;
+                args[2] = NO_FORBIDDEN_SEGMENT;
                 args[3] = 8;
 
                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
@@ -965,6 +1014,14 @@ void train_task()
             set_train_speed_handler(&train_data, t, t->old_speed);
             route_train_handler(track, t, &train_data, &path);
 
+            break;
+        }
+        case RANDOM_REROUTE: {
+            reply_empty(caller_tid);
+            uint64_t train_id = buf[1];
+            train_t* t = trainlist_find(&trainlist, train_id);
+            ASSERT(t != NULL, "train not found");
+            t->random_reroute = 1;
             break;
         }
         default:
