@@ -16,6 +16,8 @@ int64_t getc(int channel);
 int64_t putc(int channel, char c);
 int64_t puts(int channel, const char* buf);
 int64_t printf(int channel, const char* fmt, ...);
+int64_t log(const char* fmt, ...);
+int64_t warn(const char* fmt, ...);
 void uart_server_task();
 
 #endif

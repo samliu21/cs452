@@ -438,6 +438,24 @@ int get_cur_seg(track_node* track, train_t* t)
     return segments[num_segments - 1];
 }
 
+void backup_task()
+{
+    uint64_t caller_tid;
+    char args[1];
+    receive(&caller_tid, args, 1);
+    reply_empty(caller_tid);
+
+    // uint64_t train = args[0];
+
+    // delay(delay_sec * 100);
+    // train_set_speed(train, speed);
+    // if (reverse) {
+    //     train_set_reverse(train);
+    // }
+
+    exit();
+}
+
 void train_task()
 {
     int64_t ret;
@@ -550,7 +568,7 @@ void train_task()
                 //     printf(CONSOLE, "sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->cur_node].name, train->cur_offset);
                 // }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
-                    printf(CONSOLE, "attrbituing sensor %s to train %d\r\n", track[node_index].name, train->id);
+                    log("attribuing sensor %s to train %d\r\n", track[node_index].name, train->id);
                     sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
                     // if (train->path.nodes[ofs] != node_index) {
@@ -697,7 +715,7 @@ void train_task()
                             train_t* train_one = trainlist_find(&trainlist, reserver);
                             train_t* train_two = t;
 
-                            printf(CONSOLE, "conflicting seg: %d\r\n", conflict_seg);
+                            log("conflicting seg: %d\r\n", conflict_seg);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
                             marklin_set_speed(train_one->id, 0);
@@ -709,14 +727,12 @@ void train_task()
 
                             if (train_one->speed == 0) {
                                 // if train one has started stopping, reroute train two
-                                puts(CONSOLE, "rerouting only train two\r\n");
                                 args[0] = train_two->id;
                                 args[1] = NO_TRAIN;
                                 args[2] = conflict_seg;
                                 args[3] = 4;
                             } else if (train_two->speed == 0) {
                                 // if train two has started stopping, reroute train one
-                                puts(CONSOLE, "rerouting only train one\r\n");
                                 args[0] = train_one->id;
                                 args[1] = NO_TRAIN;
                                 args[2] = conflict_seg;
@@ -838,7 +854,7 @@ void train_task()
             int train_two_cur_seg = get_cur_seg(track, train_two);
             int train_one_on_seg = train_one_cur_seg == conflict_seg;
             int train_two_on_seg = train_two_cur_seg == conflict_seg;
-            printf(CONSOLE, "train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one_on_seg, train_two_on_seg);
+            log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one cur seg: %d, train two cur seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one_cur_seg, train_two_cur_seg);
             if (train_one_on_seg || (!train_two_on_seg && case_1_dist < case_2_dist)) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;

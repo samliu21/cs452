@@ -28,15 +28,15 @@ int track_path_lookahead(track_path_t* path, int node, int lookahead)
 
 void track_path_debug(track_path_t* path, track_node* track)
 {
-    puts(CONSOLE, "----------------------------------\r\n");
-    printf(CONSOLE, "path length: %d\r\n", path->path_length);
+    log("----------------------------------\r\n");
+    log("path length: %d\r\n", path->path_length);
     for (int i = 0; i < path->path_length; ++i) {
-        printf(CONSOLE, "node: %s, dist: %d\r\n", track[path->nodes[i]].name, path->distances[i]);
+        log("node: %s, dist: %d\r\n", track[path->nodes[i]].name, path->distances[i]);
     }
-    puts(CONSOLE, "\r\n");
-    printf(CONSOLE, "stop node: %s, stop offset: %d\r\n", track[path->stop_node].name, path->stop_distance_offset);
+    log("\r\n");
+    log("stop node: %s, stop offset: %d\r\n", track[path->stop_node].name, path->stop_distance_offset);
     for (int i = 0; i < path->stop_node_count; ++i) {
-        printf(CONSOLE, "stop node %d: %s, stop offset %d\r\n", i, track[path->stop_nodes[i]].name, path->stop_offsets[i]);
+        log("stop node %d: %s, stop offset %d\r\n", i, track[path->stop_nodes[i]].name, path->stop_offsets[i]);
     }
-    puts(CONSOLE, "----------------------------------\r\n");
+    log("----------------------------------\r\n");
 }
