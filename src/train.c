@@ -34,7 +34,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
 
     tlist->trains[tlist->size].id = id;
     tlist->trains[tlist->size].speed = 0;
-    tlist->trains[tlist->size].old_speed = 0;
+    tlist->trains[tlist->size].old_speed = 10;
     tlist->trains[tlist->size].inst_speed = 0;
     tlist->trains[tlist->size].speed_time_begin = 0;
     tlist->trains[tlist->size].last_sensor = -1;
@@ -43,6 +43,7 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].cur_node = 0;
     tlist->trains[tlist->size].path = track_path_new();
     track_path_add(&tlist->trains[tlist->size].path, train_data.start_node[id], 1e9);
+    tlist->trains[tlist->size].path.dest = train_data.start_node[id];
     tlist->trains[tlist->size].cur_seg = train_data.start_seg[id];
     tlist->trains[tlist->size].acc = 0;
     tlist->trains[tlist->size].acc_start = 0;
@@ -532,6 +533,7 @@ void train_task()
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
+    state_forbid_segment(11);
 
     track_node track[TRACK_MAX];
 #ifdef TRACKA
@@ -541,6 +543,9 @@ void train_task()
 #endif
 
     train_data_t train_data = init_train_data_a();
+
+    int forbidden_dests[NUM_FORBIDDEN_DESTS];
+    init_forbidden_destsa(forbidden_dests);
 
     uint64_t caller_tid;
     char buf[64];
@@ -830,10 +835,10 @@ void train_task()
                     }
                 }
 
-                if (t->speed == 0 && t->random_reroute) {
+                if (t->speed == 0 && t->random_reroute && t->path.dest == t->path.nodes[t->path.path_length - 1]) {
                     int arrived_at_destination = t->cur_node == t->path.path_length - 1;
                     for (int i = 0; i < 2; ++i) {
-                        if (t->cur_node == t->path.path_length - 2 - i) {
+                        if (t->path.path_length >= 2 + i && t->cur_node == t->path.path_length - 2 - i) {
                             int dist_from_dest = -t->cur_offset;
                             for (int j = 0; j <= i; ++j) {
                                 dist_from_dest += t->path.distances[t->path.path_length - 2 - j];
@@ -844,8 +849,18 @@ void train_task()
                         }
                     }
                     if (arrived_at_destination) {
-                        int new_dest = myrand() % TRACK_MAX;
-                        t->path.nodes[t->path.path_length - 1] = new_dest;
+                        int new_dest;
+                        int new_dest_is_valid = 0;
+                        while (!new_dest_is_valid) {
+                            new_dest = myrand() % TRACK_MAX;
+                            new_dest_is_valid = 1;
+                            for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
+                                if (forbidden_dests[i] == new_dest) {
+                                    new_dest_is_valid = 0;
+                                }
+                            }
+                        }
+                        t->path.dest = new_dest;
 
                         int reroute_task_id = create(1, &reroute_task);
                         ASSERT(reroute_task_id >= 0, "create failed");

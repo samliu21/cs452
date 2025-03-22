@@ -26,6 +26,9 @@ void command_task()
     init_trackb(track);
 #endif
 
+    int forbidden_dests[NUM_FORBIDDEN_DESTS];
+    init_forbidden_destsa(forbidden_dests);
+
     char command[32];
     uint64_t caller_tid;
     char* error_message = NULL;
@@ -137,7 +140,13 @@ void command_task()
                 error_message = "train must be at a stop";
                 goto end;
             }
-            if (dest == -1) {
+            int invalid_dest = (dest == -1);
+            for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
+                if (forbidden_dests[i] == dest) {
+                    invalid_dest = 1;
+                }
+            }
+            if (invalid_dest) {
                 result.type = COMMAND_FAIL;
                 error_message = "invalid destination node";
                 goto end;
@@ -177,7 +186,13 @@ void command_task()
                     error_message = "train must be at a stop";
                     goto end;
                 }
-                if (dest == -1) {
+                int invalid_dest = (dest == -1);
+                for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
+                    if (forbidden_dests[i] == dest) {
+                        invalid_dest = 1;
+                    }
+                }
+                if (invalid_dest) {
                     result.type = COMMAND_FAIL;
                     error_message = "invalid destination node";
                     goto end;
