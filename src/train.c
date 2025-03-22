@@ -84,6 +84,7 @@ typedef enum {
     REROUTE_TRAINS = 16,
     BACKUP_TRAIN = 17,
     RANDOM_REROUTE = 18,
+    GET_DEST = 19,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -339,6 +340,20 @@ void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
     buf[3] = conflict_seg;
     int64_t ret = send(train_task_tid, buf, 4, NULL, 0);
     ASSERT(ret >= 0, "train reroute send failed");
+}
+
+int train_get_dest(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = GET_DEST;
+    buf[1] = train;
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "get dest send failed");
+    return response;
 }
 
 void train_model_notifier()
@@ -820,7 +835,7 @@ void train_task()
                     for (int i = 0; i < 2; ++i) {
                         if (t->cur_node == t->path.path_length - 2 - i) {
                             int dist_from_dest = -t->cur_offset;
-                            for (int j = 0; j <=i; ++j) {
+                            for (int j = 0; j <= i; ++j) {
                                 dist_from_dest += t->path.distances[t->path.path_length - 2 - j];
                             }
                             if (dist_from_dest <= DESTINATION_REACHED_WINDOW) {
@@ -831,7 +846,7 @@ void train_task()
                     if (arrived_at_destination) {
                         int new_dest = myrand() % TRACK_MAX;
                         t->path.nodes[t->path.path_length - 1] = new_dest;
-                        
+
                         int reroute_task_id = create(1, &reroute_task);
                         ASSERT(reroute_task_id >= 0, "create failed");
                         char args[4];
@@ -906,7 +921,7 @@ void train_task()
             uint64_t t1 = buf[1];
             uint64_t t2 = buf[2];
             int conflict_seg = buf[3];
-            if ((char) conflict_seg == (char) NO_FORBIDDEN_SEGMENT) {
+            if ((char)conflict_seg == (char)NO_FORBIDDEN_SEGMENT) {
                 conflict_seg = NO_FORBIDDEN_SEGMENT;
             }
 
@@ -1022,6 +1037,14 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train_id);
             ASSERT(t != NULL, "train not found");
             t->random_reroute = 1;
+            break;
+        }
+        case GET_DEST: {
+            uint64_t train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+            ret = reply_char(caller_tid, t->path.dest);
+            ASSERT(ret >= 0, "reply failed");
             break;
         }
         default:

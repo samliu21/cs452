@@ -159,7 +159,7 @@ void command_task()
             if (argc < 3 || argc % 2 != 1) {
                 result.type = COMMAND_FAIL;
                 error_message = "routemany command expects sets of 2 arguments";
-                
+
                 goto end;
             }
             for (int i = 0; i < ((argc - 1) / 2); ++i) {
@@ -221,7 +221,7 @@ void command_task()
                 goto end;
             }
             uint64_t segment = a2ui(args[1], 10);
-          
+
             state_forbid_segment(segment);
 
             result.type = COMMAND_SUCCESS;
@@ -242,7 +242,7 @@ void command_task()
                     error_message = "train does not exist";
                     goto end;
                 }
-                
+
                 train_random_reroute(train);
                 log("train %d was set to randomly reroute after arriving at its destination.\r\n", train);
 
