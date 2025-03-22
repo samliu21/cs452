@@ -1,6 +1,7 @@
 #include "uart_server.h"
 #include "charqueue.h"
 #include "clock_server.h"
+#include "common.h"
 #include "interrupt.h"
 #include "name_server.h"
 #include "syscall_func.h"
@@ -146,30 +147,34 @@ int64_t printf(int channel, const char* fmt, ...)
 
 int64_t log(const char* fmt, ...)
 {
-    printf(CONSOLE, "\033[s\033[17;60r\033[60;1H[%5d] ", time());
+    char buf[1024], tmp[1024];
+    sprintf(buf, "\033[s\033[17;60r\033[60;1H[%5d] ", time());
 
     va_list va;
     va_start(va, fmt);
-    va_printf(CONSOLE, fmt, va);
+    my_vsprintf(tmp, fmt, va);
+    strcat(buf, tmp);
     va_end(va);
 
-    printf(CONSOLE, "\033[61;999r\033[u");
+    strcat(buf, "\033[37m\033[61;999r\033[u");
 
-    return 0;
+    return puts(CONSOLE, buf);
 }
 
 int64_t warn(const char* fmt, ...)
 {
-    printf(CONSOLE, "\033[s\033[17;60r\033[60;1H\033[33m[%5d] ", time());
+    char buf[1024], tmp[1024];
+    sprintf(buf, "\033[s\033[17;60r\033[60;1H\033[33m[%5d] ", time());
 
     va_list va;
     va_start(va, fmt);
-    va_printf(CONSOLE, fmt, va);
+    my_vsprintf(tmp, fmt, va);
+    strcat(buf, tmp);
     va_end(va);
 
-    printf(CONSOLE, "\033[37m\033[61;999r\033[u");
+    strcat(buf, "\033[37m\033[61;999r\033[u");
 
-    return 0;
+    return puts(CONSOLE, buf);
 }
 
 void uart_server_task()

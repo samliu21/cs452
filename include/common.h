@@ -1,6 +1,8 @@
 #ifndef _common_h_
 #define _common_h_
 
+#include <stdarg.h>
+
 typedef unsigned long long uint64_t;
 typedef unsigned int uint32_t;
 typedef long long int64_t;
@@ -28,6 +30,7 @@ int split(char* s, char strings[][32]);
 uint64_t max(uint64_t a, uint64_t b);
 uint64_t min(uint64_t a, uint64_t b);
 uint64_t myrand();
+int my_vsprintf(char* buf, const char* fmt, va_list va);
 int sprintf(char* buf, const char* fmt, ...);
 
 #endif /* common.h */
