@@ -257,8 +257,11 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
         }
 
         if (track[node].type == NODE_EXIT || track[node].type == NODE_MERGE) {
-            int reverse_node = get_node_index(track, track[node].reverse);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, reverse_node, reverse_edge_weight);
+            int ahead_seg = track[node].enters_seg[DIR_AHEAD];
+            if (ahead_seg < 0 || !(ahead_seg == forbidden_seg || forbidden_segments[ahead_seg])) {
+                int reverse_node = get_node_index(track, track[node].reverse);
+                add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, reverse_node, reverse_edge_weight);
+            }
         }
     }
     // if (path.path_length == 0) printf(CONSOLE, "train %d path impossible!\r\n", train->id);

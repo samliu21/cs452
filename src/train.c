@@ -974,7 +974,7 @@ void train_task()
                     state_reserve_segment(train_one->cur_seg, train_one->id);
                 }
 
-                break;
+                goto reroute_trains_end;
             }
 
             train_t* train_two = trainlist_find(&trainlist, t2);
@@ -1028,7 +1028,6 @@ void train_task()
                 state_reserve_segment(train_one->cur_seg, train_one->id);
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
-                // log("train %d old speed %d\r\n", train_one->id, train_one->old_speed);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
             }
@@ -1050,11 +1049,12 @@ void train_task()
                 state_reserve_segment(train_two->cur_seg, train_two->id);
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
-                // log("train %d old speed %d\r\n", train_two->id, train_two->old_speed);
                 marklin_set_speed(train_two->id, train_two->old_speed);
                 set_train_speed_handler(&train_data, train_two, train_two->old_speed);
             }
 
+        reroute_trains_end:
+            reply_empty(caller_tid);
             break;
         }
         case BACKUP_TRAIN: {
