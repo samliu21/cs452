@@ -34,10 +34,19 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
     int acc_stop = train_data->acc_stop[train->id][speed];
 
     // unphysical magic formula
-    if (total_path_distance < 350) {
+    if (total_path_distance < 350 && train->id == 55) {
         int acc_factor = 350 / total_path_distance;
         acc_start /= acc_factor;
         acc_stop *= acc_factor;
+    }
+    if (train->id == 77 && total_path_distance > 300) {
+        if (total_path_distance < 600) {
+            acc_start *= 8;
+            acc_start /= 3;
+        } else {
+            acc_start *= 3;
+            acc_start /= 2;
+        }
     }
 
     int lo = 0, hi = train_data->starting_time[train->id][speed];

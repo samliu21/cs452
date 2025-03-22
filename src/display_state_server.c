@@ -144,7 +144,7 @@ void display_state_task()
         int cur_offset_55 = train_get_cur_offset(55);
         int dest_55 = train_get_dest(55);
         if (c == FORCE || cur_node_55 != old_cur_node_55 || cur_offset_55 != old_cur_offset_55 || dest_55 != old_dest_55) {
-            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %s, and offset: %2d                    destination: %s\033[u", track[cur_node_55].name, cur_offset_55, track[dest_55].name);
+            printf(CONSOLE, "\033[s\033[6;1H\033[2Ktrain 55 is at node: %s, and offset: %3d                    destination: %s\033[u", track[cur_node_55].name, cur_offset_55, track[dest_55].name);
             old_cur_node_55 = cur_node_55;
             old_cur_offset_55 = cur_offset_55;
             old_dest_55 = dest_55;
@@ -155,7 +155,7 @@ void display_state_task()
         int cur_offset_58 = train_get_cur_offset(58);
         int dest_58 = train_get_dest(58);
         if (c == FORCE || cur_node_58 != old_cur_node_58 || cur_offset_58 != old_cur_offset_58 || dest_58 != old_dest_58) {
-            printf(CONSOLE, "\033[s\033[7;1H\033[2Ktrain 58 is at node: %s, and offset: %2d                    destination: %s\033[u", track[cur_node_58].name, cur_offset_58, track[dest_58].name);
+            printf(CONSOLE, "\033[s\033[7;1H\033[2Ktrain 58 is at node: %s, and offset: %3d                    destination: %s\033[u", track[cur_node_58].name, cur_offset_58, track[dest_58].name);
             old_cur_node_58 = cur_node_58;
             old_cur_offset_58 = cur_offset_58;
             old_dest_58 = dest_58;
@@ -166,7 +166,7 @@ void display_state_task()
         int cur_offset_77 = train_get_cur_offset(77);
         int dest_77 = train_get_dest(77);
         if (c == FORCE || cur_node_77 != old_cur_node_77 || cur_offset_77 != old_cur_offset_77 || dest_77 != old_dest_77) {
-            printf(CONSOLE, "\033[s\033[8;1H\033[2Ktrain 77 is at node: %s, and offset: %d                    destination: %s\033[u", track[cur_node_77].name, cur_offset_77, track[dest_77].name);
+            printf(CONSOLE, "\033[s\033[8;1H\033[2Ktrain 77 is at node: %s, and offset: %3d                    destination: %s\033[u", track[cur_node_77].name, cur_offset_77, track[dest_77].name);
             old_cur_node_77 = cur_node_77;
             old_cur_offset_77 = cur_offset_77;
             old_dest_77 = dest_77;

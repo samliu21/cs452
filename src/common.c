@@ -104,7 +104,7 @@ int split(char* s, char strings[][32])
     return cnt;
 }
 
-static uint64_t seed = 123456789; // You can set this to any initial value
+static uint64_t seed = 12345678; // You can set this to any initial value
 
 uint64_t myrand()
 {

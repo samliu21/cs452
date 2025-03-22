@@ -862,13 +862,14 @@ void train_task()
                         }
                         t->path.dest = new_dest;
 
+                        int at_start = train_data.start_node[t->id] == t->path.nodes[t->cur_node] && train_data.train_length[t->id] == t->cur_offset;
                         int reroute_task_id = create(1, &reroute_task);
                         ASSERT(reroute_task_id >= 0, "create failed");
                         char args[4];
                         args[0] = t->id;
                         args[1] = NO_TRAIN;
                         args[2] = NO_FORBIDDEN_SEGMENT;
-                        args[3] = 8;
+                        args[3] = at_start ? 1 : 5;
                         send(reroute_task_id, args, 4, NULL, 0);
                         log("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
                     }
@@ -929,6 +930,8 @@ void train_task()
 
             track_path_t path = get_shortest_path(track, t, dest, offset, t->avoid_seg_on_reroute);
             route_train_handler(track, t, &train_data, &path);
+
+            track_path_debug(&t->path, track);
 
             break;
         }
