@@ -144,23 +144,25 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     path.stop_dest_offsets[stop_node_count] = train_data.train_length[train->id];
                     int total_path_distance = 0;
                     if (track[path.nodes[i]].type == NODE_MERGE) {
-                        total_path_distance = train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
+                        total_path_distance += train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
                         path.stop_dest_offsets[stop_node_count] = -REVERSE_OVER_MERGE_OFFSET;
                     }
                     if (prev_node == -1) {
-                        total_path_distance -= train->cur_offset;
+                        total_path_distance += train->cur_offset;
                     }
                     for (int j = i - 1; j > prev_node; --j) {
                         total_path_distance += path.distances[j];
                     }
 
                     int distance_from_end = stopping_distance;
+                    // log("total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
                     if (total_path_distance < fully_stop_fully_start) {
                         distance_from_end = get_short_stop_distance(&train_data, train, total_path_distance);
                     }
                     if (track[path.nodes[i]].type == NODE_MERGE) {
                         distance_from_end -= train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
                     }
+                    // log("distance from end: %d\r\n", distance_from_end);
 
                     int j;
                     for (j = i - 1; j > prev_node && distance_from_end >= 0; --j) {

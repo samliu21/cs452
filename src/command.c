@@ -259,7 +259,6 @@ void command_task()
                 }
 
                 train_random_reroute(train);
-                log("train %d was set to randomly reroute after arriving at its destination.\r\n", train);
 
                 result.type = COMMAND_SUCCESS;
             }

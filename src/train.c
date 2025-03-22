@@ -747,25 +747,28 @@ void train_task()
 
                 t->cur_offset += update_distance;
 
-                // handle stopping
-                if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
-                    marklin_set_speed(t->id, 0);
+                // don't stop the train if it's stopping
+                if (t->speed > 0) {
+                    // handle stopping
+                    if (t->path.nodes[t->cur_node] == t->stop_node && t->cur_offset >= t->stop_distance_offset) {
+                        marklin_set_speed(t->id, 0);
 
-                    set_train_speed_handler(&train_data, t, 0);
+                        set_train_speed_handler(&train_data, t, 0);
 
-                    t->stop_node = -1;
-                }
+                        t->stop_node = -1;
+                    }
 
-                if (t->cur_stop_node < t->path.stop_node_count) {
-                    if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
-                        int64_t reverse_task_id = create(1, &train_reverse_task);
-                        char args[16];
-                        args[0] = t->id;
-                        args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
-                        i2a(t->path.stop_dest_offsets[t->cur_stop_node], &args[2]);
-                        int64_t ret = send(reverse_task_id, args, 16, NULL, 0);
-                        ASSERT(ret >= 0, "create reverse task send failed");
-                        t->cur_stop_node++;
+                    if (t->cur_stop_node < t->path.stop_node_count) {
+                        if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
+                            int64_t reverse_task_id = create(1, &train_reverse_task);
+                            char args[16];
+                            args[0] = t->id;
+                            args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
+                            i2a(t->path.stop_dest_offsets[t->cur_stop_node], &args[2]);
+                            int64_t ret = send(reverse_task_id, args, 16, NULL, 0);
+                            ASSERT(ret >= 0, "create reverse task send failed");
+                            t->cur_stop_node++;
+                        }
                     }
                 }
 
@@ -822,7 +825,9 @@ void train_task()
                                 args[3] = 4;
                             }
 
-                            set_train_speed_handler(&train_data, train_one, 0);
+                            if (train_one->speed > 0) {
+                                set_train_speed_handler(&train_data, train_one, 0);
+                            }
                             set_train_speed_handler(&train_data, train_two, 0);
 
                             int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
@@ -871,7 +876,7 @@ void train_task()
                         args[2] = NO_FORBIDDEN_SEGMENT;
                         args[3] = at_start ? 1 : 5;
                         send(reroute_task_id, args, 4, NULL, 0);
-                        log("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
+                        warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
                     }
                 }
             }
@@ -925,13 +930,13 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
 
-            ret = reply_empty(caller_tid);
-            ASSERT(ret >= 0, "reply failed");
-
             track_path_t path = get_shortest_path(track, t, dest, offset, t->avoid_seg_on_reroute);
             route_train_handler(track, t, &train_data, &path);
 
             track_path_debug(&t->path, track);
+
+            ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
 
             break;
         }
@@ -948,11 +953,27 @@ void train_task()
             // rerouting just one train
             if (t2 == NO_TRAIN) {
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
-                ASSERT(path.path_length > 0, "no path found");
-                // track_path_debug(&path, track);
-                route_train_handler(track, train_one, &train_data, &path);
-                marklin_set_speed(train_one->id, train_one->old_speed);
-                set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+
+                if (path.path_length > 0) {
+                    route_train_handler(track, train_one, &train_data, &path);
+                    marklin_set_speed(train_one->id, train_one->old_speed);
+                    set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+                } else {
+                    int64_t reroute_task_id = create(1, &reroute_task);
+                    ASSERT(reroute_task_id >= 0, "create failed");
+                    char args[4];
+                    args[0] = train_one->id;
+                    args[1] = NO_TRAIN;
+                    args[2] = NO_FORBIDDEN_SEGMENT;
+                    args[3] = 8;
+
+                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                    ASSERT(ret >= 0, "create reroute task send failed");
+
+                    clear_reservations(track, train_one);
+                    state_reserve_segment(train_one->cur_seg, train_one->id);
+                }
+
                 break;
             }
 
@@ -987,7 +1008,11 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
+            track_path_debug(&path_1, track);
+            track_path_debug(&path_2, track);
+
             if (path_1.path_length == 0) {
+                log("train %d couldn't reroute, retrying in 8s\r\n", train_one->id);
                 int64_t reroute_task_id = create(1, &reroute_task);
                 ASSERT(reroute_task_id >= 0, "create failed");
                 char args[4];
@@ -1003,12 +1028,13 @@ void train_task()
                 state_reserve_segment(train_one->cur_seg, train_one->id);
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
-                // track_path_debug(&train_one->path, track);
+                // log("train %d old speed %d\r\n", train_one->id, train_one->old_speed);
                 marklin_set_speed(train_one->id, train_one->old_speed);
                 set_train_speed_handler(&train_data, train_one, train_one->old_speed);
             }
 
             if (path_2.path_length == 0) {
+                log("train %d couldn't reroute, retrying in 8s\r\n", train_two->id);
                 int64_t reroute_task_id = create(1, &reroute_task);
                 ASSERT(reroute_task_id >= 0, "create failed");
                 char args[4];
@@ -1024,7 +1050,7 @@ void train_task()
                 state_reserve_segment(train_two->cur_seg, train_two->id);
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
-                // track_path_debug(&train_two->path, track);
+                // log("train %d old speed %d\r\n", train_two->id, train_two->old_speed);
                 marklin_set_speed(train_two->id, train_two->old_speed);
                 set_train_speed_handler(&train_data, train_two, train_two->old_speed);
             }
