@@ -797,7 +797,7 @@ void train_task()
                             train_t* train_one = trainlist_find(&trainlist, reserver);
                             train_t* train_two = t;
 
-                            log("conflicting segment: %d\r\n", conflict_seg);
+                            log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
                             int train_one_on_seg = train_one->cur_seg == conflict_seg;
