@@ -635,7 +635,7 @@ void train_task()
                 //     printf(CONSOLE, "sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->cur_node].name, train->cur_offset);
                 // }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
-                    log("attribuing sensor %s to train %d\r\n", track[node_index].name, train->id);
+                    log("attributing sensor %s to train %d\r\n", track[node_index].name, train->id);
                     sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
 
                     // if (train->path.nodes[ofs] != node_index) {
@@ -814,6 +814,12 @@ void train_task()
 
                                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                                 ASSERT(ret >= 0, "create reroute task send failed");
+
+                                if (train_two->speed > 0) {
+                                    marklin_set_speed(train_two->id, 0);
+                                    set_train_speed_handler(&train_data, train_two, 0);
+                                }
+
                             } else if (train_two_on_seg) {
                                 log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
 
@@ -826,6 +832,12 @@ void train_task()
 
                                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                                 ASSERT(ret >= 0, "create reroute task send failed");
+                                
+                                if (train_one->speed > 0) {
+                                    marklin_set_speed(train_one->id, 0);
+                                    set_train_speed_handler(&train_data, train_one, 0);
+                                }
+
                             } else {
                                 int64_t reroute_task_id = create(1, &reroute_task);
                                 ASSERT(reroute_task_id >= 0, "create failed");
