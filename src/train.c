@@ -15,9 +15,9 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1100
+#define RESERVATION_LOOKAHEAD_DISTANCE 1050
 #define SENSOR_PREDICTION_WINDOW 300
-#define DESTINATION_REACHED_WINDOW 150
+#define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
 
 trainlist_t trainlist_create(train_t* trains)
@@ -528,8 +528,8 @@ void train_task()
     train_t trains[5];
     trainlist_t trainlist = trainlist_create(trains);
     trainlist_add(&trainlist, 55);
-    trainlist_add(&trainlist, 77);
     trainlist_add(&trainlist, 58);
+    trainlist_add(&trainlist, 77);
     for (int i = 0; i < trainlist.size; ++i) {
         marklin_set_speed(trainlist.trains[i].id, 0);
     }
@@ -760,6 +760,7 @@ void train_task()
 
                     if (t->cur_stop_node < t->path.stop_node_count) {
                         if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
+                            log("reverse task spawned for train %d\r\n", t->id);
                             int64_t reverse_task_id = create(1, &train_reverse_task);
                             char args[16];
                             args[0] = t->id;
@@ -799,41 +800,70 @@ void train_task()
                             log("conflicting segment: %d\r\n", conflict_seg);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
-                            marklin_set_speed(train_one->id, 0);
-                            marklin_set_speed(train_two->id, 0);
+                            int train_one_on_seg = train_one->cur_seg == conflict_seg;
+                            int train_two_on_seg = train_two->cur_seg == conflict_seg;
+                            if (train_one_on_seg) {
+                                log("train %d on segment %d, rerouting train %d\r\n", train_one->id, conflict_seg, train_two->id);
 
-                            int64_t reroute_task_id = create(1, &reroute_task);
-                            ASSERT(reroute_task_id >= 0, "create failed");
-                            char args[4];
-
-                            if (train_one->speed == 0) {
-                                // if train one has started stopping, reroute train two
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                char args[4];
                                 args[0] = train_two->id;
                                 args[1] = NO_TRAIN;
                                 args[2] = conflict_seg;
                                 args[3] = 4;
-                            } else if (train_two->speed == 0) {
-                                // if train two has started stopping, reroute train one
+
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
+                            } else if (train_two_on_seg) {
+                                log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
+
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                char args[4];
                                 args[0] = train_one->id;
                                 args[1] = NO_TRAIN;
                                 args[2] = conflict_seg;
                                 args[3] = 4;
+
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
                             } else {
-                                args[0] = train_one->id;
-                                args[1] = train_two->id;
-                                args[2] = conflict_seg;
-                                args[3] = 4;
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                ASSERT(reroute_task_id >= 0, "create failed");
+                                char args[4];
+
+                                if (train_one->speed == 0) {
+                                    // if train one has started stopping, reroute train two
+                                    args[0] = train_two->id;
+                                    args[1] = NO_TRAIN;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
+                                } else if (train_two->speed == 0) {
+                                    // if train two has started stopping, reroute train one
+                                    args[0] = train_one->id;
+                                    args[1] = NO_TRAIN;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
+                                } else {
+                                    args[0] = train_one->id;
+                                    args[1] = train_two->id;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
+                                }
+
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
+
+                                if (train_one->speed > 0) {
+                                    marklin_set_speed(train_one->id, 0);
+                                    set_train_speed_handler(&train_data, train_one, 0);
+                                }
+                                if (train_two->speed > 0) {
+                                    marklin_set_speed(train_two->id, 0);
+                                    set_train_speed_handler(&train_data, train_two, 0);
+                                }
+
+                                goto should_update_train_state_end;
                             }
-
-                            if (train_one->speed > 0) {
-                                set_train_speed_handler(&train_data, train_one, 0);
-                            }
-                            set_train_speed_handler(&train_data, train_two, 0);
-
-                            int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                            ASSERT(ret >= 0, "create reroute task send failed");
-
-                            goto should_update_train_state_end;
                         } else {
                             state_reserve_segment(segments_to_reserve[j], t->id);
                         }
@@ -874,7 +904,7 @@ void train_task()
                         args[0] = t->id;
                         args[1] = NO_TRAIN;
                         args[2] = NO_FORBIDDEN_SEGMENT;
-                        args[3] = at_start ? 1 : 5;
+                        args[3] = at_start ? 1 : 8;
                         send(reroute_task_id, args, 4, NULL, 0);
                         warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
                     }
@@ -953,11 +983,12 @@ void train_task()
             // rerouting just one train
             if (t2 == NO_TRAIN) {
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
+                log("trying to single reroute: %d, path length: %d\r\n", train_one->id, path.path_length);
 
                 if (path.path_length > 0) {
                     route_train_handler(track, train_one, &train_data, &path);
-                    marklin_set_speed(train_one->id, train_one->old_speed);
-                    set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+                    marklin_set_speed(train_one->id, 10);
+                    set_train_speed_handler(&train_data, train_one, 10);
                 } else {
                     int64_t reroute_task_id = create(1, &reroute_task);
                     ASSERT(reroute_task_id >= 0, "create failed");
@@ -995,10 +1026,7 @@ void train_task()
 
             // int train_one_delay, train_two_delay;
             track_path_t path_1, path_2;
-            int train_one_on_seg = train_one->cur_seg == conflict_seg;
-            int train_two_on_seg = train_two->cur_seg == conflict_seg;
-            // log("train one: %d, train two: %d, case 1 dist: %d, case 2 dist: %d, train one on seg: %d, train two on seg: %d\r\n", train_one->id, train_two->id, case_1_dist, case_2_dist, train_one->cur_seg, train_two->cur_seg);
-            if (train_one_on_seg || (!train_two_on_seg && case_1_dist < case_2_dist)) { // reroute 2
+            if (case_1_dist < case_2_dist) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
                 path_2 = case_1_path_2;
@@ -1008,8 +1036,10 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
-            track_path_debug(&path_1, track);
-            track_path_debug(&path_2, track);
+            log("trying to reroute both trains");
+
+            // track_path_debug(&path_1, track);
+            // track_path_debug(&path_2, track);
 
             if (path_1.path_length == 0) {
                 log("train %d couldn't reroute, retrying in 8s\r\n", train_one->id);

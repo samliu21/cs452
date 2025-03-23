@@ -39,7 +39,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
         acc_start /= acc_factor;
         acc_stop *= acc_factor;
     }
-    if (train->id == 77 && total_path_distance > 300) {
+    if ((train->id == 77 || train->id == 58) && total_path_distance > 300) {
         if (total_path_distance < 600) {
             acc_start *= 8;
             acc_start /= 3;

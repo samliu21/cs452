@@ -59,9 +59,8 @@ void train_reverse_task()
     marklin_reverse(train);
 
     // set train speed
-    uint64_t old_speed = train_get_old_speed(train);
-    train_set_speed(train, old_speed);
-    marklin_set_speed(train, old_speed);
+    train_set_speed(train, 10);
+    marklin_set_speed(train, 10);
 
     exit();
 }

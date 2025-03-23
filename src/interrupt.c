@@ -102,10 +102,6 @@ void handle_interrupt(main_context_t* context)
             if (!mis) {
                 continue;
             }
-            if (waiting_queue->size == 0) {
-                ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
-                clear_uart_cts_interrupts(line);
-            }
             if (waiting_queue->size >= 2) {
                 uart_puts(CONSOLE, line == CONSOLE ? "console has more than two tasks waiting\r\n" : "marklin has more than two tasks waiting\r\n");
                 task_t* t = waiting_queue->head;
@@ -114,7 +110,12 @@ void handle_interrupt(main_context_t* context)
                     t = t->next_task;
                 }
             }
-            ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
+            if (waiting_queue->size == 0) {
+                ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
+                clear_uart_cts_interrupts(line);
+            } else {
+                ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
+            }
 
             // reschedule the task
             task_t* uart_task = queue_task_pop(waiting_queue);

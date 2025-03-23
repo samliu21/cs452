@@ -214,9 +214,9 @@ void uart_assert_putc(size_t line, char c)
 void ASSERT(int condition, const char* message)
 {
     if (!condition) {
-        puts(CONSOLE, "ASSERTION FAILED: ");
-        puts(CONSOLE, message);
-        puts(CONSOLE, "\r\n");
+        uart_puts(CONSOLE, "ASSERTION FAILED: ");
+        uart_puts(CONSOLE, message);
+        uart_puts(CONSOLE, "\r\n");
         for (;;) { }
     }
 }
@@ -224,12 +224,12 @@ void ASSERT(int condition, const char* message)
 void ASSERTF(int condition, const char* message, ...)
 {
     if (!condition) {
-        puts(CONSOLE, "ASSERTION FAILED: ");
+        uart_puts(CONSOLE, "ASSERTION FAILED: ");
         va_list va;
         va_start(va, message);
         va_printf(CONSOLE, message, va);
         va_end(va);
-        puts(CONSOLE, "\r\n");
+        uart_puts(CONSOLE, "\r\n");
         for (;;) { }
     }
 }

@@ -1,5 +1,6 @@
 #include "exception.h"
 #include "rpi.h"
+#include "syscall_asm.h"
 
 void dummy_handler()
 {
@@ -32,6 +33,7 @@ void print_register(uint64_t reg)
 void synchronous_kernel_error(uint64_t esr)
 {
     uint64_t exception_class = (esr >> 26) & 0x3F;
-    uart_printf(CONSOLE, "sync kernel error, exception class: %u\r\n", exception_class);
+    uint64_t elr = debug_register();
+    uart_printf(CONSOLE, "sync kernel error, exception class: %u, ELR: %d\r\n", exception_class, elr);
     for (;;) { }
 }
