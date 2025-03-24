@@ -48,7 +48,6 @@ uint64_t train_get_speed(uint64_t train);
 uint64_t train_get_old_speed(uint64_t train);
 int train_exists(uint64_t train);
 void train_sensor_reading(track_node* track, char* sensor);
-void train_get_times(char* response);
 int train_last_sensor(uint64_t train);
 void train_set_reverse(uint64_t train);
 int train_get_reverse(uint64_t train);

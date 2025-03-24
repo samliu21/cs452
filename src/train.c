@@ -72,20 +72,19 @@ typedef enum {
     GET_TRAIN_OLD_SPEED = 3,
     TRAIN_EXISTS = 4,
     SENSOR_READING = 5,
-    GET_TRAIN_TIMES = 6,
-    TRAIN_LAST_SENSOR = 7,
-    SET_TRAIN_REVERSE = 8,
-    GET_TRAIN_REVERSE = 9,
-    SHOULD_UPDATE_TRAIN_STATE = 10,
-    GET_CUR_NODE = 11,
-    GET_CUR_OFFSET = 12,
-    SET_CUR_NODE = 13,
-    SET_CUR_OFFSET = 14,
-    ROUTE_TRAIN = 15,
-    REROUTE_TRAINS = 16,
-    BACKUP_TRAIN = 17,
-    RANDOM_REROUTE = 18,
-    GET_DEST = 19,
+    TRAIN_LAST_SENSOR = 6,
+    SET_TRAIN_REVERSE = 7,
+    GET_TRAIN_REVERSE = 8,
+    SHOULD_UPDATE_TRAIN_STATE = 9,
+    GET_CUR_NODE = 10,
+    GET_CUR_OFFSET = 11,
+    SET_CUR_NODE = 12,
+    SET_CUR_OFFSET = 13,
+    ROUTE_TRAIN = 14,
+    REROUTE_TRAINS = 15,
+    BACKUP_TRAIN = 16,
+    RANDOM_REROUTE = 17,
+    GET_DEST = 18,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -170,16 +169,6 @@ void train_sensor_reading(track_node* track, char* sensor)
     buf[1] = node_index;
     int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
     ASSERT(ret >= 0, "sensor reading send failed");
-}
-
-void train_get_times(char* response)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char c = GET_TRAIN_TIMES;
-    int64_t ret = send(train_task_tid, &c, 1, response, 256);
-    ASSERT(ret >= 0, "get train times send failed");
 }
 
 int train_last_sensor(uint64_t train)
@@ -567,8 +556,6 @@ void train_task()
 
     uint64_t caller_tid;
     char buf[64];
-    char train_times[256];
-    train_times[0] = '\0';
     for (;;) {
         ret = receive(&caller_tid, buf, 64);
         ASSERT(ret >= 0, "receive failed");
@@ -618,7 +605,9 @@ void train_task()
         case SENSOR_READING: {
             int node_index = buf[1];
             reply_empty(caller_tid);
-
+            
+            // int closest_train = 0;
+            // int closest_dist = 1e9;
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* train = &trainlist.trains[i];
 
@@ -652,9 +641,12 @@ void train_task()
                 // if (train->id == 77 && distance_to_sensor < 1000) {
                 //     printf(CONSOLE, "sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->cur_node].name, train->cur_offset);
                 // }
+                // if (distance_to_sensor < closest_dist) {
+                //     closest_dist = distance_to_sensor;
+                //     closest_train = train->id;
+                // }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
-                    log("attributing sensor %s to train %d\r\n", track[node_index].name, train->id);
-                    sprintf(train_times, "distance delta: %dmm", distance_to_sensor);
+                    log("attributing sensor %s to train %d. distance delta: %dmm\r\n", track[node_index].name, train->id, distance_to_sensor);
 
                     // if (train->path.nodes[ofs] != node_index) {
                     //     puts(CONSOLE, "train isn't at sensor node?\r\n");
@@ -687,12 +679,11 @@ void train_task()
                 }
             }
 
+            // if (closest_train) {
+            //     log("sensor %s not attributed. closest train: %d, distance %dmm\r\n", track[node_index].name, closest_train, closest_dist);
+            // }
+
         sensor_reading_end:
-            break;
-        }
-        case GET_TRAIN_TIMES: {
-            ret = reply(caller_tid, train_times, 256);
-            ASSERT(ret >= 0, "reply failed");
             break;
         }
         case TRAIN_LAST_SENSOR: {
