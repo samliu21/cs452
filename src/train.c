@@ -373,6 +373,22 @@ void train_model_notifier()
     }
 }
 
+void resolve_next_branch_for_segment(track_node* track, train_t* t, int segment)
+{
+    log("train %d reserving segment %d: \r\n", t->id, segment);
+    for (int i = 0; i < t->path.path_length - 2; ++i) {
+        track_node* cur_node = &track[t->path.nodes[i]];
+        track_node* next_node = &track[t->path.nodes[i + 1]];
+        // there should only be one branch in the path that leaves the relevant segment.
+        if (cur_node->type == NODE_BRANCH && cur_node->reverse->enters_seg[DIR_AHEAD] == segment) {
+            char switch_type = (cur_node->edge[DIR_STRAIGHT].dest == next_node) ? S : C;
+            log("setting switch %d\r\n", cur_node->num);
+            create_switch_task(cur_node->num, switch_type);
+            return;
+        }
+    }
+}
+
 void resolve_cur_seg(track_node* track, train_t* t)
 {
     track_node* cur_node = &track[t->path.nodes[t->cur_node]];
@@ -500,14 +516,16 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     }
     t->avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
 
-    for (int i = t->path.path_length - 2; i >= 0; --i) {
-        track_node node = track[t->path.nodes[i]];
-        if (node.type == NODE_BRANCH) {
-            char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
+    resolve_next_branch_for_segment(track, t, t->cur_seg);
 
-            create_switch_task(node.num, switch_type);
-        }
-    }
+    // for (int i = t->path.path_length - 2; i >= 0; --i) {
+    //     track_node node = track[t->path.nodes[i]];
+    //     if (node.type == NODE_BRANCH) {
+    //         char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
+
+    //         create_switch_task(node.num, switch_type);
+    //     }
+    // }
 
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERTF(ret >= 0, "create failed: %d", ret);
@@ -832,7 +850,7 @@ void train_task()
 
                                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                                 ASSERT(ret >= 0, "create reroute task send failed");
-                                
+
                                 if (train_one->speed > 0) {
                                     marklin_set_speed(train_one->id, 0);
                                     set_train_speed_handler(&train_data, train_one, 0);
@@ -876,8 +894,14 @@ void train_task()
 
                                 goto should_update_train_state_end;
                             }
-                        } else {
-                            state_reserve_segment(segments_to_reserve[j], t->id);
+                        } else if (!reserver) {
+                            state_reserve_segment(conflict_seg, t->id);
+                            resolve_next_branch_for_segment(track, t, conflict_seg);
+                            if (conflict_seg == 33 || conflict_seg == 37 || conflict_seg == 31) {
+                                resolve_next_branch_for_segment(track, t, 33);
+                                resolve_next_branch_for_segment(track, t, 37);
+                                resolve_next_branch_for_segment(track, t, 31);
+                            }
                         }
                     }
                 }
