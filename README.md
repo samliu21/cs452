@@ -109,7 +109,7 @@ We put all measurements into src/train_data.c.
 
 We used a reservation system to prevent collisions. The track is split up into segments, separated by branches and merges.
 
-<img src="./track_segments.png" />
+<img src="./docs/tc2/track_segments.png" />
 
 Each train reserves segments as it moves, looking ahead a set distance along its path and reserving all segments in that window. After a train reaches a sensor, it releases all segments before the sensor. If a train tries to reserve a segment that is already being reserved by another train, a collision is detected.
 
