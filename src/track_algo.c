@@ -127,7 +127,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     if (track[path_reverse[i]].type == NODE_MERGE) {
                         dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
                     } else if (track[path_reverse[i]].type == NODE_EXIT) {
-                        printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
+                        // printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
                         dist_between = -train_data.train_length[train->id];
                     } else {
                         ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
@@ -190,12 +190,12 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     break;
                 }
             }
+            ASSERTF(total_path_distance >= 0, "total path distance is negative: %d", total_path_distance);
 
             if (total_path_distance < fully_stop_fully_start) {
                 stopping_distance = get_short_stop_distance(&train_data, train, total_path_distance);
             }
 
-            // uart_printf(CONSOLE, "total path distance: %d, stopping distance: %d\r\n", total_path_distance, stopping_distance);
             // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
             for (int i = 0; i < path_length; ++i) {
                 int cur_node = path_reverse[i];

@@ -102,8 +102,8 @@ train_data_t init_train_data_a()
 
     data.reverse_edge_weight[58] = 1000;
 
-    data.start_node[58] = 138;
-    data.start_seg[58] = 3;
+    data.start_node[58] = 130;
+    data.start_seg[58] = 7;
 
     return data;
 }

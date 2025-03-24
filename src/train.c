@@ -375,14 +375,14 @@ void train_model_notifier()
 
 void resolve_next_branch_for_segment(track_node* track, train_t* t, int segment)
 {
-    log("train %d reserving segment %d: \r\n", t->id, segment);
+    // log("train %d reserving segment %d: \r\n", t->id, segment);
     for (int i = 0; i < t->path.path_length - 2; ++i) {
         track_node* cur_node = &track[t->path.nodes[i]];
         track_node* next_node = &track[t->path.nodes[i + 1]];
         // there should only be one branch in the path that leaves the relevant segment.
         if (cur_node->type == NODE_BRANCH && cur_node->reverse->enters_seg[DIR_AHEAD] == segment) {
             char switch_type = (cur_node->edge[DIR_STRAIGHT].dest == next_node) ? S : C;
-            log("setting switch %d\r\n", cur_node->num);
+            // log("setting switch %d\r\n", cur_node->num);
             create_switch_task(cur_node->num, switch_type);
             return;
         }
@@ -778,7 +778,7 @@ void train_task()
 
                     if (t->cur_stop_node < t->path.stop_node_count) {
                         if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
-                            log("reverse task spawned for train %d\r\n", t->id);
+                            // log("reverse task spawned for train %d\r\n", t->id);
                             int64_t reverse_task_id = create(1, &train_reverse_task);
                             char args[16];
                             args[0] = t->id;
@@ -1072,7 +1072,7 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
-            log("trying to reroute both trains");
+            // log("trying to reroute both trains");
 
             // track_path_debug(&path_1, track);
             // track_path_debug(&path_2, track);

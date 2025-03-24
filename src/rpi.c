@@ -217,7 +217,6 @@ void ASSERT(int condition, const char* message)
         uart_puts(CONSOLE, "ASSERTION FAILED: ");
         uart_puts(CONSOLE, message);
         uart_puts(CONSOLE, "\r\n");
-        for (;;) { }
     }
 }
 
@@ -230,6 +229,5 @@ void ASSERTF(int condition, const char* message, ...)
         va_printf(CONSOLE, message, va);
         va_end(va);
         uart_puts(CONSOLE, "\r\n");
-        for (;;) { }
     }
 }
