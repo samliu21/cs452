@@ -855,7 +855,6 @@ void train_task()
                                     marklin_set_speed(train_one->id, 0);
                                     set_train_speed_handler(&train_data, train_one, 0);
                                 }
-
                             } else {
                                 int64_t reroute_task_id = create(1, &reroute_task);
                                 ASSERT(reroute_task_id >= 0, "create failed");
@@ -891,9 +890,9 @@ void train_task()
                                     marklin_set_speed(train_two->id, 0);
                                     set_train_speed_handler(&train_data, train_two, 0);
                                 }
-
-                                goto should_update_train_state_end;
                             }
+
+                            goto should_update_train_state_end;
                         } else if (!reserver) {
                             state_reserve_segment(conflict_seg, t->id);
                             resolve_next_branch_for_segment(track, t, conflict_seg);
