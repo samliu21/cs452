@@ -376,7 +376,7 @@ void train_model_notifier()
 void resolve_next_branch_for_segment(track_node* track, train_t* t, int segment)
 {
     // log("train %d reserving segment %d: \r\n", t->id, segment);
-    for (int i = 0; i < t->path.path_length - 2; ++i) {
+    for (int i = 0; i < t->path.path_length - 1; ++i) {
         track_node* cur_node = &track[t->path.nodes[i]];
         track_node* next_node = &track[t->path.nodes[i + 1]];
         // there should only be one branch in the path that leaves the relevant segment.

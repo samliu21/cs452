@@ -179,6 +179,9 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
             // if no reverses in path
             int total_path_distance = dist[dest] + node_offset - train->cur_offset;
+            if (path.nodes[0] == reverse_node) {
+                total_path_distance = dist[dest] + node_offset - train_data.train_length[train->id] + train->cur_offset;
+            }
 
             for (int i = path.path_length - 2; i >= 0; --i) {
                 if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
