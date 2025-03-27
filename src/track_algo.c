@@ -142,7 +142,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
             if (path.nodes[0] == reverse_node) {
                 total_path_distance = dist[last_node] + final_offset - train_data.train_length[train->id] + train->cur_offset;
             }
-                
+
             ASSERTF(total_path_distance >= 0, "total path distance is negative: %d", total_path_distance);
 
             if (total_path_distance < fully_stop_fully_start) {
@@ -215,7 +215,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
     return path;
 }
 
-int get_next_segments(int* next_segments, track_node* track, int src, int max_distance)
+track_path_t get_next_segments(track_node* track, int src, int max_distance)
 {
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
@@ -234,13 +234,26 @@ int get_next_segments(int* next_segments, track_node* track, int src, int max_di
     dist[src] = 0;
     prev[src] = -1;
 
-    int num_segments = 0;
+    track_path_t path = track_path_new();
 
     while (!pq_pi_empty(&pq)) {
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
         int weight = pi->weight;
         if (weight > max_distance) {
+            int last_node = node;
+            int path_reverse[TRACK_MAX];
+            int path_length = 0;
+            while (node != -1) {
+                path_reverse[path_length++] = node;
+                node = prev[node];
+            }
+
+            for (int i = path_length - 1; i >= 0; --i) {
+                int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
+                track_path_add(&path, path_reverse[i], dist_between);
+            }
+
             break;
         }
         if (dist[node] < weight) {
@@ -252,11 +265,6 @@ int get_next_segments(int* next_segments, track_node* track, int src, int max_di
             int switchnum = track[node].num;
             track_edge edge = switches[switchnum] == S ? track[node].edge[DIR_STRAIGHT] : track[node].edge[DIR_CURVED];
             int next_node = get_node_index(track, edge.dest);
-            if (switches[switchnum] == S && track[node].enters_seg[DIR_STRAIGHT] >= 0) {
-                next_segments[num_segments++] = track[node].enters_seg[DIR_STRAIGHT];
-            } else if (switches[switchnum] == C && track[node].enters_seg[DIR_CURVED] >= 0) {
-                next_segments[num_segments++] = track[node].enters_seg[DIR_CURVED];
-            }
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, next_node, edge.dist);
             break;
         }
@@ -267,9 +275,6 @@ int get_next_segments(int* next_segments, track_node* track, int src, int max_di
             // one edge
             track_edge edge = track[node].edge[DIR_AHEAD];
             int next_node = get_node_index(track, edge.dest);
-            if (track[node].enters_seg[DIR_AHEAD] >= 0) {
-                next_segments[num_segments++] = track[node].enters_seg[DIR_AHEAD];
-            }
             add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, next_node, edge.dist);
             break;
         }
@@ -282,72 +287,5 @@ int get_next_segments(int* next_segments, track_node* track, int src, int max_di
         }
     }
 
-    return num_segments;
-}
-
-int reachable_segments_within_distance(int* reachable_segments, track_node* track, int src, int max_distance)
-{
-    priority_queue_pi_t pq = pq_pi_new();
-    pi_t nodes[256];
-    int nodes_pos = 0;
-    int prev[TRACK_MAX], dist[TRACK_MAX];
-    for (int i = 0; i < TRACK_MAX; ++i) {
-        dist[i] = 1e9;
-    }
-
-    nodes[nodes_pos].weight = 0;
-    nodes[nodes_pos].id = src;
-    pq_pi_add(&pq, &nodes[nodes_pos++]);
-    dist[src] = 0;
-    prev[src] = -1;
-
-    int num_reachable_segments = 0;
-
-    while (!pq_pi_empty(&pq)) {
-        pi_t* pi = pq_pi_pop(&pq);
-        int node = pi->id;
-        int weight = pi->weight;
-        if (weight > max_distance) {
-            break;
-        }
-        if (dist[node] < weight) {
-            continue;
-        }
-
-        for (int i = 0; i < 2; ++i) {
-            if (track[node].enters_seg[i] >= 0) {
-                reachable_segments[num_reachable_segments++] = track[node].enters_seg[i];
-            }
-        }
-
-        switch (track[node].type) {
-        case NODE_BRANCH: {
-            track_edge straight_edge = track[node].edge[DIR_STRAIGHT];
-            track_edge curved_edge = track[node].edge[DIR_CURVED];
-            int node_straight = get_node_index(track, straight_edge.dest);
-            int node_curved = get_node_index(track, curved_edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_straight, straight_edge.dist);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_curved, curved_edge.dist);
-            break;
-        }
-
-        case NODE_SENSOR:
-        case NODE_MERGE:
-        case NODE_ENTER: {
-            // one edge
-            track_edge edge = track[node].edge[DIR_AHEAD];
-            int node_ahead = get_node_index(track, edge.dest);
-            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, node_ahead, edge.dist);
-            break;
-        }
-
-        case NODE_EXIT:
-            break;
-
-        default:
-            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
-        }
-    }
-
-    return num_reachable_segments;
+    return path;
 }

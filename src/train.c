@@ -410,14 +410,6 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
                 segments[segment_index++] = cur_node->enters_seg[j];
             }
         }
-
-        if (cur_node->reverse == nxt_node) {
-            int reachable_segments[16];
-            int num_reachable_segments = reachable_segments_within_distance(reachable_segments, track, path->nodes[i], 300);
-            for (int j = 0; j < num_reachable_segments; ++j) {
-                segments[segment_index++] = reachable_segments[j];
-            }
-        }
     }
     return segment_index;
 }
@@ -722,16 +714,8 @@ void train_task()
                     }
                 }
 
-                int next_segments[32];
-                int num_segments = get_next_segments(next_segments, track, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
-                for (int j = 0; j < num_segments; ++j) {
-                    int reserver = state_is_reserved(next_segments[j]);
-                    if (reserver && reserver != (int)t->id) {
-                        printf(CONSOLE, "collision detected between %d and %d on segment %d!\r\n", reserver, t->id, next_segments[j]);
-                    } else {
-                        state_reserve_segment(next_segments[j], t->id);
-                    }
-                }
+                t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
+                t->cur_node = 0;
 
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
@@ -888,7 +872,6 @@ void train_task()
                 }
             }
 
-        should_update_train_state_end:
             break;
         }
         case GET_CUR_NODE: {
