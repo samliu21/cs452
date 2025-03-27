@@ -71,7 +71,7 @@ void state_get_switches(char* response)
     ASSERT(state_task_tid >= 0, "who_is failed");
 
     char c = GET_SWITCHES;
-    int64_t ret = send(state_task_tid, &c, 1, response, 128);
+    int64_t ret = send(state_task_tid, &c, 1, response, 256);
     ASSERT(ret >= 0, "get switches send failed");
 }
 
@@ -176,7 +176,7 @@ void state_get_forbidden_segments(char* response)
 {
     int64_t state_task_tid = who_is(STATE_TASK_NAME);
     ASSERT(state_task_tid >= 0, "who_is failed");
-    
+
     char buf[1];
     buf[0] = GET_FORBIDDEN_SEGMENTS;
     int64_t ret = send(state_task_tid, buf, 1, response, TRACK_SEGMENTS_MAX);
@@ -266,22 +266,13 @@ void state_task()
             break;
         }
         case GET_SWITCHES: {
-            char buf[128];
-            int sz = 0;
+            char bitset[256];
+            memset(bitset, 0, 256);
             for (int i = 0; i < switchlist.n_switches; ++i) {
                 tswitch_t s = switchlist.switches[i];
-
-                char numbuf[5];
-                ui2a(s.id, 10, numbuf);
-                strcpy(buf + sz, numbuf);
-                sz += strlen(numbuf);
-                buf[sz++] = ':';
-                buf[sz++] = s.state;
-                buf[sz++] = ';';
-                buf[sz++] = ' ';
+                bitset[s.id] = s.state;
             }
-            buf[sz] = 0;
-            ret = reply(caller_tid, buf, sz + 1);
+            ret = reply(caller_tid, bitset, 256);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
@@ -325,9 +316,6 @@ void state_task()
         case RESERVE_SEGMENT: {
             int segment = buf[1];
             int train = buf[2];
-            // check that reservations[segment] == train because reservations are attempted every 5 ticks
-            // thus allow reserve_segment to be idempotent
-            // TODO: look into this
             ASSERTF(!reservations[segment] || reservations[segment] == train, "train %d tried to reserve segment %d, which is reserved by train %d", train, segment, reservations[segment]);
             reservations[segment] = train;
             ret = reply_empty(caller_tid);

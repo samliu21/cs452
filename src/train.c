@@ -11,11 +11,12 @@
 #include "track_algo.h"
 #include "track_data.h"
 #include "track_node.h"
+#include "track_seg.h"
 #include "train_data.h"
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1050
+#define RESERVATION_LOOKAHEAD_DISTANCE 750
 #define SENSOR_PREDICTION_WINDOW 300
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
@@ -81,9 +82,8 @@ typedef enum {
     SET_CUR_OFFSET = 13,
     ROUTE_TRAIN = 14,
     REROUTE_TRAINS = 15,
-    BACKUP_TRAIN = 16,
-    RANDOM_REROUTE = 17,
-    GET_DEST = 18,
+    RANDOM_REROUTE = 16,
+    GET_DEST = 17,
 } train_task_request_t;
 
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -422,34 +422,13 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
     return segment_index;
 }
 
-void clear_reservations(track_node* track, train_t* t)
+void clear_reservations(train_t* t)
 {
-    int segments_to_release[16];
-    int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &t->path, 0, t->path.path_length - 1);
-    for (int i = 0; i < num_segments_to_release; ++i) {
-        if (state_is_reserved(segments_to_release[i]) == (int)t->id) {
-            state_release_segment(segments_to_release[i], t->id);
+    for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
+        if (state_is_reserved(i) == (int)t->id) {
+            state_release_segment(i, t->id);
         }
     }
-}
-
-void backup_task()
-{
-    uint64_t caller_tid;
-    char args[1];
-    receive(&caller_tid, args, 1);
-    reply_empty(caller_tid);
-
-    uint64_t train = args[0];
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-    char buf[2];
-    buf[0] = BACKUP_TRAIN;
-    buf[1] = train;
-    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "backup train send failed");
-
-    exit();
 }
 
 void reroute_task()
@@ -466,20 +445,6 @@ void reroute_task()
 
     delay(delay_sec * 100);
 
-    // int64_t backup_task_id = create(1, &backup_task);
-    // ASSERT(backup_task_id >= 0, "create failed");
-    // char c = t1;
-    // int64_t ret = send(backup_task_id, &c, 1, NULL, 0);
-    // ASSERT(ret >= 0, "create backup task send failed");
-
-    // backup_task_id = create(1, &backup_task);
-    // ASSERT(backup_task_id >= 0, "create failed");
-    // c = t2;
-    // ret = send(backup_task_id, &c, 1, NULL, 0);
-    // ASSERT(ret >= 0, "create backup task send failed");
-
-    // delay(400);
-
     train_reroute(t1, t2, conflict_seg);
 
     exit();
@@ -487,7 +452,7 @@ void reroute_task()
 
 void route_train_handler(track_node* track, train_t* t, train_data_t* train_data, track_path_t* path)
 {
-    clear_reservations(track, t);
+    clear_reservations(t);
 
     track_node* old_node = &track[t->path.nodes[t->cur_node]];
     t->path = *path;
@@ -505,15 +470,6 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     t->avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
 
     resolve_next_branch_for_segment(track, t, t->cur_seg);
-
-    // for (int i = t->path.path_length - 2; i >= 0; --i) {
-    //     track_node node = track[t->path.nodes[i]];
-    //     if (node.type == NODE_BRANCH) {
-    //         char switch_type = (get_node_index(track, node.edge[DIR_STRAIGHT].dest) == t->path.nodes[i + 1]) ? S : C;
-
-    //         create_switch_task(node.num, switch_type);
-    //     }
-    // }
 
     int64_t ret = create(1, &deactivate_solenoid_task);
     ASSERTF(ret >= 0, "create failed: %d", ret);
@@ -603,7 +559,7 @@ void train_task()
         case SENSOR_READING: {
             int node_index = buf[1];
             reply_empty(caller_tid);
-            
+
             // int closest_train = 0;
             // int closest_dist = 1e9;
             for (int i = 0; i < trainlist.size; ++i) {
@@ -1011,7 +967,7 @@ void train_task()
                     int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                     ASSERT(ret >= 0, "create reroute task send failed");
 
-                    clear_reservations(track, train_one);
+                    clear_reservations(train_one);
                     state_reserve_segment(train_one->cur_seg, train_one->id);
                 }
 
@@ -1046,11 +1002,6 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
-            // log("trying to reroute both trains");
-
-            // track_path_debug(&path_1, track);
-            // track_path_debug(&path_2, track);
-
             if (path_1.path_length == 0) {
                 log("train %d couldn't reroute, retrying in 8s\r\n", train_one->id);
                 int64_t reroute_task_id = create(1, &reroute_task);
@@ -1064,7 +1015,7 @@ void train_task()
                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                 ASSERT(ret >= 0, "create reroute task send failed");
 
-                clear_reservations(track, train_one);
+                clear_reservations(train_one);
                 state_reserve_segment(train_one->cur_seg, train_one->id);
             } else {
                 route_train_handler(track, train_one, &train_data, &path_1);
@@ -1085,7 +1036,7 @@ void train_task()
                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
                 ASSERT(ret >= 0, "create reroute task send failed");
 
-                clear_reservations(track, train_two);
+                clear_reservations(train_two);
                 state_reserve_segment(train_two->cur_seg, train_two->id);
             } else {
                 route_train_handler(track, train_two, &train_data, &path_2);
@@ -1095,24 +1046,6 @@ void train_task()
 
         reroute_trains_end:
             reply_empty(caller_tid);
-            break;
-        }
-        case BACKUP_TRAIN: {
-            reply_empty(caller_tid);
-
-            uint64_t train_id = buf[1];
-            train_t* t = trainlist_find(&trainlist, train_id);
-            ASSERT(t != NULL, "train not found");
-
-            track_node* cur_node = &track[t->path.nodes[t->cur_node]];
-            int new_offset = train_data.train_length[t->id] - t->cur_offset + 500;
-
-            // log("backing up train %d to node %s, offset %d\r\n", t->id, cur_node->reverse->name, new_offset);
-            track_path_t path = get_shortest_path(track, t, cur_node->reverse->num, new_offset, NO_FORBIDDEN_SEGMENT);
-            marklin_set_speed(t->id, t->old_speed);
-            set_train_speed_handler(&train_data, t, t->old_speed);
-            route_train_handler(track, t, &train_data, &path);
-
             break;
         }
         case RANDOM_REROUTE: {

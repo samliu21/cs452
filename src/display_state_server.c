@@ -47,12 +47,14 @@ void display_state_task()
 
     uint64_t old_usage = 0;
     uint64_t old_ticks = 0;
+
     char old_sensors[128];
     memset(&old_sensors, 0, 128);
-    // initialize to be different from the initial sensor data
     old_sensors[0] = 255;
+
     char old_switches[128];
     memset(&old_switches, 0, 128);
+    old_switches[0] = 255;
 
     char old_reservations_55[1024];
     memset(&old_reservations_55, 0, 1024);
@@ -116,10 +118,19 @@ void display_state_task()
         }
 
         // switches
-        char switches[128];
+        char switches[256];
         state_get_switches(switches);
         if (c == FORCE || strcmp(switches, old_switches)) {
-            printf(CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", switches);
+            char buf[256];
+            buf[0] = 0;
+            for (int i = 0; i < 256; ++i) {
+                if (switches[i]) {
+                    char t[8];
+                    sprintf(t, "%d:%c; ", i, switches[i]);
+                    strcat(buf, t);
+                }
+            }
+            printf(CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", buf);
             strcpy(old_switches, switches);
         }
 
