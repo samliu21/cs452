@@ -49,7 +49,6 @@ void trainlist_add(trainlist_t* tlist, uint64_t id)
     tlist->trains[tlist->size].acc_start = 0;
     tlist->trains[tlist->size].acc_end = 0;
     tlist->trains[tlist->size].cur_offset = train_data.train_length[id];
-    tlist->trains[tlist->size].cur_stop_node = 0;
     tlist->trains[tlist->size].avoid_seg_on_reroute = NO_FORBIDDEN_SEGMENT;
     tlist->trains[tlist->size].random_reroute = 0;
 
@@ -521,7 +520,6 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
 
     t->stop_node = t->path.stop_node;
     t->stop_distance_offset = t->path.stop_distance_offset;
-    t->cur_stop_node = 0;
     t->last_sensor = -1;
 }
 
@@ -765,20 +763,6 @@ void train_task()
                         set_train_speed_handler(&train_data, t, 0);
 
                         t->stop_node = -1;
-                    }
-
-                    if (t->cur_stop_node < t->path.stop_node_count) {
-                        if (t->path.nodes[t->cur_node] == t->path.stop_nodes[t->cur_stop_node] && t->cur_offset >= t->path.stop_offsets[t->cur_stop_node]) {
-                            // log("reverse task spawned for train %d\r\n", t->id);
-                            int64_t reverse_task_id = create(1, &train_reverse_task);
-                            char args[16];
-                            args[0] = t->id;
-                            args[1] = t->path.stop_dest_nodes[t->cur_stop_node];
-                            i2a(t->path.stop_dest_offsets[t->cur_stop_node], &args[2]);
-                            int64_t ret = send(reverse_task_id, args, 16, NULL, 0);
-                            ASSERT(ret >= 0, "create reverse task send failed");
-                            t->cur_stop_node++;
-                        }
                     }
                 }
 

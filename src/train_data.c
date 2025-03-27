@@ -32,8 +32,6 @@ train_data_t init_train_data_a()
     // mm/s^2
     data.acc_start[55][10] = data.speed[55][10] * 1000 / data.starting_time[55][10];
 
-    data.reverse_edge_weight[55] = 1000;
-
     data.start_node[55] = 140;
     data.start_seg[55] = 4;
 
@@ -66,8 +64,6 @@ train_data_t init_train_data_a()
     // mm/s^2
     data.acc_start[77][10] = data.speed[77][10] * 1000 / data.starting_time[77][10];
 
-    data.reverse_edge_weight[77] = 1000;
-
     data.start_node[77] = 130;
     data.start_seg[77] = 7;
 
@@ -99,8 +95,6 @@ train_data_t init_train_data_a()
 
     // mm/s^2
     data.acc_start[58][10] = data.speed[58][10] * 1000 / data.starting_time[58][10];
-
-    data.reverse_edge_weight[58] = 1000;
 
     data.start_node[58] = 130;
     data.start_seg[58] = 7;

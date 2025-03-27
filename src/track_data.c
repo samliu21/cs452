@@ -14,40 +14,45 @@ int name_to_node_index(track_node* track, char* name)
 
 void init_forbidden_destsa(int* forbidden_dests)
 {
+    int i = 0;
+    /*
     // EN 1-10
-    forbidden_dests[0] = 124;
-    forbidden_dests[1] = 126;
-    forbidden_dests[2] = 128;
-    forbidden_dests[3] = 130;
-    forbidden_dests[4] = 132;
-    forbidden_dests[5] = 134;
-    forbidden_dests[6] = 136;
-    forbidden_dests[7] = 138;
-    forbidden_dests[8] = 140;
-    forbidden_dests[9] = 142;
+    forbidden_dests[i++] = 124;
+    forbidden_dests[i++] = 126;
+    forbidden_dests[i++] = 128;
+    forbidden_dests[i++] = 130;
+    forbidden_dests[i++] = 132;
+    forbidden_dests[i++] = 134;
+    forbidden_dests[i++] = 136;
+    forbidden_dests[i++] = 138;
+    forbidden_dests[i++] = 140;
+    forbidden_dests[i++] = 142;
+    */
 
+    /*
     // Sensors too close to ENs
-    forbidden_dests[10] = 10; // A11
-    forbidden_dests[11] = 22; // B7
-    forbidden_dests[12] = 26; // B11
-    forbidden_dests[13] = 24; // B9
-    forbidden_dests[14] = 15; // A16
+    forbidden_dests[i++] = 10; // A11
+    forbidden_dests[i++] = 22; // B7
+    forbidden_dests[i++] = 26; // B11
+    forbidden_dests[i++] = 24; // B9
+    forbidden_dests[i++] = 15; // A16
+    */
 
     // Sensors around dead spot
-    forbidden_dests[15] = 46; // B7
-    forbidden_dests[16] = 47; // B11
-    forbidden_dests[17] = 58; // B9
-    forbidden_dests[18] = 59; // A16
+    forbidden_dests[i++] = 46; // B7
+    forbidden_dests[i++] = 47; // B11
+    forbidden_dests[i++] = 58; // B9
+    forbidden_dests[i++] = 59; // A16
 
     // Middle Switches
-    forbidden_dests[19] = 116;
-    forbidden_dests[20] = 117;
-    forbidden_dests[21] = 118;
-    forbidden_dests[22] = 119;
-    forbidden_dests[23] = 120;
-    forbidden_dests[24] = 121;
-    forbidden_dests[25] = 122;
-    forbidden_dests[26] = 123;
+    forbidden_dests[i++] = 116;
+    forbidden_dests[i++] = 117;
+    forbidden_dests[i++] = 118;
+    forbidden_dests[i++] = 119;
+    forbidden_dests[i++] = 120;
+    forbidden_dests[i++] = 121;
+    forbidden_dests[i++] = 122;
+    forbidden_dests[i++] = 123;
 }
 
 void init_tracka(track_node* track)

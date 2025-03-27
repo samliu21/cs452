@@ -113,8 +113,9 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
     int speed = (train->speed > 0) ? train->speed : train->old_speed;
     int stopping_distance = train_data.stopping_distance[train->id][speed];
-    int reverse_edge_weight = train_data.reverse_edge_weight[train->id];
     int fully_stop_fully_start = train_data.starting_distance[train->id][speed] + train_data.stopping_distance[train->id][speed];
+
+    int rdest = get_node_index(track, track[dest].reverse);
 
     track_path_t path = track_path_new();
 
@@ -122,7 +123,9 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
         int weight = pi->weight;
-        if (node == dest) {
+        if (node == dest || node == rdest) {
+            int last_node = (node == dest) ? dest : rdest;
+            int final_offset = (node == dest) ? node_offset : -node_offset;
             int path_reverse[TRACK_MAX];
             int path_length = 0;
             while (node != -1) {
@@ -132,87 +135,24 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
             for (int i = path_length - 1; i >= 0; --i) {
                 int dist_between = (i == 0) ? 1e9 : dist[path_reverse[i - 1]] - dist[path_reverse[i]];
-                // for reverse edge, update distance accordingly for reservation calculations
-                if (dist_between == reverse_edge_weight) {
-                    if (track[path_reverse[i]].type == NODE_MERGE) {
-                        dist_between = train_data.train_length[train->id] + 2 * REVERSE_OVER_MERGE_OFFSET;
-                    } else if (track[path_reverse[i]].type == NODE_EXIT) {
-                        // printf(CONSOLE, "path contains reverse at exit %s\r\n", track[path_reverse[i]].name);
-                        dist_between = -train_data.train_length[train->id];
-                    } else {
-                        ASSERTF(0, "reversing at invalid node %s", track[path_reverse[i]].name);
-                    }
-                }
                 track_path_add(&path, path_reverse[i], dist_between);
             }
 
-            int stop_node_count = 0;
-            int prev_node = -1;
-            for (int i = 0; i < path.path_length - 1; ++i) {
-                if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
-                    path.stop_dest_nodes[stop_node_count] = i + 1;
-                    path.stop_dest_offsets[stop_node_count] = train_data.train_length[train->id];
-                    int total_path_distance = 0;
-                    if (track[path.nodes[i]].type == NODE_MERGE) {
-                        total_path_distance += train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
-                        path.stop_dest_offsets[stop_node_count] = -REVERSE_OVER_MERGE_OFFSET;
-                    }
-                    if (prev_node == -1) {
-                        total_path_distance += train->cur_offset;
-                    }
-                    for (int j = i - 1; j > prev_node; --j) {
-                        total_path_distance += path.distances[j];
-                    }
-
-                    int distance_from_end = stopping_distance;
-                    // log("total path distance: %d, fully stop fully start: %d\r\n", total_path_distance, fully_stop_fully_start);
-                    if (total_path_distance < fully_stop_fully_start) {
-                        distance_from_end = get_short_stop_distance(&train_data, train, total_path_distance);
-                    }
-                    if (track[path.nodes[i]].type == NODE_MERGE) {
-                        distance_from_end -= train_data.train_length[train->id] + REVERSE_OVER_MERGE_OFFSET;
-                    }
-                    // log("distance from end: %d\r\n", distance_from_end);
-
-                    int j;
-                    for (j = i - 1; j > prev_node && distance_from_end >= 0; --j) {
-                        distance_from_end -= path.distances[j];
-                    }
-                    path.stop_nodes[stop_node_count] = path.nodes[j + 1];
-                    path.stop_offsets[stop_node_count] = -distance_from_end;
-                    stop_node_count++;
-
-                    prev_node = i;
-                }
-            }
-            path.stop_node_count = stop_node_count;
-
-            // if no reverses in path
-            int total_path_distance = dist[dest] + node_offset - train->cur_offset;
+            int total_path_distance = dist[last_node] + final_offset - train->cur_offset;
             if (path.nodes[0] == reverse_node) {
-                total_path_distance = dist[dest] + node_offset - train_data.train_length[train->id] + train->cur_offset;
+                total_path_distance = dist[last_node] + final_offset - train_data.train_length[train->id] + train->cur_offset;
             }
-
-            for (int i = path.path_length - 2; i >= 0; --i) {
-                if (track[path.nodes[i]].reverse == &track[path.nodes[i + 1]]) {
-                    if (track[path.nodes[i]].type == NODE_MERGE) {
-                        total_path_distance = dist[dest] + node_offset - dist[path.nodes[i + 1]] + REVERSE_OVER_MERGE_OFFSET;
-                    } else {
-                        total_path_distance = dist[dest] + node_offset - dist[path.nodes[i + 1]] - train_data.train_length[train->id];
-                    }
-                    break;
-                }
-            }
+                
             ASSERTF(total_path_distance >= 0, "total path distance is negative: %d", total_path_distance);
 
             if (total_path_distance < fully_stop_fully_start) {
                 stopping_distance = get_short_stop_distance(&train_data, train, total_path_distance);
             }
 
-            // starting from node BEFORE the dest node, find the node and time offset at which we send stop command
+            // starting from node BEFORE the last node, find the node and time offset at which we send stop command
             for (int i = 0; i < path_length; ++i) {
                 int cur_node = path_reverse[i];
-                int distance_from_end = dist[dest] - dist[cur_node] + node_offset;
+                int distance_from_end = dist[last_node] - dist[cur_node] + final_offset;
                 if (distance_from_end >= stopping_distance) {
                     path.stop_node = cur_node;
                     path.stop_distance_offset = distance_from_end - stopping_distance;
@@ -223,9 +163,9 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 }
             }
 
-            path.dest = dest;
-            path.dest_offset = node_offset;
-            path.path_distance = dist[dest];
+            path.dest = last_node;
+            path.dest_offset = final_offset;
+            path.path_distance = dist[last_node];
             break;
         }
         if (dist[node] < weight) {
@@ -267,14 +207,6 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
 
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
-        }
-
-        if (track[node].type == NODE_EXIT || track[node].type == NODE_MERGE) {
-            int ahead_seg = track[node].enters_seg[DIR_AHEAD];
-            if (ahead_seg < 0 || !(ahead_seg == forbidden_seg || forbidden_segments[ahead_seg])) {
-                int reverse_node = get_node_index(track, track[node].reverse);
-                add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, reverse_node, reverse_edge_weight);
-            }
         }
     }
     // if (path.path_length == 0) printf(CONSOLE, "train %d path impossible!\r\n", train->id);

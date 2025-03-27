@@ -5,7 +5,7 @@
 
 // The track initialization functions expect an array of this size.
 #define TRACK_MAX 144
-#define NUM_FORBIDDEN_DESTS 27
+#define NUM_FORBIDDEN_DESTS 12
 
 int name_to_node_index(track_node* track, char* name);
 void init_tracka(track_node* track);

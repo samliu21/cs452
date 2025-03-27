@@ -35,8 +35,5 @@ void track_path_debug(track_path_t* path, track_node* track)
     }
     log("\r\n");
     log("stop node: %s, stop offset: %d\r\n", track[path->stop_node].name, path->stop_distance_offset);
-    for (int i = 0; i < path->stop_node_count; ++i) {
-        log("stop node %d: %s, stop offset %d\r\n", i, track[path->stop_nodes[i]].name, path->stop_offsets[i]);
-    }
     log("----------------------------------\r\n");
 }
