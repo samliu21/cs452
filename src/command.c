@@ -206,26 +206,6 @@ void command_task()
                 marklin_set_speed(train, 10);
             }
 
-            // printf(CONSOLE, "start time: %d\r\n", timer_get_ms());
-
-            result.type = COMMAND_SUCCESS;
-        }
-
-        else if (strcmp(command_type, "rs") == 0) { // rs <segment>
-            if (argc != 2) {
-                result.type = COMMAND_FAIL;
-                error_message = "reserve command expects 1 argument";
-                goto end;
-            }
-            uint64_t segment = a2ui(args[1], 10);
-
-            int reserver = state_is_reserved(segment);
-            if (reserver) {
-                state_release_segment(segment, reserver);
-            } else {
-                state_reserve_segment(segment, '\255');
-            }
-
             result.type = COMMAND_SUCCESS;
         }
 
@@ -262,6 +242,25 @@ void command_task()
 
                 result.type = COMMAND_SUCCESS;
             }
+        }
+
+        else if (strcmp(command_type, "player") == 0) {
+            if (argc != 2) {
+                result.type = COMMAND_FAIL;
+                error_message = "player command expects 1 argument";
+                goto end;
+            }
+
+            uint64_t train = a2ui(args[1], 10);
+            if (!train_exists(train)) {
+                result.type = COMMAND_FAIL;
+                error_message = "train does not exist";
+                goto end;
+            }
+
+            train_set_player(train);
+
+            result.type = COMMAND_SUCCESS;
         }
 
         else if (strcmp(command_type, "q") == 0) {

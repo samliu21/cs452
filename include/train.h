@@ -44,7 +44,6 @@ train_t* trainlist_find(trainlist_t* tlist, uint64_t id);
 
 void train_set_speed(uint64_t train, uint64_t speed);
 uint64_t train_get_speed(uint64_t train);
-uint64_t train_get_old_speed(uint64_t train);
 int train_exists(uint64_t train);
 void train_sensor_reading(track_node* track, char* sensor);
 int train_last_sensor(uint64_t train);
@@ -52,11 +51,11 @@ void train_set_reverse(uint64_t train);
 int train_get_reverse(uint64_t train);
 int train_get_cur_node(uint64_t train);
 int train_get_cur_offset(uint64_t train);
-int train_set_cur_node(uint64_t train, int node);
-int train_set_cur_offset(uint64_t train, int offset);
 void train_route(uint64_t train, int dest, int offset);
 void train_random_reroute(uint64_t train);
 int train_get_dest(uint64_t train);
+int train_get_player();
+void train_set_player(char player);
 
 void train_model_notifier();
 void train_task();

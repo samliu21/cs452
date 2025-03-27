@@ -69,23 +69,23 @@ train_t* trainlist_find(trainlist_t* tlist, uint64_t id)
 typedef enum {
     SET_TRAIN_SPEED = 1,
     GET_TRAIN_SPEED = 2,
-    GET_TRAIN_OLD_SPEED = 3,
-    TRAIN_EXISTS = 4,
-    SENSOR_READING = 5,
-    TRAIN_LAST_SENSOR = 6,
-    SET_TRAIN_REVERSE = 7,
-    GET_TRAIN_REVERSE = 8,
-    SHOULD_UPDATE_TRAIN_STATE = 9,
-    GET_CUR_NODE = 10,
-    GET_CUR_OFFSET = 11,
-    SET_CUR_NODE = 12,
-    SET_CUR_OFFSET = 13,
-    ROUTE_TRAIN = 14,
-    REROUTE_TRAINS = 15,
-    RANDOM_REROUTE = 16,
-    GET_DEST = 17,
+    TRAIN_EXISTS = 3,
+    SENSOR_READING = 4,
+    TRAIN_LAST_SENSOR = 5,
+    SET_TRAIN_REVERSE = 6,
+    GET_TRAIN_REVERSE = 7,
+    SHOULD_UPDATE_TRAIN_STATE = 8,
+    GET_CUR_NODE = 9,
+    GET_CUR_OFFSET = 10,
+    ROUTE_TRAIN = 11,
+    REROUTE_TRAINS = 12,
+    RANDOM_REROUTE = 13,
+    GET_DEST = 14,
+    GET_PLAYER = 15,
+    SET_PLAYER = 16,
 } train_task_request_t;
 
+////////////////////////////////////// BEGIN: APIs
 void train_set_speed(uint64_t train, uint64_t speed)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
@@ -99,23 +99,6 @@ void train_set_speed(uint64_t train, uint64_t speed)
     ASSERT(ret >= 0, "set train speed send failed");
 }
 
-void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
-{
-    int old_speed = t->speed;
-    if (old_speed == 0 && speed > 0) {
-        t->acc = train_data->acc_start[t->id][speed];
-        t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
-    } else if (old_speed > 0 && speed == 0) {
-        t->acc = train_data->acc_stop[t->id][old_speed];
-        t->acc_start = timer_get_ms();
-        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
-    }
-    t->speed = speed;
-    t->old_speed = old_speed;
-    t->speed_time_begin = timer_get_ms();
-}
-
 uint64_t train_get_speed(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
@@ -126,19 +109,6 @@ uint64_t train_get_speed(uint64_t train)
     buf[1] = train;
     int64_t ret = send(train_task_tid, buf, 2, &response, 1);
     ASSERT(ret >= 0, "get train speed send failed");
-    return response;
-}
-
-uint64_t train_get_old_speed(uint64_t train)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char buf[2], response;
-    buf[0] = GET_TRAIN_OLD_SPEED;
-    buf[1] = train;
-    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
-    ASSERT(ret >= 0, "get train old speed send failed");
     return response;
 }
 
@@ -213,28 +183,6 @@ int train_get_reverse(uint64_t train)
     return response;
 }
 
-void train_stop_task()
-{
-    int64_t ret;
-    uint64_t caller_tid;
-    char buf[32];
-
-    ret = receive(&caller_tid, buf, 32);
-    ASSERT(ret >= 0, "receive failed");
-    ret = reply_empty(caller_tid);
-    ASSERT(ret >= 0, "reply failed");
-
-    uint64_t train = buf[0];
-    uint64_t delay_ms = a2ui(buf + 1, 10);
-    ret = delay(delay_ms / 10); // delay is in ms
-    ASSERT(ret >= 0, "delay failed");
-
-    marklin_set_speed(train, 0);
-    train_set_speed(train, 0);
-
-    exit();
-}
-
 int train_get_cur_node(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
@@ -263,34 +211,6 @@ int train_get_cur_offset(uint64_t train)
     return a2i(response, 10);
 }
 
-int train_set_cur_node(uint64_t train, int node)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char buf[10];
-    buf[0] = SET_CUR_NODE;
-    buf[1] = train;
-    buf[2] = node;
-    int64_t ret = send(train_task_tid, buf, 3, NULL, 0);
-    ASSERT(ret >= 0, "set cur node send failed");
-    return 0;
-}
-
-int train_set_cur_offset(uint64_t train, int offset)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char buf[16];
-    buf[0] = SET_CUR_OFFSET;
-    buf[1] = train;
-    i2a(offset, &buf[2]);
-    int64_t ret = send(train_task_tid, buf, 16, NULL, 0);
-    ASSERT(ret >= 0, "set cur offset send failed");
-    return 0;
-}
-
 void train_route(uint64_t train, int dest, int offset)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
@@ -303,18 +223,6 @@ void train_route(uint64_t train, int dest, int offset)
     i2a(offset, buf + 3);
     int64_t ret = send(train_task_tid, buf, 16, NULL, 0);
     ASSERT(ret >= 0, "train route send failed");
-}
-
-void train_random_reroute(uint64_t train)
-{
-    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
-    ASSERT(train_task_tid >= 0, "who_is failed");
-
-    char buf[2];
-    buf[0] = RANDOM_REROUTE;
-    buf[1] = train;
-    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
-    ASSERT(ret >= 0, "train random reroute send failed");
 }
 
 void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
@@ -331,6 +239,18 @@ void train_reroute(uint64_t t1, uint64_t t2, int conflict_seg)
     ASSERT(ret >= 0, "train reroute send failed");
 }
 
+void train_random_reroute(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = RANDOM_REROUTE;
+    buf[1] = train;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "train random reroute send failed");
+}
+
 int train_get_dest(uint64_t train)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
@@ -345,19 +265,37 @@ int train_get_dest(uint64_t train)
     return response;
 }
 
-void train_model_notifier()
+int train_get_player()
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
-    int cur_time = time();
-    char c = SHOULD_UPDATE_TRAIN_STATE;
 
-    for (;;) {
-        int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
-        ASSERTF(ret >= 0, "model notifier send failed: %d", ret);
+    char c = GET_PLAYER, response;
+    int64_t ret = send(train_task_tid, &c, 1, &response, 1);
+    ASSERT(ret >= 0, "get player send failed");
+    return response;
+}
 
-        cur_time += 5;
-        delay_until(cur_time);
+void train_set_player(char player)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = SET_PLAYER;
+    buf[1] = player;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "train set player send failed");
+}
+////////////////////////////////////// END: APIs
+
+////////////////////////////////////// BEGIN: Helper functions
+void clear_reservations(train_t* t)
+{
+    for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
+        if (state_is_reserved(i) == (int)t->id) {
+            state_release_segment(i, t->id);
+        }
     }
 }
 
@@ -413,33 +351,24 @@ int segments_in_path_up_to(int* segments, track_node* track, track_path_t* path,
     }
     return segment_index;
 }
+////////////////////////////////////// END: Helper functions
 
-void clear_reservations(train_t* t)
+////////////////////////////////////// BEGIN: Handlers
+void set_train_speed_handler(train_data_t* train_data, train_t* t, uint64_t speed)
 {
-    for (int i = 0; i < TRACK_SEGMENTS_MAX; ++i) {
-        if (state_is_reserved(i) == (int)t->id) {
-            state_release_segment(i, t->id);
-        }
+    int old_speed = t->speed;
+    if (old_speed == 0 && speed > 0) {
+        t->acc = train_data->acc_start[t->id][speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->starting_time[t->id][speed];
+    } else if (old_speed > 0 && speed == 0) {
+        t->acc = train_data->acc_stop[t->id][old_speed];
+        t->acc_start = timer_get_ms();
+        t->acc_end = timer_get_ms() + train_data->stopping_time[t->id][old_speed];
     }
-}
-
-void reroute_task()
-{
-    uint64_t caller_tid;
-    char args[4];
-    receive(&caller_tid, args, 4);
-    reply_empty(caller_tid);
-
-    uint64_t t1 = args[0];
-    uint64_t t2 = args[1];
-    int conflict_seg = args[2];
-    int delay_sec = args[3];
-
-    delay(delay_sec * 100);
-
-    train_reroute(t1, t2, conflict_seg);
-
-    exit();
+    t->speed = speed;
+    t->old_speed = old_speed;
+    t->speed_time_begin = timer_get_ms();
 }
 
 void route_train_handler(track_node* track, train_t* t, train_data_t* train_data, track_path_t* path)
@@ -469,6 +398,64 @@ void route_train_handler(track_node* track, train_t* t, train_data_t* train_data
     t->stop_node = t->path.stop_node;
     t->stop_distance_offset = t->path.stop_distance_offset;
     t->last_sensor = -1;
+}
+////////////////////////////////////////// END: Handlers
+
+void train_stop_task()
+{
+    int64_t ret;
+    uint64_t caller_tid;
+    char buf[32];
+
+    ret = receive(&caller_tid, buf, 32);
+    ASSERT(ret >= 0, "receive failed");
+    ret = reply_empty(caller_tid);
+    ASSERT(ret >= 0, "reply failed");
+
+    uint64_t train = buf[0];
+    uint64_t delay_ms = a2ui(buf + 1, 10);
+    ret = delay(delay_ms / 10); // delay is in ms
+    ASSERT(ret >= 0, "delay failed");
+
+    marklin_set_speed(train, 0);
+    train_set_speed(train, 0);
+
+    exit();
+}
+
+void train_model_notifier()
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+    int cur_time = time();
+    char c = SHOULD_UPDATE_TRAIN_STATE;
+
+    for (;;) {
+        int64_t ret = send(train_task_tid, &c, 1, NULL, 0);
+        ASSERTF(ret >= 0, "model notifier send failed: %d", ret);
+
+        cur_time += 5;
+        delay_until(cur_time);
+    }
+}
+
+void reroute_task()
+{
+    uint64_t caller_tid;
+    char args[4];
+    receive(&caller_tid, args, 4);
+    reply_empty(caller_tid);
+
+    uint64_t t1 = args[0];
+    uint64_t t2 = args[1];
+    int conflict_seg = args[2];
+    int delay_sec = args[3];
+
+    delay(delay_sec * 100);
+
+    train_reroute(t1, t2, conflict_seg);
+
+    exit();
 }
 
 void train_task()
@@ -500,6 +487,8 @@ void train_task()
     int forbidden_dests[NUM_FORBIDDEN_DESTS];
     init_forbidden_destsa(forbidden_dests);
 
+    int player_train = 0;
+
     uint64_t caller_tid;
     char buf[64];
     for (;;) {
@@ -528,15 +517,6 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERTF(t != NULL, "train %d not found.", train);
             char response = t->speed;
-            ret = reply_char(caller_tid, response);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case GET_TRAIN_OLD_SPEED: {
-            uint64_t train = buf[1];
-            train_t* t = trainlist_find(&trainlist, train);
-            ASSERTF(t != NULL, "train %d not found.", train);
-            char response = t->old_speed;
             ret = reply_char(caller_tid, response);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -714,122 +694,123 @@ void train_task()
                     }
                 }
 
-                t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
-                t->cur_node = 0;
-
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
 
                     resolve_cur_seg(track, t);
                 }
 
-                // don't reserve if train is stopping
-                // if (t->speed > 0) {
-                //     int distance_ahead = 0;
-                //     int cur_node_index = t->cur_node;
-                //     while (cur_node_index < t->path.path_length - 1 && distance_ahead < RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset) {
-                //         distance_ahead += t->path.distances[cur_node_index];
-                //         cur_node_index++;
-                //     }
+                if (player_train == (int)t->id) {
+                    t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
+                    t->cur_node = 0;
+                } else {
+                    if (t->speed > 0) {
+                        int distance_ahead = 0;
+                        int cur_node_index = t->cur_node;
+                        while (cur_node_index < t->path.path_length - 1 && distance_ahead < RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset) {
+                            distance_ahead += t->path.distances[cur_node_index];
+                            cur_node_index++;
+                        }
 
-                //     int segments_to_reserve[16];
-                //     int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, min(cur_node_index, t->path.path_length - 1));
-                //     for (int j = 0; j < num_segments_to_reserve; ++j) {
-                //         int conflict_seg = segments_to_reserve[j];
-                //         uint64_t reserver = state_is_reserved(conflict_seg);
-                //         if (reserver && reserver != t->id) {
-                //             train_t* train_one = trainlist_find(&trainlist, reserver);
-                //             train_t* train_two = t;
+                        int segments_to_reserve[16];
+                        int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, min(cur_node_index, t->path.path_length - 1));
+                        for (int j = 0; j < num_segments_to_reserve; ++j) {
+                            int conflict_seg = segments_to_reserve[j];
+                            uint64_t reserver = state_is_reserved(conflict_seg);
+                            if (reserver && reserver != t->id) {
+                                train_t* train_one = trainlist_find(&trainlist, reserver);
+                                train_t* train_two = t;
 
-                //             log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
-                //             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
+                                log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
+                                ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
-                //             int train_one_on_seg = train_one->cur_seg == conflict_seg;
-                //             int train_two_on_seg = train_two->cur_seg == conflict_seg;
-                //             if (train_one_on_seg) {
-                //                 log("train %d on segment %d, rerouting train %d\r\n", train_one->id, conflict_seg, train_two->id);
+                                int train_one_on_seg = train_one->cur_seg == conflict_seg;
+                                int train_two_on_seg = train_two->cur_seg == conflict_seg;
+                                if (train_one_on_seg) {
+                                    log("train %d on segment %d, rerouting train %d\r\n", train_one->id, conflict_seg, train_two->id);
 
-                //                 int64_t reroute_task_id = create(1, &reroute_task);
-                //                 char args[4];
-                //                 args[0] = train_two->id;
-                //                 args[1] = NO_TRAIN;
-                //                 args[2] = conflict_seg;
-                //                 args[3] = 4;
+                                    int64_t reroute_task_id = create(1, &reroute_task);
+                                    char args[4];
+                                    args[0] = train_two->id;
+                                    args[1] = NO_TRAIN;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
 
-                //                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                //                 ASSERT(ret >= 0, "create reroute task send failed");
+                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                    ASSERT(ret >= 0, "create reroute task send failed");
 
-                //                 if (train_two->speed > 0) {
-                //                     marklin_set_speed(train_two->id, 0);
-                //                     set_train_speed_handler(&train_data, train_two, 0);
-                //                 }
+                                    if (train_two->speed > 0) {
+                                        marklin_set_speed(train_two->id, 0);
+                                        set_train_speed_handler(&train_data, train_two, 0);
+                                    }
 
-                //             } else if (train_two_on_seg) {
-                //                 log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
+                                } else if (train_two_on_seg) {
+                                    log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
 
-                //                 int64_t reroute_task_id = create(1, &reroute_task);
-                //                 char args[4];
-                //                 args[0] = train_one->id;
-                //                 args[1] = NO_TRAIN;
-                //                 args[2] = conflict_seg;
-                //                 args[3] = 4;
+                                    int64_t reroute_task_id = create(1, &reroute_task);
+                                    char args[4];
+                                    args[0] = train_one->id;
+                                    args[1] = NO_TRAIN;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
 
-                //                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                //                 ASSERT(ret >= 0, "create reroute task send failed");
+                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                    ASSERT(ret >= 0, "create reroute task send failed");
 
-                //                 if (train_one->speed > 0) {
-                //                     marklin_set_speed(train_one->id, 0);
-                //                     set_train_speed_handler(&train_data, train_one, 0);
-                //                 }
-                //             } else {
-                //                 int64_t reroute_task_id = create(1, &reroute_task);
-                //                 ASSERT(reroute_task_id >= 0, "create failed");
-                //                 char args[4];
+                                    if (train_one->speed > 0) {
+                                        marklin_set_speed(train_one->id, 0);
+                                        set_train_speed_handler(&train_data, train_one, 0);
+                                    }
+                                } else {
+                                    int64_t reroute_task_id = create(1, &reroute_task);
+                                    ASSERT(reroute_task_id >= 0, "create failed");
+                                    char args[4];
 
-                //                 if (train_one->speed == 0) {
-                //                     // if train one has started stopping, reroute train two
-                //                     args[0] = train_two->id;
-                //                     args[1] = NO_TRAIN;
-                //                     args[2] = conflict_seg;
-                //                     args[3] = 4;
-                //                 } else if (train_two->speed == 0) {
-                //                     // if train two has started stopping, reroute train one
-                //                     args[0] = train_one->id;
-                //                     args[1] = NO_TRAIN;
-                //                     args[2] = conflict_seg;
-                //                     args[3] = 4;
-                //                 } else {
-                //                     args[0] = train_one->id;
-                //                     args[1] = train_two->id;
-                //                     args[2] = conflict_seg;
-                //                     args[3] = 4;
-                //                 }
+                                    if (train_one->speed == 0) {
+                                        // if train one has started stopping, reroute train two
+                                        args[0] = train_two->id;
+                                        args[1] = NO_TRAIN;
+                                        args[2] = conflict_seg;
+                                        args[3] = 4;
+                                    } else if (train_two->speed == 0) {
+                                        // if train two has started stopping, reroute train one
+                                        args[0] = train_one->id;
+                                        args[1] = NO_TRAIN;
+                                        args[2] = conflict_seg;
+                                        args[3] = 4;
+                                    } else {
+                                        args[0] = train_one->id;
+                                        args[1] = train_two->id;
+                                        args[2] = conflict_seg;
+                                        args[3] = 4;
+                                    }
 
-                //                 int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                //                 ASSERT(ret >= 0, "create reroute task send failed");
+                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                    ASSERT(ret >= 0, "create reroute task send failed");
 
-                //                 if (train_one->speed > 0) {
-                //                     marklin_set_speed(train_one->id, 0);
-                //                     set_train_speed_handler(&train_data, train_one, 0);
-                //                 }
-                //                 if (train_two->speed > 0) {
-                //                     marklin_set_speed(train_two->id, 0);
-                //                     set_train_speed_handler(&train_data, train_two, 0);
-                //                 }
-                //             }
+                                    if (train_one->speed > 0) {
+                                        marklin_set_speed(train_one->id, 0);
+                                        set_train_speed_handler(&train_data, train_one, 0);
+                                    }
+                                    if (train_two->speed > 0) {
+                                        marklin_set_speed(train_two->id, 0);
+                                        set_train_speed_handler(&train_data, train_two, 0);
+                                    }
+                                }
 
-                //             goto should_update_train_state_end;
-                //         } else if (!reserver) {
-                //             state_reserve_segment(conflict_seg, t->id);
-                //             resolve_next_branch_for_segment(track, t, conflict_seg);
-                //             if (conflict_seg == 33 || conflict_seg == 37 || conflict_seg == 31) {
-                //                 resolve_next_branch_for_segment(track, t, 33);
-                //                 resolve_next_branch_for_segment(track, t, 37);
-                //                 resolve_next_branch_for_segment(track, t, 31);
-                //             }
-                //         }
-                //     }
-                // }
+                                goto should_update_train_state_end;
+                            } else if (!reserver) {
+                                state_reserve_segment(conflict_seg, t->id);
+                                resolve_next_branch_for_segment(track, t, conflict_seg);
+                                if (conflict_seg == 33 || conflict_seg == 37 || conflict_seg == 31) {
+                                    resolve_next_branch_for_segment(track, t, 33);
+                                    resolve_next_branch_for_segment(track, t, 37);
+                                    resolve_next_branch_for_segment(track, t, 31);
+                                }
+                            }
+                        }
+                    }
+                }
 
                 if (t->speed == 0 && t->random_reroute && t->path.dest == t->path.nodes[t->path.path_length - 1]) {
                     int arrived_at_destination = t->cur_node == t->path.path_length - 1;
@@ -872,6 +853,7 @@ void train_task()
                 }
             }
 
+        should_update_train_state_end:
             break;
         }
         case GET_CUR_NODE: {
@@ -889,27 +871,6 @@ void train_task()
             char response[8];
             i2a(t->cur_offset, response);
             ret = reply(caller_tid, response, 8);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case SET_CUR_NODE: {
-            uint64_t train = buf[1];
-            train_t* t = trainlist_find(&trainlist, train);
-            ASSERT(t != NULL, "train not found");
-            int node = buf[2];
-            t->cur_node = node;
-            resolve_cur_seg(track, t);
-            ret = reply_empty(caller_tid);
-            ASSERT(ret >= 0, "reply failed");
-            break;
-        }
-        case SET_CUR_OFFSET: {
-            uint64_t train = buf[1];
-            train_t* t = trainlist_find(&trainlist, train);
-            ASSERT(t != NULL, "train not found");
-            int offset = a2i(&buf[2], 10);
-            t->cur_offset = offset;
-            ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
@@ -1055,6 +1016,17 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             ret = reply_char(caller_tid, t->path.dest);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_PLAYER: {
+            ret = reply_char(caller_tid, player_train);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_PLAYER: {
+            player_train = buf[1];
+            ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

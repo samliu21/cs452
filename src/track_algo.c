@@ -241,7 +241,6 @@ track_path_t get_next_segments(track_node* track, int src, int max_distance)
         int node = pi->id;
         int weight = pi->weight;
         if (weight > max_distance) {
-            int last_node = node;
             int path_reverse[TRACK_MAX];
             int path_length = 0;
             while (node != -1) {
