@@ -31,6 +31,17 @@ int kmain()
     uart_config_and_enable(CONSOLE);
     uart_config_and_enable(MARKLIN);
 
+    // track_node track[TRACK_MAX];
+    // init_tracka(track);
+    // int next_segments[32];
+    // int num_segments = get_next_segments(next_segments, track, 108, 750);
+    // uart_printf(CONSOLE, "num segments: %d\r\n", num_segments);
+    // for (int i = 0; i < num_segments; ++i) {
+    //     uart_printf(CONSOLE, "segment: %d\r\n", next_segments[i]);
+    // }
+
+    // for (;;) { }
+
     // run tests and initialize exception vector
     init_interrupts();
     init_vbar();
@@ -130,17 +141,6 @@ int kmain()
         uint64_t syndrome = esr & 0xFFFF;
         if (syndrome != INTERRUPT_CODE) {
             int type = (esr >> 26) & 0x3F;
-            // char ISS[64];
-            // memset(ISS, 0, 64);
-            // int index = 0;
-            // ISS[index++] = '0' + ((esr >> 24) & 1);
-            // ISS[index++] = ' ';
-            // for (int i = 0; i < 24; ++i) {
-            //     ISS[index++] = '0' + ((esr >> (23 - i)) & 1);
-            //     if (i % 4 == 3) {
-            //         ISS[index++] = ' ';
-            //     }
-            // }
             uint64_t elr = debug_register();
             ASSERTF(type == 21, "not an svc call; type: %d, ELR: %d\r\n", type, elr);
         }

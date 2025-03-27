@@ -2,6 +2,7 @@
 #include "priority_queue_pi.h"
 #include "rpi.h"
 #include "state_server.h"
+#include "switch.h"
 #include "track_data.h"
 #include "track_node.h"
 #include "track_seg.h"
@@ -212,6 +213,76 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
         "new path for train %d starts on node %s, not cur node %s or reverse node %s\r\n",
         train->id, track[path.nodes[0]].name, track[src].name, track[reverse_node].name);
     return path;
+}
+
+int get_next_segments(int* next_segments, track_node* track, int src, int max_distance)
+{
+    priority_queue_pi_t pq = pq_pi_new();
+    pi_t nodes[256];
+    int nodes_pos = 0;
+    int dist[TRACK_MAX], prev[TRACK_MAX];
+    for (int i = 0; i < TRACK_MAX; ++i) {
+        dist[i] = 1e9;
+    }
+
+    char switches[256];
+    state_get_switches(switches);
+
+    nodes[nodes_pos].weight = 0;
+    nodes[nodes_pos].id = src;
+    pq_pi_add(&pq, &nodes[nodes_pos++]);
+    dist[src] = 0;
+    prev[src] = -1;
+
+    int num_segments = 0;
+
+    while (!pq_pi_empty(&pq)) {
+        pi_t* pi = pq_pi_pop(&pq);
+        int node = pi->id;
+        int weight = pi->weight;
+        if (weight > max_distance) {
+            break;
+        }
+        if (dist[node] < weight) {
+            continue;
+        }
+
+        switch (track[node].type) {
+        case NODE_BRANCH: {
+            int switchnum = track[node].num;
+            track_edge edge = switches[switchnum] == S ? track[node].edge[DIR_STRAIGHT] : track[node].edge[DIR_CURVED];
+            int next_node = get_node_index(track, edge.dest);
+            if (switches[switchnum] == S && track[node].enters_seg[DIR_STRAIGHT] >= 0) {
+                next_segments[num_segments++] = track[node].enters_seg[DIR_STRAIGHT];
+            } else if (switches[switchnum] == C && track[node].enters_seg[DIR_CURVED] >= 0) {
+                next_segments[num_segments++] = track[node].enters_seg[DIR_CURVED];
+            }
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, next_node, edge.dist);
+            break;
+        }
+
+        case NODE_SENSOR:
+        case NODE_MERGE:
+        case NODE_ENTER: {
+            // one edge
+            track_edge edge = track[node].edge[DIR_AHEAD];
+            int next_node = get_node_index(track, edge.dest);
+            if (track[node].enters_seg[DIR_AHEAD] >= 0) {
+                next_segments[num_segments++] = track[node].enters_seg[DIR_AHEAD];
+            }
+            add_to_queue(&pq, dist, prev, nodes, &nodes_pos, node, next_node, edge.dist);
+            break;
+        }
+
+        case NODE_EXIT:
+            break;
+
+        default:
+            ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
+        }
+    }
+
+    return num_segments;
 }
 
 int reachable_segments_within_distance(int* reachable_segments, track_node* track, int src, int max_distance)
