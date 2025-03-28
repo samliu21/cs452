@@ -724,13 +724,23 @@ void train_task()
 
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
-
                     resolve_cur_seg(track, t);
                 }
 
                 if (player_train == (int)t->id) {
                     t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
                     t->cur_node = 0;
+                    if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
+                        int dist_from_exit = - t->cur_offset;
+                        for (int i = 0; i < t->path.path_length - 1; ++i) {
+                            dist_from_exit += t->path.distances[i];
+                        }
+                        log("dist: %d\r\n", dist_from_exit);
+                        if (dist_from_exit <= train_data.stopping_distance[t->id][t->speed]) {
+                            marklin_set_speed(t->id, 0);
+                            set_train_speed_handler(&train_data, t, 0);
+                        }
+                    }
                 } else {
                     if (t->speed > 0) {
                         int distance_ahead = 0;
