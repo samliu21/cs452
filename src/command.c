@@ -15,7 +15,8 @@
 #define NUM_LOOP_SENSORS 8
 #define NUM_LOOP_SWITCHES 4
 
-void player_actable_notifier() {
+void player_actable_notifier()
+{
     int64_t command_task_tid = who_is(COMMAND_TASK_NAME);
     for (;;) {
         char command[] = "player_actable";
@@ -291,10 +292,12 @@ void command_task()
 
         else if (strcmp(command_type, "pc") == 0) {
             switch (args[1][0]) {
-                case UP: {
-                    if (player_actable) {
-                        int train = train_get_player();
+            case UP: {
+                if (player_actable) {
+                    int train = train_get_player();
+                    if (train_get_speed(train) == 0) {
                         if (track[train_get_cur_node(train)].type != NODE_EXIT) {
+
                             train_set_speed(train, 10);
                             marklin_set_speed(train, 10);
                             player_actable = 0;
@@ -303,55 +306,58 @@ void command_task()
                             log("Player is at exit!\r\n");
                         }
                     } else {
-                        log("Not yet ready to act!\r\n");
+                        log("Player is already moving!\r\n");
                     }
-                    break;
+                } else {
+                    log("Not yet ready to act!\r\n");
                 }
-                case LEFT:
-                case RIGHT: {
-                    int train = train_get_player();
-                    int next_switch = train_get_next_switch(train);
-                    if (next_switch) {
-                        if (next_switch == 153 || next_switch == 154) {
-                            int switch_num = (args[1][0] == LEFT) ? 154 : 153;
-                            create_switch_task(switch_num, C);
-                        } else if (next_switch == 155 || next_switch == 156) {
-                            int switch_num = (args[1][0] == LEFT) ? 156 : 155;
-                            create_switch_task(switch_num, C);
-                        } else {
-                            int switch_dir = ((args[1][0] == LEFT) ^ switch_left_straight[next_switch]) ? C : S;
-                            create_switch_task(next_switch, switch_dir);
-                        }
+                break;
+            }
+            case LEFT:
+            case RIGHT: {
+                int train = train_get_player();
+                int next_switch = train_get_next_switch(train);
+                if (next_switch) {
+                    if (next_switch == 153 || next_switch == 154) {
+                        int switch_num = (args[1][0] == LEFT) ? 154 : 153;
+                        create_switch_task(switch_num, C);
+                    } else if (next_switch == 155 || next_switch == 156) {
+                        int switch_num = (args[1][0] == LEFT) ? 156 : 155;
+                        create_switch_task(switch_num, C);
                     } else {
-                        log("no switch in front of train");
+                        int switch_dir = ((args[1][0] == LEFT) ^ switch_left_straight[next_switch]) ? C : S;
+                        create_switch_task(next_switch, switch_dir);
                     }
-                    break;
-                } 
-                case DOWN: {
-                    if (player_actable) {
-                        int train = train_get_player();
-                        if (train_get_speed(train) > 0) {
-                            train_set_speed(train, 0);
-                            marklin_set_speed(train, 0);
+                } else {
+                    log("no switch in front of train");
+                }
+                break;
+            }
+            case DOWN: {
+                if (player_actable) {
+                    int train = train_get_player();
+                    if (train_get_speed(train) > 0) {
+                        train_set_speed(train, 0);
+                        marklin_set_speed(train, 0);
+                        player_actable = 0;
+                        reply_empty(notifier_tid);
+                    } else {
+                        if (track[train_get_cur_node(train)].type != NODE_ENTER) {
+                            train_set_reverse(train);
+                            marklin_reverse(train);
+                            train_set_speed(train, 10);
+                            marklin_set_speed(train, 10);
                             player_actable = 0;
                             reply_empty(notifier_tid);
                         } else {
-                            if (track[train_get_cur_node(train)].type != NODE_ENTER) {
-                                train_set_reverse(train);
-                                marklin_reverse(train);
-                                train_set_speed(train, 10);
-                                marklin_set_speed(train, 10);
-                                player_actable = 0;
-                                reply_empty(notifier_tid);
-                            } else {
-                                log("Player is at enter!\r\n");
-                            }
+                            log("Player is at enter!\r\n");
                         }
-                    } else {
-                        log("Not yet ready to act!\r\n");
                     }
-                    break;
+                } else {
+                    log("Not yet ready to act!\r\n");
                 }
+                break;
+            }
             }
             reply_empty(caller_tid);
             continue;
