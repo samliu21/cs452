@@ -20,6 +20,7 @@
 #define SENSOR_PREDICTION_WINDOW 300
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
+#define PLAYER_SWITCH_SAFETY_MARGIN 50
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -83,6 +84,7 @@ typedef enum {
     GET_DEST = 14,
     GET_PLAYER = 15,
     SET_PLAYER = 16,
+    GET_NEXT_SWITCH = 17,
 } train_task_request_t;
 
 ////////////////////////////////////// BEGIN: APIs
@@ -287,6 +289,22 @@ void train_set_player(char player)
     int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
     ASSERT(ret >= 0, "train set player send failed");
 }
+
+int train_get_next_switch(uint64_t train)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = GET_NEXT_SWITCH;
+    buf[1] = train;
+
+    char response;
+    int64_t ret = send(train_task_tid, buf, 2, &response, 1);
+    ASSERT(ret >= 0, "train set player send failed");
+    return response;
+}
+
 ////////////////////////////////////// END: APIs
 
 ////////////////////////////////////// BEGIN: Helper functions
@@ -632,6 +650,16 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             t->reverse_direction = !t->reverse_direction;
+            if (player_train == (int) t->id) {
+                int reverse_node = get_node_index(track, track[t->path.nodes[t->cur_node]].reverse);
+                t->path = get_next_segments(track, reverse_node, RESERVATION_LOOKAHEAD_DISTANCE);
+                t->cur_node = 0;
+                t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
+                while (t->cur_offset >= t->path.distances[t->cur_node]) {
+                    t->cur_offset -= t->path.distances[t->cur_node++];
+                    resolve_cur_seg(track, t);
+                }
+            }
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
@@ -1027,6 +1055,34 @@ void train_task()
         case SET_PLAYER: {
             player_train = buf[1];
             ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_NEXT_SWITCH: {
+            int train = buf[1];
+            train_t* t = trainlist_find(&trainlist, train);
+            ASSERT(t != NULL, "train not found");
+
+            track_node* node;
+            // check if train is too close to next node
+            if (t->path.distances[t->cur_node] - PLAYER_SWITCH_SAFETY_MARGIN - t->cur_offset < 0) {
+                node = &track[t->path.nodes[t->cur_node + 2]];
+            } else {
+                node = &track[t->path.nodes[t->cur_node + 1]];
+            }
+            
+            while (node->type != NODE_BRANCH && node->type != NODE_EXIT) {
+                node = node->edge[DIR_AHEAD].dest;
+            }
+
+            char response;
+            if (node->type == NODE_BRANCH) {
+                response = node->num;
+            } else {
+                response = 0;
+            }
+
+            ret = reply(caller_tid, &response, 1);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

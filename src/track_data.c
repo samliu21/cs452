@@ -55,6 +55,27 @@ void init_forbidden_destsa(int* forbidden_dests)
     forbidden_dests[i++] = 123;
 }
 
+void init_switch_left_straighta(char* switch_left_straight) {
+    switch_left_straight[1] = 0;
+    switch_left_straight[2] = 0;
+    switch_left_straight[3] = 1;
+    switch_left_straight[4] = 1;
+    switch_left_straight[5] = 0;
+    switch_left_straight[6] = 1;
+    switch_left_straight[7] = 0;
+    switch_left_straight[8] = 1;
+    switch_left_straight[9] = 0;
+    switch_left_straight[10] = 0;
+    switch_left_straight[11] = 0;
+    switch_left_straight[12] = 0;
+    switch_left_straight[13] = 1;
+    switch_left_straight[14] = 1;
+    switch_left_straight[15] = 0;
+    switch_left_straight[16] = 0;
+    switch_left_straight[17] = 1;
+    switch_left_straight[18] = 1;
+}
+
 void init_tracka(track_node* track)
 {
     memset(track, 0, TRACK_MAX * sizeof(track_node));

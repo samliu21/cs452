@@ -56,6 +56,7 @@ void train_random_reroute(uint64_t train);
 int train_get_dest(uint64_t train);
 int train_get_player();
 void train_set_player(char player);
+int train_get_next_switch(uint64_t train);
 
 void train_model_notifier();
 void train_task();
