@@ -109,7 +109,7 @@ void k4_initial_user_task()
     create(1, &marklin_notifier);
 
     // clear screen
-    puts(CONSOLE, "\033[2J\033[61;999r\033[999;1H> ");
+    puts(CONSOLE, "\033[2J\033[86;999r\033[999;1H> ");
 
     // train setup tasks
     create(2, &train_task);

@@ -10,6 +10,27 @@
 #include "train.h"
 #include "uart_server.h"
 
+static char track_template[18][256] = {
+    "            12        11",
+    "–––———————–\033[33m/\033[37m—————————\033[33m/\033[37m—————————————————————————————––\\",
+    "          /         /      13                 10      \\",
+    "–––——————\033[33m/\033[37m 4       \033[33m/\033[37m—————————\033[33m\\\033[37m—————–––——–––––\033[33m/\033[37m—————————\033[33m\\\033[37m",
+    "        /         / 14         \\           /          9 \\",
+    "–––————/         |               \\   |   /               |",
+    "                 |                 \\ | /                 |",
+    "                 |              156 \033[33m|\033[37m|\033[33m|\033[37m 155              |",
+    "                 |              153 \033[33m|\033[37m|\033[33m|\033[37m 154              |",
+    "                 |                 / | \\                 |",
+    "–––————\\         |               /   |   \\               |",
+    "        \\         \\ 15      16 /           \\ 17       8 /",
+    "–––——————\033[33m\\\033[37m 1       \033[33m\\\033[37m—————————\033[33m/\033[37m——————––––—––––\033[33m\\\033[37m—————————\033[33m/\033[37m",
+    "          \\         \\                                 /",
+    "–––————————\033[33m\\\033[37m 2       \\———————\033[33m\\\033[37m———————————————\033[33m/\033[37m————–——/",
+    "            \\               6 \\             / 7",
+    "–––——————————\033[33m\\\033[37m—————————————————\033[33m\\\033[37m———————————\033[33m/\033[37m————————————",
+    "              3                 18        5"
+};
+
 typedef enum {
     LAZY = 1,
     FORCE = 2,
@@ -34,6 +55,95 @@ void display_force()
     display(FORCE);
 }
 
+void update_track_diagram(char* switches)
+{
+    int x[256];
+    int y[256];
+    char* c[256];
+
+    x[1] = 12;
+    y[1] = 10;
+    c[1] = "\\";
+    x[2] = 14;
+    y[2] = 12;
+    c[2] = "\\";
+    x[3] = 16;
+    y[3] = 14;
+    c[3] = "\\";
+    x[4] = 3;
+    y[4] = 10;
+    c[4] = "/";
+    x[5] = 16;
+    y[5] = 44;
+    c[5] = "/";
+    x[6] = 14;
+    y[6] = 30;
+    c[6] = "\\";
+    x[7] = 14;
+    y[7] = 46;
+    c[7] = "/";
+    x[8] = 12;
+    y[8] = 56;
+    c[8] = "/";
+    x[9] = 3;
+    y[9] = 56;
+    c[9] = "\\";
+    x[10] = 3;
+    y[10] = 46;
+    c[10] = "/";
+    x[11] = 1;
+    y[11] = 22;
+    c[11] = "/";
+    x[12] = 1;
+    y[12] = 12;
+    c[12] = "/";
+    x[13] = 3;
+    y[13] = 30;
+    c[13] = "\\";
+    x[14] = 3;
+    y[14] = 20;
+    c[14] = "/";
+    x[15] = 12;
+    y[15] = 20;
+    c[15] = "\\";
+    x[16] = 12;
+    y[16] = 30;
+    c[16] = "/";
+    x[17] = 12;
+    y[17] = 46;
+    c[17] = "\\";
+    x[18] = 16;
+    y[18] = 32;
+    c[18] = "\\";
+    x[153] = 8;
+    y[153] = 37;
+    c[153] = "|";
+    x[154] = 8;
+    y[154] = 39;
+    c[154] = "|";
+    x[155] = 7;
+    y[155] = 39;
+    c[155] = "|";
+    x[156] = 7;
+    y[156] = 37;
+    c[156] = "|";
+
+    for (int i = 0; i < 256; ++i) {
+        if (switches[i]) {
+            printf(CONSOLE, "\033[s\033[%d;%dH\033[%dm%s\033[37m\033[u", 15 + x[i], y[i], switches[i] == S ? 36 : 31, c[i]);
+        }
+    }
+}
+
+void print_track_diagram(char* switches)
+{
+    for (int i = 0; i < 18; ++i) {
+        printf(CONSOLE, "\033[s\033[%d;1H%s\033[u", 15 + i, track_template[i]);
+    }
+
+    update_track_diagram(switches);
+}
+
 void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
@@ -52,8 +162,8 @@ void display_state_task()
     memset(&old_sensors, 0, 128);
     old_sensors[0] = 255;
 
-    char old_switches[128];
-    memset(&old_switches, 0, 128);
+    char old_switches[256];
+    memset(&old_switches, 0, 256);
     old_switches[0] = 255;
 
     char old_reservations_55[1024];
@@ -81,6 +191,10 @@ void display_state_task()
     char old_forbidden_segments[TRACK_SEGMENTS_MAX];
     memset(&old_forbidden_segments, 0, TRACK_SEGMENTS_MAX);
     old_forbidden_segments[0] = 255;
+
+    char dummy_switches[256];
+    memset(dummy_switches, 0, 256);
+    print_track_diagram(dummy_switches);
 
     char c;
     uint64_t notifier_tid;
@@ -132,6 +246,8 @@ void display_state_task()
             }
             printf(CONSOLE, "\033[s\033[4;1H\033[2Kswitches: [ %s]\033[u", buf);
             strcpy(old_switches, switches);
+
+            update_track_diagram(switches);
         }
 
         int player_train = train_get_player();
@@ -208,6 +324,16 @@ void display_state_task()
             }
             printf(CONSOLE, "\033[s\033[11;1H\033[2Kforbidden segments: [ %s]\033[u", forbidden_segments_text);
             memcpy(old_forbidden_segments, forbidden_segments, TRACK_SEGMENTS_MAX);
+        }
+
+        // track diagram
+        if (c == FORCE) {
+            // clear lines in between
+            for (int i = 12; i < 15; ++i) {
+                printf(CONSOLE, "\033[s\033[%d;1H\033[2K\033[u", i);
+            }
+
+            print_track_diagram(switches);
         }
     }
 }

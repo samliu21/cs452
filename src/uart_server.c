@@ -91,6 +91,10 @@ int64_t va_printf(int channel, const char* fmt, va_list va)
             case 'u':
                 ui2a(va_arg(va, unsigned int), 10, buf);
                 break;
+            case 'c':
+                buf[0] = va_arg(va, int);
+                buf[1] = 0;
+                break;
             case 'd':
                 i2a(va_arg(va, int), buf);
                 break;
@@ -148,7 +152,7 @@ int64_t printf(int channel, const char* fmt, ...)
 int64_t log(const char* fmt, ...)
 {
     char buf[1024], tmp[1024];
-    sprintf(buf, "\033[s\033[17;60r\033[60;1H[%5d] ", time());
+    sprintf(buf, "\033[s\033[35;85r\033[85;1H[%5d] ", time());
 
     va_list va;
     va_start(va, fmt);
@@ -156,7 +160,7 @@ int64_t log(const char* fmt, ...)
     strcat(buf, tmp);
     va_end(va);
 
-    strcat(buf, "\033[37m\033[61;999r\033[u");
+    strcat(buf, "\033[37m\033[86;999r\033[u");
 
     return puts(CONSOLE, buf);
 }
@@ -164,7 +168,7 @@ int64_t log(const char* fmt, ...)
 int64_t warn(const char* fmt, ...)
 {
     char buf[1024], tmp[1024];
-    sprintf(buf, "\033[s\033[17;60r\033[60;1H\033[33m[%5d] ", time());
+    sprintf(buf, "\033[s\033[35;85r\033[85;1H\033[33m[%5d] ", time());
 
     va_list va;
     va_start(va, fmt);
@@ -172,7 +176,7 @@ int64_t warn(const char* fmt, ...)
     strcat(buf, tmp);
     va_end(va);
 
-    strcat(buf, "\033[37m\033[61;999r\033[u");
+    strcat(buf, "\033[37m\033[86;999r\033[u");
 
     return puts(CONSOLE, buf);
 }
@@ -192,8 +196,8 @@ void uart_server_task()
     ASSERT(res >= 0, "register_as failed");
 
     char msg[512];
-    charqueuenode writenodes[2048], readertidnodes[1024];
-    charqueue writequeue = charqueue_new(writenodes, 2048);
+    charqueuenode writenodes[8192], readertidnodes[1024];
+    charqueue writequeue = charqueue_new(writenodes, 8192);
     charqueue readertidqueue = charqueue_new(readertidnodes, 1024);
     uint64_t caller_tid;
 
