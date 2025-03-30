@@ -85,6 +85,8 @@ typedef enum {
     GET_PLAYER = 15,
     SET_PLAYER = 16,
     GET_NEXT_SWITCH = 17,
+    SHOULD_DISABLE_USER_INPUT = 18,
+    SET_DISABLE_USER_INPUT = 19,
 } train_task_request_t;
 
 ////////////////////////////////////// BEGIN: APIs
@@ -305,6 +307,29 @@ int train_get_next_switch(uint64_t train)
     return response;
 }
 
+int train_should_disable_user_input()
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char c = SHOULD_DISABLE_USER_INPUT, response;
+    int64_t ret = send(train_task_tid, &c, 1, &response, 1);
+    ASSERT(ret >= 0, "train set player send failed");
+    return response;
+}
+
+void train_set_should_disable_user_input(int disable)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = SET_DISABLE_USER_INPUT;
+    buf[1] = disable;
+    int64_t ret = send(train_task_tid, buf, 2, NULL, 0);
+    ASSERT(ret >= 0, "train set player send failed");
+}
+
 ////////////////////////////////////// END: APIs
 
 ////////////////////////////////////// BEGIN: Helper functions
@@ -476,6 +501,17 @@ void reroute_task()
     exit();
 }
 
+void set_disable_user_input_task()
+{
+    delay(400);
+
+    char disable = 0;
+    train_set_should_disable_user_input(disable);
+    log("reenabling user input\r\n");
+
+    exit();
+}
+
 void train_task()
 {
     int64_t ret;
@@ -506,6 +542,7 @@ void train_task()
     init_forbidden_destsa(forbidden_dests);
 
     int player_train = 0;
+    int should_disable_user_input = 0;
 
     uint64_t caller_tid;
     char buf[64];
@@ -763,6 +800,12 @@ void train_task()
                         if (reserver && reserver != t->id) {
                             train_t* train_one = trainlist_find(&trainlist, reserver);
                             train_t* train_two = t;
+                            if (player_train == (int)train_one->id || player_train == (int)train_two->id) {
+                                log("disabling user input\r\n");
+                                should_disable_user_input = 1;
+                                ret = create(1, &set_disable_user_input_task);
+                                ASSERT(ret >= 0, "create failed");
+                            }
 
                             log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
                             ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
@@ -1096,6 +1139,18 @@ void train_task()
             }
 
             ret = reply(caller_tid, &response, 1);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SHOULD_DISABLE_USER_INPUT: {
+            char response = should_disable_user_input;
+            ret = reply_char(caller_tid, response);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case SET_DISABLE_USER_INPUT: {
+            should_disable_user_input = buf[1];
+            ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
             break;
         }

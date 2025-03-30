@@ -15,7 +15,8 @@
 #include "uart_notifier.h"
 #include "uart_server.h"
 
-arrow_key_t parse_arrow_key(char* c) {
+arrow_key_t parse_arrow_key(char* c)
+{
     if (!strcmp(c, "\033[A")) {
         return UP;
     }
@@ -56,7 +57,7 @@ void terminal_task()
                 ASSERT(ret >= 0, "player command send failed");
                 continue;
             }
-        } 
+        }
         if (c == '\r' || c == '\n') {
             puts(CONSOLE, "\r\n");
             display_force();
@@ -109,7 +110,7 @@ void k4_initial_user_task()
     create(1, &marklin_notifier);
 
     // clear screen
-    puts(CONSOLE, "\033[2J\033[86;999r\033[999;1H> ");
+    puts(CONSOLE, "\033[2J\033[91;999r\033[999;1H> ");
 
     // train setup tasks
     create(2, &train_task);

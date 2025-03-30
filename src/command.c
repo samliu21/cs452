@@ -291,76 +291,81 @@ void command_task()
         }
 
         else if (strcmp(command_type, "pc") == 0) {
-            switch (args[1][0]) {
-            case UP: {
-                if (player_actable) {
-                    int train = train_get_player();
-                    if (train_get_speed(train) == 0) {
-                        if (track[train_get_cur_node(train)].type != NODE_EXIT) {
+            int should_disable_user_input = train_should_disable_user_input();
+            if (should_disable_user_input) {
+                log("Not yet ready to act! User input is temporarily disabled");
+            } else {
+                switch (args[1][0]) {
+                case UP: {
+                    if (player_actable) {
+                        int train = train_get_player();
+                        if (train_get_speed(train) == 0) {
+                            if (track[train_get_cur_node(train)].type != NODE_EXIT) {
 
-                            train_set_speed(train, 10);
-                            marklin_set_speed(train, 10);
-                            player_actable = 0;
-                            reply_empty(notifier_tid);
+                                train_set_speed(train, 10);
+                                marklin_set_speed(train, 10);
+                                player_actable = 0;
+                                reply_empty(notifier_tid);
+                            } else {
+                                log("Player is at exit!\r\n");
+                            }
                         } else {
-                            log("Player is at exit!\r\n");
+                            log("Player is already moving!\r\n");
                         }
                     } else {
-                        log("Player is already moving!\r\n");
+                        log("Not yet ready to act! Still processing previous command.\r\n");
                     }
-                } else {
-                    log("Not yet ready to act!\r\n");
+                    break;
                 }
-                break;
-            }
-            case LEFT:
-            case RIGHT: {
-                int train = train_get_player();
-                int next_switch = train_get_next_switch(train);
-                if (next_switch) {
-                    if (next_switch == 153 || next_switch == 154) {
-                        int switch_num = (args[1][0] == LEFT) ? 154 : 153;
-                        create_switch_task(switch_num, C);
-                    } else if (next_switch == 155 || next_switch == 156) {
-                        int switch_num = (args[1][0] == LEFT) ? 156 : 155;
-                        create_switch_task(switch_num, C);
-                    } else {
-                        int switch_dir = ((args[1][0] == LEFT) ^ switch_left_straight[next_switch]) ? C : S;
-                        create_switch_task(next_switch, switch_dir);
-                    }
-                } else {
-                    log("no switch in front of train");
-                }
-                break;
-            }
-            case DOWN: {
-                if (player_actable) {
+                case LEFT:
+                case RIGHT: {
                     int train = train_get_player();
-                    if (train_get_speed(train) > 0) {
-                        train_set_speed(train, 0);
-                        marklin_set_speed(train, 0);
-                        player_actable = 0;
-                        reply_empty(notifier_tid);
+                    int next_switch = train_get_next_switch(train);
+                    if (next_switch) {
+                        if (next_switch == 153 || next_switch == 154) {
+                            int switch_num = (args[1][0] == LEFT) ? 154 : 153;
+                            create_switch_task(switch_num, C);
+                        } else if (next_switch == 155 || next_switch == 156) {
+                            int switch_num = (args[1][0] == LEFT) ? 156 : 155;
+                            create_switch_task(switch_num, C);
+                        } else {
+                            int switch_dir = ((args[1][0] == LEFT) ^ switch_left_straight[next_switch]) ? C : S;
+                            create_switch_task(next_switch, switch_dir);
+                        }
                     } else {
-                        if (track[train_get_cur_node(train)].type != NODE_ENTER) {
-                            train_set_reverse(train);
-                            marklin_reverse(train);
-                            train_set_speed(train, 10);
-                            marklin_set_speed(train, 10);
+                        log("no switch in front of train");
+                    }
+                    break;
+                }
+                case DOWN: {
+                    if (player_actable) {
+                        int train = train_get_player();
+                        if (train_get_speed(train) > 0) {
+                            train_set_speed(train, 0);
+                            marklin_set_speed(train, 0);
                             player_actable = 0;
                             reply_empty(notifier_tid);
                         } else {
-                            log("Player is at enter!\r\n");
+                            if (track[train_get_cur_node(train)].type != NODE_ENTER) {
+                                train_set_reverse(train);
+                                marklin_reverse(train);
+                                train_set_speed(train, 10);
+                                marklin_set_speed(train, 10);
+                                player_actable = 0;
+                                reply_empty(notifier_tid);
+                            } else {
+                                log("Player is at enter!\r\n");
+                            }
                         }
+                    } else {
+                        log("Not yet ready to act!\r\n");
                     }
-                } else {
-                    log("Not yet ready to act!\r\n");
+                    break;
                 }
-                break;
+                }
             }
-            }
-            reply_empty(caller_tid);
-            continue;
+
+            result.type = COMMAND_SUCCESS;
         }
 
         else {
