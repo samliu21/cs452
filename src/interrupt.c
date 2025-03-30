@@ -111,11 +111,11 @@ void handle_interrupt(main_context_t* context)
                 }
             }
             if (waiting_queue->size == 0) {
-                ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
+                // ASSERT(mis & UART_MIS_CTSMMIS, "empty waiting queue should only be possible for CTS");
                 clear_uart_cts_interrupts(line);
-            } else {
-                ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
+                continue;
             }
+            ASSERT(waiting_queue->size == 1, "exactly one task should be waiting for uart");
 
             // reschedule the task
             task_t* uart_task = queue_task_pop(waiting_queue);

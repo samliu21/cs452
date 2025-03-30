@@ -143,7 +143,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                 total_path_distance = dist[last_node] + final_offset - train_data.train_length[train->id] + train->cur_offset;
             }
 
-            ASSERTF(total_path_distance >= 0, "total path distance is negative: %d", total_path_distance);
+            ASSERTF(total_path_distance >= 0, "total path distance is negative: %d for train starting at %s and ending at %s", total_path_distance, track[src].name, track[dest].name);
 
             if (total_path_distance < fully_stop_fully_start) {
                 stopping_distance = get_short_stop_distance(&train_data, train, total_path_distance);

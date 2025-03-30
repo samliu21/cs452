@@ -650,7 +650,7 @@ void train_task()
             train_t* t = trainlist_find(&trainlist, train);
             ASSERT(t != NULL, "train not found");
             t->reverse_direction = !t->reverse_direction;
-            if (player_train == (int) t->id) {
+            if (player_train == (int)t->id) {
                 int reverse_node = get_node_index(track, track[t->path.nodes[t->cur_node]].reverse);
                 t->path = get_next_segments(track, reverse_node, RESERVATION_LOOKAHEAD_DISTANCE);
                 t->cur_node = 0;
@@ -727,11 +727,12 @@ void train_task()
                     resolve_cur_seg(track, t);
                 }
 
+                int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id) {
                     t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
                     t->cur_node = 0;
                     if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
-                        int dist_from_exit = - t->cur_offset;
+                        int dist_from_exit = -t->cur_offset;
                         for (int i = 0; i < t->path.path_length - 1; ++i) {
                             dist_from_exit += t->path.distances[i];
                         }
@@ -741,110 +742,116 @@ void train_task()
                             set_train_speed_handler(&train_data, t, 0);
                         }
                     }
+
+                    clear_reservations(t);
+                    if (!state_is_reserved(t->cur_seg)) {
+                        state_reserve_segment(t->cur_seg, t->id);
+                    }
                 } else {
                     if (t->speed > 0) {
                         int distance_ahead = 0;
-                        int cur_node_index = t->cur_node;
+                        cur_node_index = t->cur_node;
                         while (cur_node_index < t->path.path_length - 1 && distance_ahead < RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset) {
                             distance_ahead += t->path.distances[cur_node_index];
                             cur_node_index++;
                         }
+                    }
+                }
 
-                        int segments_to_reserve[16];
-                        int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, min(cur_node_index, t->path.path_length - 1));
-                        for (int j = 0; j < num_segments_to_reserve; ++j) {
-                            int conflict_seg = segments_to_reserve[j];
-                            uint64_t reserver = state_is_reserved(conflict_seg);
-                            if (reserver && reserver != t->id) {
-                                train_t* train_one = trainlist_find(&trainlist, reserver);
-                                train_t* train_two = t;
+                if (t->speed > 0) {
+                    int segments_to_reserve[16];
+                    int num_segments_to_reserve = segments_in_path_up_to(segments_to_reserve, track, &t->path, t->cur_node, min(cur_node_index, t->path.path_length - 1));
+                    for (int j = 0; j < num_segments_to_reserve; ++j) {
+                        int conflict_seg = segments_to_reserve[j];
+                        uint64_t reserver = state_is_reserved(conflict_seg);
+                        if (reserver && reserver != t->id) {
+                            train_t* train_one = trainlist_find(&trainlist, reserver);
+                            train_t* train_two = t;
 
-                                log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
-                                ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
+                            log("conflicting segment: %d, owned by: %d\r\n", conflict_seg, reserver);
+                            ASSERT(train_one->speed > 0 || train_two->speed > 0, "both trains have already started stopping");
 
-                                int train_one_on_seg = train_one->cur_seg == conflict_seg;
-                                int train_two_on_seg = train_two->cur_seg == conflict_seg;
-                                if (train_one_on_seg) {
-                                    log("train %d on segment %d, rerouting train %d\r\n", train_one->id, conflict_seg, train_two->id);
+                            int train_one_on_seg = train_one->cur_seg == conflict_seg;
+                            int train_two_on_seg = train_two->cur_seg == conflict_seg;
+                            if (player_train != (int)train_one->id && player_train != (int)train_two->id && train_one_on_seg) {
+                                log("train %d on segment %d, rerouting train %d\r\n", train_one->id, conflict_seg, train_two->id);
 
-                                    int64_t reroute_task_id = create(1, &reroute_task);
-                                    char args[4];
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                char args[4];
+                                args[0] = train_two->id;
+                                args[1] = NO_TRAIN;
+                                args[2] = conflict_seg;
+                                args[3] = 4;
+
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
+
+                                if (train_two->speed > 0) {
+                                    marklin_set_speed(train_two->id, 0);
+                                    set_train_speed_handler(&train_data, train_two, 0);
+                                }
+                            } else if (player_train != (int)train_one->id && player_train != (int)train_two->id && train_two_on_seg) {
+                                log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
+
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                char args[4];
+                                args[0] = train_one->id;
+                                args[1] = NO_TRAIN;
+                                args[2] = conflict_seg;
+                                args[3] = 4;
+
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
+
+                                if (train_one->speed > 0) {
+                                    marklin_set_speed(train_one->id, 0);
+                                    set_train_speed_handler(&train_data, train_one, 0);
+                                }
+                            } else {
+                                int64_t reroute_task_id = create(1, &reroute_task);
+                                ASSERT(reroute_task_id >= 0, "create failed");
+                                char args[4];
+
+                                if (train_one->speed == 0) {
+                                    // if train one has started stopping, reroute train two
                                     args[0] = train_two->id;
                                     args[1] = NO_TRAIN;
                                     args[2] = conflict_seg;
                                     args[3] = 4;
-
-                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                                    ASSERT(ret >= 0, "create reroute task send failed");
-
-                                    if (train_two->speed > 0) {
-                                        marklin_set_speed(train_two->id, 0);
-                                        set_train_speed_handler(&train_data, train_two, 0);
-                                    }
-
-                                } else if (train_two_on_seg) {
-                                    log("train %d on segment %d, rerouting train %d\r\n", train_two->id, conflict_seg, train_one->id);
-
-                                    int64_t reroute_task_id = create(1, &reroute_task);
-                                    char args[4];
+                                } else if (train_two->speed == 0) {
+                                    // if train two has started stopping, reroute train one
                                     args[0] = train_one->id;
                                     args[1] = NO_TRAIN;
                                     args[2] = conflict_seg;
                                     args[3] = 4;
-
-                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                                    ASSERT(ret >= 0, "create reroute task send failed");
-
-                                    if (train_one->speed > 0) {
-                                        marklin_set_speed(train_one->id, 0);
-                                        set_train_speed_handler(&train_data, train_one, 0);
-                                    }
                                 } else {
-                                    int64_t reroute_task_id = create(1, &reroute_task);
-                                    ASSERT(reroute_task_id >= 0, "create failed");
-                                    char args[4];
-
-                                    if (train_one->speed == 0) {
-                                        // if train one has started stopping, reroute train two
-                                        args[0] = train_two->id;
-                                        args[1] = NO_TRAIN;
-                                        args[2] = conflict_seg;
-                                        args[3] = 4;
-                                    } else if (train_two->speed == 0) {
-                                        // if train two has started stopping, reroute train one
-                                        args[0] = train_one->id;
-                                        args[1] = NO_TRAIN;
-                                        args[2] = conflict_seg;
-                                        args[3] = 4;
-                                    } else {
-                                        args[0] = train_one->id;
-                                        args[1] = train_two->id;
-                                        args[2] = conflict_seg;
-                                        args[3] = 4;
-                                    }
-
-                                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                                    ASSERT(ret >= 0, "create reroute task send failed");
-
-                                    if (train_one->speed > 0) {
-                                        marklin_set_speed(train_one->id, 0);
-                                        set_train_speed_handler(&train_data, train_one, 0);
-                                    }
-                                    if (train_two->speed > 0) {
-                                        marklin_set_speed(train_two->id, 0);
-                                        set_train_speed_handler(&train_data, train_two, 0);
-                                    }
+                                    args[0] = train_one->id;
+                                    args[1] = train_two->id;
+                                    args[2] = conflict_seg;
+                                    args[3] = 4;
                                 }
 
-                                goto should_update_train_state_end;
-                            } else if (!reserver) {
-                                state_reserve_segment(conflict_seg, t->id);
-                                resolve_next_branch_for_segment(track, t, conflict_seg);
-                                if (conflict_seg == 33 || conflict_seg == 37 || conflict_seg == 31) {
-                                    resolve_next_branch_for_segment(track, t, 33);
-                                    resolve_next_branch_for_segment(track, t, 37);
-                                    resolve_next_branch_for_segment(track, t, 31);
+                                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                                ASSERT(ret >= 0, "create reroute task send failed");
+
+                                if (train_one->speed > 0) {
+                                    marklin_set_speed(train_one->id, 0);
+                                    set_train_speed_handler(&train_data, train_one, 0);
                                 }
+                                if (train_two->speed > 0) {
+                                    marklin_set_speed(train_two->id, 0);
+                                    set_train_speed_handler(&train_data, train_two, 0);
+                                }
+                            }
+
+                            goto should_update_train_state_end;
+                        } else if (!reserver) {
+                            state_reserve_segment(conflict_seg, t->id);
+                            resolve_next_branch_for_segment(track, t, conflict_seg);
+                            if (conflict_seg == 33 || conflict_seg == 37 || conflict_seg == 31) {
+                                resolve_next_branch_for_segment(track, t, 33);
+                                resolve_next_branch_for_segment(track, t, 37);
+                                resolve_next_branch_for_segment(track, t, 31);
                             }
                         }
                     }
@@ -985,7 +992,7 @@ void train_task()
 
             // int train_one_delay, train_two_delay;
             track_path_t path_1, path_2;
-            if (case_1_dist < case_2_dist) { // reroute 2
+            if (player_train == (int)train_one->id || (player_train != (int)train_two->id && case_1_dist < case_2_dist)) { // reroute 2
                 train_two->avoid_seg_on_reroute = conflict_seg;
                 path_1 = case_1_path_1;
                 path_2 = case_1_path_2;
@@ -1080,7 +1087,7 @@ void train_task()
             } else {
                 node = &track[t->path.nodes[t->cur_node + 1]];
             }
-            
+
             while (node->type != NODE_BRANCH && node->type != NODE_EXIT) {
                 node = node->edge[DIR_AHEAD].dest;
             }
