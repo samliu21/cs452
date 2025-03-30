@@ -592,10 +592,6 @@ void train_task()
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
                     log("attributing sensor %s to train %d. distance delta: %dmm\r\n", track[node_index].name, train->id, distance_to_sensor);
 
-                    // if (train->path.nodes[ofs] != node_index) {
-                    //     puts(CONSOLE, "train isn't at sensor node?\r\n");
-                    //     goto sensor_reading_end;
-                    // }
                     if (ofs > 0) {
                         for (int i = 0; i < ofs; ++i) {
                             train->cur_node++;

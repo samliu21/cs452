@@ -12,7 +12,7 @@ train_data_t init_train_data_a()
 
     // mm/s
     data.speed[55][0] = 0;
-    data.speed[55][10] = 274;
+    data.speed[55][10] = 273;
 
     // mm
     data.stopping_distance[55][10] = 330;
@@ -44,7 +44,7 @@ train_data_t init_train_data_a()
 
     // mm/s
     data.speed[77][0] = 0;
-    data.speed[77][10] = 337;
+    data.speed[77][10] = 341;
 
     // mm
     data.stopping_distance[77][10] = 590;
