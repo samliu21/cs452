@@ -330,6 +330,7 @@ void command_task()
                             create_switch_task(switch_num, C);
                         } else {
                             int switch_dir = ((args[1][0] == LEFT) ^ switch_left_straight[next_switch]) ? C : S;
+                            log("switched switch %d to %s\r\n", next_switch, (switch_dir == C) ? "C" : "S");
                             create_switch_task(next_switch, switch_dir);
                         }
                     } else {

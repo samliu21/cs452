@@ -604,31 +604,31 @@ void train_task()
                 for (int i = -3; i < 3; ++i) {
                     if (train->cur_node + i >= 0 && train->cur_node + i < train->path.path_length && train->path.nodes[train->cur_node + i] == node_index) {
                         head_distance_to_sensor = train->cur_offset;
-                        if (i >= 0) {
+                        if (i > 0) { // model is behind. model thinks train has not hit sensor yet.
                             for (int j = 0; j < i; ++j) {
-                                head_distance_to_sensor += train->path.distances[train->cur_node + j];
-                            }
-                        } else {
-                            for (int j = i; j < 0; ++j) {
                                 head_distance_to_sensor -= train->path.distances[train->cur_node + j];
                             }
+                        } else { // model is ahead. model thinks train has already hit sensor.
+                            for (int j = i; j < 0; ++j) {
+                                head_distance_to_sensor += train->path.distances[train->cur_node + j];
+                            }
                         }
-
                         ofs = i;
                         distance_to_sensor = head_distance_to_sensor - expected_offset;
                         break;
                     }
                 }
-                // if (train->id == 77 && distance_to_sensor < 1000) {
-                //     printf(CONSOLE, "sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->cur_node].name, train->cur_offset);
-                // }
+                if (train->id == 55) {
+                    //log("ofs: %d\r\n", ofs);
+                    log("sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->path.nodes[train->cur_node]].name, train->cur_offset);
+                }
                 // if (distance_to_sensor < closest_dist) {
                 //     closest_dist = distance_to_sensor;
                 //     closest_train = train->id;
                 // }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
                     log("attributing sensor %s to train %d. distance delta: %dmm\r\n", track[node_index].name, train->id, distance_to_sensor);
-
+                    track_node* old_node = &track[train->path.nodes[train->cur_node]];
                     if (ofs > 0) {
                         for (int i = 0; i < ofs; ++i) {
                             train->cur_node++;
@@ -637,10 +637,12 @@ void train_task()
                     } else {
                         train->cur_node += ofs;
                     }
+                    track_node* new_node = &track[train->path.nodes[train->cur_node]];
+                    
 
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
-
+                    log("train %d set from node %s to %s, offset %d\r\n", train->id, old_node->name, new_node->name, train->cur_offset);
                     // release reservations behind sensor
                     int segments_to_release[16];
                     int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, min(train->cur_node, train->path.path_length - 1));
@@ -758,18 +760,28 @@ void train_task()
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
                     resolve_cur_seg(track, t);
+                    log("train %d has entered node %s\r\n", t->id, track[t->path.nodes[t->cur_node]].name);
                 }
 
                 int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id) {
-                    t->path = get_next_segments(track, t->path.nodes[t->cur_node], RESERVATION_LOOKAHEAD_DISTANCE);
-                    t->cur_node = 0;
+                    track_node* cur_node = &track[t->path.nodes[t->cur_node]];
+                    int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
+                    t->cur_node = min(t->cur_node, 3);
+                    int extra_lookahead = 0;
+                    for (int i = src; i < t->cur_node; ++i) {
+                        extra_lookahead += t->path.distances[i];
+                    }
+                    t->path = get_next_segments(track, t->path.nodes[src], RESERVATION_LOOKAHEAD_DISTANCE + extra_lookahead);
+                    track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
+                    ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                     if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
                         int dist_from_exit = -t->cur_offset;
-                        for (int i = 0; i < t->path.path_length - 1; ++i) {
+                        for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {
                             dist_from_exit += t->path.distances[i];
                         }
-                        log("dist: %d\r\n", dist_from_exit);
+                        //log("dist: %d. stopping_dist: %d\r\n", dist_from_exit, train_data.stopping_distance[t->id][t->speed]);
+                        //track_path_debug(&(t->path), track);
                         if (dist_from_exit <= train_data.stopping_distance[t->id][t->speed]) {
                             marklin_set_speed(t->id, 0);
                             set_train_speed_handler(&train_data, t, 0);
@@ -915,11 +927,28 @@ void train_task()
                         while (!new_dest_is_valid) {
                             new_dest = myrand() % TRACK_MAX;
                             new_dest_is_valid = 1;
+                            if (new_dest == t->path.nodes[t->cur_node]) {
+                                new_dest_is_valid = 0;
+                                continue;
+                            }
+                            if (new_dest == get_node_index(track, track[t->path.nodes[t->cur_node]].reverse)) {
+                                new_dest_is_valid = 0;
+                                continue;
+                            }
+                            if (new_dest == t->path.dest) {
+                                new_dest_is_valid = 0;
+                                continue;
+                            }
+                            if (new_dest == get_node_index(track, track[t->path.dest].reverse)) {
+                                new_dest_is_valid = 0;
+                                continue;
+                            }
                             for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
                                 if (forbidden_dests[i] == new_dest) {
                                     new_dest_is_valid = 0;
                                 }
                             }
+                            
                         }
                         t->path.dest = new_dest;
 

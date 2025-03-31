@@ -240,7 +240,7 @@ track_path_t get_next_segments(track_node* track, int src, int max_distance)
         pi_t* pi = pq_pi_pop(&pq);
         int node = pi->id;
         int weight = pi->weight;
-        if (weight > max_distance) {
+        if (weight > max_distance || track[node].type == NODE_EXIT) {
             int path_reverse[TRACK_MAX];
             int path_length = 0;
             while (node != -1) {
@@ -278,13 +278,11 @@ track_path_t get_next_segments(track_node* track, int src, int max_distance)
             break;
         }
 
-        case NODE_EXIT:
-            break;
-
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, track[node].type);
         }
     }
 
+    ASSERTF(path.nodes[0] == src, "path starts at %s instead of src %s", track[path.nodes[0]].name, track[src].name);
     return path;
 }
