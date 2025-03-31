@@ -31,6 +31,15 @@ static char track_template[18][256] = {
     "              3                 18        5"
 };
 
+static char scoreboard_template[6][64] = {
+    "           Scoreboard         ",
+    "------------------------------",
+    "| train |  55  |  77  |  58  |",
+    "------------------------------",
+    "| score |   0  |   0  |   0  |",
+    "------------------------------",
+};
+
 typedef enum {
     LAZY = 1,
     FORCE = 2,
@@ -144,6 +153,16 @@ void print_track_diagram(char* switches)
     update_track_diagram(switches);
 }
 
+void print_scoreboard(char* scores)
+{
+    for (int i = 0; i < 6; ++i) {
+        if (i == 4)
+            continue;
+        printf(CONSOLE, "\033[s\033[%d;1H%s\033[u\r\n", 35 + i, scoreboard_template[i]);
+    }
+    printf(CONSOLE, "\033[s\033[39;1H\033[2K| score |   %d  |   %d  |   %d  |\033[u\r\n", scores[0], scores[1], scores[2]);
+}
+
 void display_state_task()
 {
     register_as(DISPLAY_STATE_TASK_NAME);
@@ -195,6 +214,10 @@ void display_state_task()
     char dummy_switches[256];
     memset(dummy_switches, 0, 256);
     print_track_diagram(dummy_switches);
+
+    char old_scores[256];
+    memset(old_scores, 0, 256);
+    old_scores[0] = 255;
 
     char c;
     uint64_t notifier_tid;
@@ -334,6 +357,16 @@ void display_state_task()
             }
 
             print_track_diagram(switches);
+        }
+
+        char scores[256];
+        get_train_scores(scores);
+        if (c == FORCE || memcmp(scores, old_scores, 256)) {
+            for (int i = 33; i < 35; ++i) {
+                printf(CONSOLE, "\033[s\033[%d;1H\033[2K\033[u", i);
+            }
+
+            print_scoreboard(scores);
         }
     }
 }

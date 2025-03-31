@@ -87,6 +87,7 @@ typedef enum {
     GET_NEXT_SWITCH = 17,
     SHOULD_DISABLE_USER_INPUT = 18,
     SET_DISABLE_USER_INPUT = 19,
+    GET_TRAIN_SCORES = 20,
 } train_task_request_t;
 
 ////////////////////////////////////// BEGIN: APIs
@@ -330,6 +331,16 @@ void train_set_should_disable_user_input(int disable)
     ASSERT(ret >= 0, "train set player send failed");
 }
 
+void get_train_scores(char* response)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char c = GET_TRAIN_SCORES;
+    int64_t ret = send(train_task_tid, &c, 1, response, 256);
+    ASSERT(ret >= 0, "train set player send failed");
+}
+
 ////////////////////////////////////// END: APIs
 
 ////////////////////////////////////// BEGIN: Helper functions
@@ -543,6 +554,10 @@ void train_task()
 
     int player_train = 0;
     int should_disable_user_input = 0;
+    char train_scores[256];
+    memset(train_scores, 0, 256);
+
+    int test = 0;
 
     uint64_t caller_tid;
     char buf[64];
@@ -619,7 +634,7 @@ void train_task()
                     }
                 }
                 if (train->id == 55) {
-                    //log("ofs: %d\r\n", ofs);
+                    // log("ofs: %d\r\n", ofs);
                     log("sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->path.nodes[train->cur_node]].name, train->cur_offset);
                 }
                 // if (distance_to_sensor < closest_dist) {
@@ -638,7 +653,6 @@ void train_task()
                         train->cur_node += ofs;
                     }
                     track_node* new_node = &track[train->path.nodes[train->cur_node]];
-                    
 
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
@@ -710,6 +724,7 @@ void train_task()
         case SHOULD_UPDATE_TRAIN_STATE: {
             ret = reply_empty(caller_tid);
             ASSERT(ret >= 0, "reply failed");
+            test++;
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* t = &trainlist.trains[i];
 
@@ -765,32 +780,34 @@ void train_task()
 
                 int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id) {
-                    track_node* cur_node = &track[t->path.nodes[t->cur_node]];
-                    int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
-                    t->cur_node = min(t->cur_node, 3);
-                    int extra_lookahead = 0;
-                    for (int i = src; i < t->cur_node; ++i) {
-                        extra_lookahead += t->path.distances[i];
-                    }
-                    t->path = get_next_segments(track, t->path.nodes[src], RESERVATION_LOOKAHEAD_DISTANCE + extra_lookahead);
-                    track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
-                    ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
-                    if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
-                        int dist_from_exit = -t->cur_offset;
-                        for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {
-                            dist_from_exit += t->path.distances[i];
+                    if (test % 5 == 0) {
+                        track_node* cur_node = &track[t->path.nodes[t->cur_node]];
+                        int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
+                        t->cur_node = min(t->cur_node, 3);
+                        int extra_lookahead = 0;
+                        for (int i = src; i < t->cur_node; ++i) {
+                            extra_lookahead += t->path.distances[i];
                         }
-                        //log("dist: %d. stopping_dist: %d\r\n", dist_from_exit, train_data.stopping_distance[t->id][t->speed]);
-                        //track_path_debug(&(t->path), track);
-                        if (dist_from_exit <= train_data.stopping_distance[t->id][t->speed]) {
-                            marklin_set_speed(t->id, 0);
-                            set_train_speed_handler(&train_data, t, 0);
+                        t->path = get_next_segments(track, t->path.nodes[src], RESERVATION_LOOKAHEAD_DISTANCE + extra_lookahead);
+                        track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
+                        ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
+                        if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
+                            int dist_from_exit = -t->cur_offset;
+                            for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {
+                                dist_from_exit += t->path.distances[i];
+                            }
+                            // log("dist: %d. stopping_dist: %d\r\n", dist_from_exit, train_data.stopping_distance[t->id][t->speed]);
+                            // track_path_debug(&(t->path), track);
+                            if (dist_from_exit <= train_data.stopping_distance[t->id][t->speed]) {
+                                marklin_set_speed(t->id, 0);
+                                set_train_speed_handler(&train_data, t, 0);
+                            }
                         }
-                    }
 
-                    clear_reservations(t);
-                    if (!state_is_reserved(t->cur_seg)) {
-                        state_reserve_segment(t->cur_seg, t->id);
+                        clear_reservations(t);
+                        if (!state_is_reserved(t->cur_seg)) {
+                            state_reserve_segment(t->cur_seg, t->id);
+                        }
                     }
                 } else {
                     if (t->speed > 0) {
@@ -948,7 +965,6 @@ void train_task()
                                     new_dest_is_valid = 0;
                                 }
                             }
-                            
                         }
                         t->path.dest = new_dest;
 
@@ -1180,6 +1196,11 @@ void train_task()
         case SET_DISABLE_USER_INPUT: {
             should_disable_user_input = buf[1];
             ret = reply_empty(caller_tid);
+            ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case GET_TRAIN_SCORES: {
+            ret = reply(caller_tid, train_scores, 256);
             ASSERT(ret >= 0, "reply failed");
             break;
         }
