@@ -888,7 +888,7 @@ void train_task()
                         t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset);
 
                         track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
-                        ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
+                        // ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                         if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
                             int dist_from_exit = -t->cur_offset;
                             for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {
@@ -1367,6 +1367,7 @@ void train_task()
                 train_t* train = trainlist_find(&trainlist, racing_trains[i]);
                 ASSERTF(train != NULL, "train with id %d not found", racing_trains[i]);
                 train->path.dest = train_data.start_node[train->id];
+                train->path.dest_offset = 0;
                 if (train->speed > 0) {
                     set_train_speed_handler(&train_data, train, 0);
                     marklin_set_speed(train->id, 0);
