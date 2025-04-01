@@ -251,8 +251,8 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
             edge = node->edge[DIR_AHEAD]; // to avoid compiler warning
         }
 
-        weight += edge.dist;
         track_path_add(&new_path, get_node_index(track, node), edge.dist);
+        weight += edge.dist;
         node = edge.dest;
     }
 

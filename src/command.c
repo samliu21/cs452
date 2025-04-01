@@ -293,7 +293,7 @@ void command_task()
         else if (strcmp(command_type, "pc") == 0) {
             int should_disable_user_input = train_should_disable_user_input();
             if (should_disable_user_input) {
-                log("Not yet ready to act! User input is temporarily disabled");
+                log("not yet ready to act! user input is temporarily disabled");
             } else {
                 switch (args[1][0]) {
                 case UP: {
@@ -306,14 +306,15 @@ void command_task()
                                 marklin_set_speed(train, 10);
                                 player_actable = 0;
                                 reply_empty(notifier_tid);
+                                log("moving player...\r\n");
                             } else {
-                                log("Player is at exit!\r\n");
+                                log("player is at exit!\r\n");
                             }
                         } else {
-                            log("Player is already moving!\r\n");
+                            log("player is already moving!\r\n");
                         }
                     } else {
-                        log("Not yet ready to act! Still processing previous command.\r\n");
+                        log("not yet ready to act, still processing previous command.\r\n");
                     }
                     break;
                 }
@@ -346,6 +347,7 @@ void command_task()
                             marklin_set_speed(train, 0);
                             player_actable = 0;
                             reply_empty(notifier_tid);
+                            log("stopping player...\r\n");
                         } else {
                             if (track[train_get_cur_node(train)].type != NODE_ENTER) {
                                 train_set_reverse(train);
@@ -354,12 +356,13 @@ void command_task()
                                 marklin_set_speed(train, 10);
                                 player_actable = 0;
                                 reply_empty(notifier_tid);
+                                log("moving player in reverse direction...\r\n");
                             } else {
-                                log("Player is at enter!\r\n");
+                                log("player is at enter!\r\n");
                             }
                         }
                     } else {
-                        log("Not yet ready to act!\r\n");
+                        log("not yet ready to act!\r\n");
                     }
                     break;
                 }

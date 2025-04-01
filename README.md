@@ -121,3 +121,14 @@ To resolve this, both trains are stopped. Then, we calculate two possible cases:
 ### Execution
 
 During the demo, random destinations are generated for each train. Note that certain destinations are disabled (e.g. it's impossible for a train to arrive at an enter node). Moreover, we disable destinations and segments that involve dead spots in the track.
+
+## Final Project
+
+For our final project, we have several trains race towards a destination. The following commands are needed to set up the race:
+
+- `player <x>` sets the user-controlled train to `x`. For example, `player 77` indicates that the user wants to control train `77` with arrow keys. All other trains are automatically routed using Dijkstra's algorithm.
+- `race <trains-in-race>` allows the user to specify which trains are in the race. Once executed, the program outputs the race destination. Then, after a three second countdown, the trains begin to move.
+
+The user can use the forward key to move forward, the backward key to stop (or reverse if the train is already stopped), and the left and right keys to choose a particular branch.
+
+If a collision is detected between a controlled and uncontrolled train, both trains are stopped, and the user is prevented from entering commands until the collision period is over.
