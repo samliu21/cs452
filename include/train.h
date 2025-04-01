@@ -59,6 +59,7 @@ void train_set_player(char player);
 int train_get_next_switch(uint64_t train);
 int train_should_disable_user_input();
 void get_train_scores(char* response);
+void train_start_race();
 
 void train_model_notifier();
 void train_task();

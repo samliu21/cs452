@@ -53,6 +53,52 @@ void init_forbidden_destsa(int* forbidden_dests)
     forbidden_dests[i++] = 121;
     forbidden_dests[i++] = 122;
     forbidden_dests[i++] = 123;
+
+    // Middle Exits/Entrances
+    forbidden_dests[i++] = 124;
+    forbidden_dests[i++] = 125;
+    forbidden_dests[i++] = 126;
+    forbidden_dests[i++] = 127;
+}
+
+void init_forbidden_dests_race(int* forbidden_dests)
+{
+    int i = 0;
+    // EN/EX 1,2,3,4,9
+    forbidden_dests[i++] = 124;
+    forbidden_dests[i++] = 125;
+    forbidden_dests[i++] = 126;
+    forbidden_dests[i++] = 127;
+    forbidden_dests[i++] = 128;
+    forbidden_dests[i++] = 129;
+    forbidden_dests[i++] = 130;
+    forbidden_dests[i++] = 131;
+    forbidden_dests[i++] = 140;
+    forbidden_dests[i++] = 141;
+
+    // Sensors too close to EN 3, 4, 9
+    forbidden_dests[i++] = 12; // A13
+    forbidden_dests[i++] = 13; // A14
+    forbidden_dests[i++] = 24; // B9
+    forbidden_dests[i++] = 25; // B10
+    forbidden_dests[i++] = 34; // C3
+    forbidden_dests[i++] = 35; // C4
+
+    // Sensors around dead spot
+    forbidden_dests[i++] = 46; // B7
+    forbidden_dests[i++] = 47; // B11
+    forbidden_dests[i++] = 58; // B9
+    forbidden_dests[i++] = 59; // A16
+
+    // Middle Switches
+    forbidden_dests[i++] = 116;
+    forbidden_dests[i++] = 117;
+    forbidden_dests[i++] = 118;
+    forbidden_dests[i++] = 119;
+    forbidden_dests[i++] = 120;
+    forbidden_dests[i++] = 121;
+    forbidden_dests[i++] = 122;
+    forbidden_dests[i++] = 123;
 }
 
 void init_switch_left_straighta(char* switch_left_straight) {

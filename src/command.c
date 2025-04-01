@@ -369,6 +369,11 @@ void command_task()
             result.type = COMMAND_SUCCESS;
         }
 
+        else if (strcmp(command_type, "race") == 0) {
+            train_start_race();
+            result.type = COMMAND_SUCCESS;
+        }
+
         else {
             result.type = COMMAND_FAIL;
             char msg[128];

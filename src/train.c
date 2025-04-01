@@ -21,6 +21,7 @@
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
 #define PLAYER_SWITCH_SAFETY_MARGIN 50
+#define NUM_RACES 3
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -88,7 +89,16 @@ typedef enum {
     SHOULD_DISABLE_USER_INPUT = 18,
     SET_DISABLE_USER_INPUT = 19,
     GET_TRAIN_SCORES = 20,
+    START_RACE = 21,
+    RACE_TO = 22,
+    RETURN_TO_START = 23,
 } train_task_request_t;
+
+typedef enum {
+    NO_RACE = 0,
+    RACING = 1,
+    RETURNING = 2,
+} race_state_t;
 
 ////////////////////////////////////// BEGIN: APIs
 void train_set_speed(uint64_t train, uint64_t speed)
@@ -341,6 +351,43 @@ void get_train_scores(char* response)
     ASSERT(ret >= 0, "train set player send failed");
 }
 
+void train_start_race()
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[1];
+    buf[0] = START_RACE;
+    int64_t ret = send(train_task_tid, buf, 1, NULL, 0);
+    ASSERT(ret >= 0, "train start race send failed");
+}
+
+char train_race_to(char destination)
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[2];
+    buf[0] = RACE_TO;
+    buf[1] = destination;
+
+    char winner = 0;
+    int64_t ret = send(train_task_tid, buf, 2, &winner, 1);
+    ASSERT(ret >= 0, "train race to send failed");
+    return winner;
+}
+
+void train_return_to_start()
+{
+    int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
+    ASSERT(train_task_tid >= 0, "who_is failed");
+
+    char buf[1];
+    buf[0] = RETURN_TO_START;
+    int64_t ret = send(train_task_tid, buf, 1, NULL, 0);
+    ASSERT(ret >= 0, "train return to start send failed");
+}
+
 ////////////////////////////////////// END: APIs
 
 ////////////////////////////////////// BEGIN: Helper functions
@@ -523,6 +570,49 @@ void set_disable_user_input_task()
     exit();
 }
 
+void race_task()
+{
+    track_node track[TRACK_MAX];
+    init_tracka(track);
+    int forbidden_dests[NUM_FORBIDDEN_DESTS_RACE];
+    init_forbidden_dests_race(forbidden_dests);
+    int player_train = train_get_player();
+    int player_wins = 0;
+
+    int new_dest;
+    int new_dest_is_valid = 0;
+    while (!new_dest_is_valid) {
+        new_dest = myrand() % TRACK_MAX;
+        new_dest_is_valid = 1;
+        for (int i = 0; i < NUM_FORBIDDEN_DESTS_RACE; ++i) {
+            if (forbidden_dests[i] == new_dest) {
+                new_dest_is_valid = 0;
+            }
+        }
+    }
+
+    log("Race destination is: %s\r\n", track[new_dest].name);
+    log("Race begins in 3...\r\n");
+    delay(100);
+    log("Race begins in 2...\r\n");
+    delay(100);
+    log("Race begins in 1...\r\n");
+    delay(100);
+    log("Begin!\r\n");
+    int winner = train_race_to(new_dest);
+    if (winner == player_train) {
+        log("You have won the race!\r\n");
+        player_wins++;
+    } else {
+        log("Train %d has won the race...\r\n", winner);
+    }
+    log("Returning to starting positions.\r\n");
+    train_return_to_start();
+
+    train_set_should_disable_user_input(0);
+    syscall_exit();
+}
+
 void train_task()
 {
     int64_t ret;
@@ -558,6 +648,10 @@ void train_task()
     memset(train_scores, 0, 256);
 
     int test = 0;
+
+    int race_task_tid = 0;
+    race_state_t race_state = NO_RACE;
+    int returned_trains = 0;
 
     uint64_t caller_tid;
     char buf[64];
@@ -701,8 +795,8 @@ void train_task()
             t->reverse_direction = !t->reverse_direction;
             if (player_train == (int)t->id) {
                 int reverse_node = get_node_index(track, track[t->path.nodes[t->cur_node]].reverse);
-                t->path = get_next_segments(track, reverse_node, RESERVATION_LOOKAHEAD_DISTANCE);
-                t->cur_node = 0;
+                t->path = track_path_new();
+                t->cur_node = get_next_segments(track, &t->path, reverse_node, RESERVATION_LOOKAHEAD_DISTANCE);
                 t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
@@ -788,7 +882,7 @@ void train_task()
                         for (int i = src; i < t->cur_node; ++i) {
                             extra_lookahead += t->path.distances[i];
                         }
-                        t->path = get_next_segments(track, t->path.nodes[src], RESERVATION_LOOKAHEAD_DISTANCE + extra_lookahead);
+                        t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
                         track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
                         ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                         if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
@@ -925,7 +1019,7 @@ void train_task()
                     }
                 }
 
-                if (t->speed == 0 && t->random_reroute && t->path.dest == t->path.nodes[t->path.path_length - 1]) {
+                if (t->speed == 0 && t->path.dest == t->path.nodes[t->path.path_length - 1]) {
                     int arrived_at_destination = t->cur_node == t->path.path_length - 1;
                     for (int i = 0; i < 2; ++i) {
                         if (t->path.path_length >= 2 + i && t->cur_node == t->path.path_length - 2 - i) {
@@ -939,45 +1033,58 @@ void train_task()
                         }
                     }
                     if (arrived_at_destination) {
-                        int new_dest;
-                        int new_dest_is_valid = 0;
-                        while (!new_dest_is_valid) {
-                            new_dest = myrand() % TRACK_MAX;
-                            new_dest_is_valid = 1;
-                            if (new_dest == t->path.nodes[t->cur_node]) {
-                                new_dest_is_valid = 0;
-                                continue;
-                            }
-                            if (new_dest == get_node_index(track, track[t->path.nodes[t->cur_node]].reverse)) {
-                                new_dest_is_valid = 0;
-                                continue;
-                            }
-                            if (new_dest == t->path.dest) {
-                                new_dest_is_valid = 0;
-                                continue;
-                            }
-                            if (new_dest == get_node_index(track, track[t->path.dest].reverse)) {
-                                new_dest_is_valid = 0;
-                                continue;
-                            }
-                            for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
-                                if (forbidden_dests[i] == new_dest) {
+                        if (t->random_reroute) {
+                            int new_dest;
+                            int new_dest_is_valid = 0;
+                            while (!new_dest_is_valid) {
+                                new_dest = myrand() % TRACK_MAX;
+                                new_dest_is_valid = 1;
+                                if (new_dest == t->path.nodes[t->cur_node]) {
                                     new_dest_is_valid = 0;
+                                    continue;
+                                }
+                                if (new_dest == get_node_index(track, track[t->path.nodes[t->cur_node]].reverse)) {
+                                    new_dest_is_valid = 0;
+                                    continue;
+                                }
+                                if (new_dest == t->path.dest) {
+                                    new_dest_is_valid = 0;
+                                    continue;
+                                }
+                                if (new_dest == get_node_index(track, track[t->path.dest].reverse)) {
+                                    new_dest_is_valid = 0;
+                                    continue;
+                                }
+                                for (int i = 0; i < NUM_FORBIDDEN_DESTS; ++i) {
+                                    if (forbidden_dests[i] == new_dest) {
+                                        new_dest_is_valid = 0;
+                                    }
                                 }
                             }
-                        }
-                        t->path.dest = new_dest;
+                            t->path.dest = new_dest;
 
-                        int at_start = train_data.start_node[t->id] == t->path.nodes[t->cur_node] && train_data.train_length[t->id] == t->cur_offset;
-                        int reroute_task_id = create(1, &reroute_task);
-                        ASSERT(reroute_task_id >= 0, "create failed");
-                        char args[4];
-                        args[0] = t->id;
-                        args[1] = NO_TRAIN;
-                        args[2] = NO_FORBIDDEN_SEGMENT;
-                        args[3] = at_start ? 1 : 8;
-                        send(reroute_task_id, args, 4, NULL, 0);
-                        warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
+                            int at_start = train_data.start_node[t->id] == t->path.nodes[t->cur_node] && train_data.train_length[t->id] == t->cur_offset;
+                            int reroute_task_id = create(1, &reroute_task);
+                            ASSERT(reroute_task_id >= 0, "create failed");
+                            char args[4];
+                            args[0] = t->id;
+                            args[1] = NO_TRAIN;
+                            args[2] = NO_FORBIDDEN_SEGMENT;
+                            args[3] = at_start ? 1 : 8;
+                            send(reroute_task_id, args, 4, NULL, 0);
+                            warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
+                        } else if (race_state == RACING) {
+                            ASSERTF(race_task_tid, "no race task tid");
+                            char winner = t->id;
+                            train_scores[t->id]++;
+                            reply(race_task_tid, &winner, 1);
+                        } else if (race_state == RETURNING) {
+                            ASSERTF(race_task_tid, "no race task tid");
+                            if (++returned_trains == trainlist.size) {
+                                reply_empty(race_task_tid);
+                                race_state = NO_RACE;
+                            }
+                        }
                     }
                 }
             }
@@ -1202,6 +1309,54 @@ void train_task()
         case GET_TRAIN_SCORES: {
             ret = reply(caller_tid, train_scores, 256);
             ASSERT(ret >= 0, "reply failed");
+            break;
+        }
+        case START_RACE: {
+            ASSERTF(!race_task_tid, "race already started");
+            race_task_tid = create(1, &race_task);
+            should_disable_user_input = 1;
+            reply_empty(caller_tid);
+            break;
+        }
+        case RACE_TO: {
+            int race_dest = buf[1];
+            for (int i = 0; i < trainlist.size; ++i) {
+                train_t* train = &trainlist.trains[i];
+                train->path.dest = race_dest;
+                if (i != player_train) {
+                    int reroute_task_id = create(1, &reroute_task);
+                    ASSERT(reroute_task_id >= 0, "create failed");
+                    char args[4];
+                    args[0] = train->id;
+                    args[1] = NO_TRAIN;
+                    args[2] = NO_FORBIDDEN_SEGMENT;
+                    args[3] = 4;
+                    send(reroute_task_id, args, 4, NULL, 0);
+                }
+            }
+            race_state = RACING;
+            should_disable_user_input = 0;
+            break;
+        }
+        case RETURN_TO_START: {
+            should_disable_user_input = 1;
+            for (int i = 0; i < trainlist.size; ++i) {
+                train_t* train = &trainlist.trains[i];
+                train->path.dest = train_data.start_node[train->id];
+                if (train->speed > 0) {
+                    set_train_speed_handler(&train_data, train, 0);
+                    marklin_set_speed(train->id, 0);
+                }
+                int reroute_task_id = create(1, &reroute_task);
+                ASSERT(reroute_task_id >= 0, "create failed");
+                char args[4];
+                args[0] = train->id;
+                args[1] = NO_TRAIN;
+                args[2] = NO_FORBIDDEN_SEGMENT;
+                args[3] = 4;
+                send(reroute_task_id, args, 4, NULL, 0);
+            }
+            race_state = RETURNING;
             break;
         }
         default:
