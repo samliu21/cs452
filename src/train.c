@@ -16,7 +16,7 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 1050
+#define RESERVATION_LOOKAHEAD_DISTANCE 750
 #define SENSOR_PREDICTION_WINDOW 300
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
@@ -351,14 +351,15 @@ void get_train_scores(char* response)
     ASSERT(ret >= 0, "train set player send failed");
 }
 
-void train_start_race()
+void train_start_race(char* racing_trains)
 {
     int64_t train_task_tid = who_is(TRAIN_TASK_NAME);
     ASSERT(train_task_tid >= 0, "who_is failed");
 
-    char buf[1];
+    char buf[8];
     buf[0] = START_RACE;
-    int64_t ret = send(train_task_tid, buf, 1, NULL, 0);
+    strcpy(buf + 1, racing_trains);
+    int64_t ret = send(train_task_tid, buf, 8, NULL, 0);
     ASSERT(ret >= 0, "train start race send failed");
 }
 
@@ -613,6 +614,16 @@ void race_task()
     syscall_exit();
 }
 
+int train_is_racing(uint64_t* racing_trains, uint64_t train)
+{
+    for (int i = 0; i < 8 && racing_trains[i]; ++i) {
+        if (racing_trains[i] == train) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 void train_task()
 {
     int64_t ret;
@@ -652,6 +663,7 @@ void train_task()
     int race_task_tid = 0;
     race_state_t race_state = NO_RACE;
     int returned_trains = 0;
+    uint64_t racing_trains[8];
 
     uint64_t caller_tid;
     char buf[64];
@@ -737,7 +749,6 @@ void train_task()
                 }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
                     log("attributing sensor %s to train %d. distance delta: %dmm\r\n", track[node_index].name, train->id, distance_to_sensor);
-                    track_node* old_node = &track[train->path.nodes[train->cur_node]];
                     if (ofs > 0) {
                         for (int i = 0; i < ofs; ++i) {
                             train->cur_node++;
@@ -746,7 +757,6 @@ void train_task()
                     } else {
                         train->cur_node += ofs;
                     }
-                    track_node* new_node = &track[train->path.nodes[train->cur_node]];
 
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
@@ -877,9 +887,6 @@ void train_task()
                     if (test % 5 == 0) {
                         track_node* cur_node = &track[t->path.nodes[t->cur_node]];
                         t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
-
-                        // track_path_debug(&t->path, track);
-                        // log("cur node: %d\r\n", t->cur_node);
 
                         track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
                         ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
@@ -1071,16 +1078,18 @@ void train_task()
                             args[3] = at_start ? 1 : 8;
                             send(reroute_task_id, args, 4, NULL, 0);
                             warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
-                        } else if (race_state == RACING) {
-                            ASSERTF(race_task_tid, "no race task tid");
-                            char winner = t->id;
-                            train_scores[t->id]++;
-                            reply(race_task_tid, &winner, 1);
-                        } else if (race_state == RETURNING) {
-                            ASSERTF(race_task_tid, "no race task tid");
-                            if (++returned_trains == trainlist.size) {
-                                reply_empty(race_task_tid);
-                                race_state = NO_RACE;
+                        } else if (train_is_racing((uint64_t*)racing_trains, t->id)) {
+                            if (race_state == RACING) {
+                                ASSERTF(race_task_tid, "no race task tid");
+                                char winner = t->id;
+                                train_scores[t->id]++;
+                                reply(race_task_tid, &winner, 1);
+                            } else if (race_state == RETURNING) {
+                                ASSERTF(race_task_tid, "no race task tid");
+                                if (++returned_trains == trainlist.size) {
+                                    reply_empty(race_task_tid);
+                                    race_state = NO_RACE;
+                                }
                             }
                         }
                     }
@@ -1310,6 +1319,12 @@ void train_task()
         }
         case START_RACE: {
             ASSERTF(!race_task_tid, "race already started");
+            for (int i = 0; i < 8; ++i) {
+                racing_trains[i] = 0;
+            }
+            for (int i = 1; i < 8 && buf[i]; ++i) {
+                racing_trains[i - 1] = buf[i];
+            }
             race_task_tid = create(1, &race_task);
             should_disable_user_input = 1;
             reply_empty(caller_tid);
@@ -1317,10 +1332,11 @@ void train_task()
         }
         case RACE_TO: {
             int race_dest = buf[1];
-            for (int i = 0; i < trainlist.size; ++i) {
-                train_t* train = &trainlist.trains[i];
+            for (int i = 0; i < 8 && racing_trains[i]; ++i) {
+                train_t* train = trainlist_find(&trainlist, racing_trains[i]);
+                ASSERTF(train != NULL, "train with id %d not found", racing_trains[i]);
                 train->path.dest = race_dest;
-                if (i != player_train) {
+                if ((int)train->id != player_train) {
                     int reroute_task_id = create(1, &reroute_task);
                     ASSERT(reroute_task_id >= 0, "create failed");
                     char args[4];
@@ -1337,8 +1353,9 @@ void train_task()
         }
         case RETURN_TO_START: {
             should_disable_user_input = 1;
-            for (int i = 0; i < trainlist.size; ++i) {
-                train_t* train = &trainlist.trains[i];
+            for (int i = 0; i < 8 && racing_trains[i]; ++i) {
+                train_t* train = trainlist_find(&trainlist, racing_trains[i]);
+                ASSERTF(train != NULL, "train with id %d not found", racing_trains[i]);
                 train->path.dest = train_data.start_node[train->id];
                 if (train->speed > 0) {
                     set_train_speed_handler(&train_data, train, 0);

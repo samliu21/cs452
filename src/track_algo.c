@@ -159,7 +159,7 @@ track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int 
                     break;
                 }
                 if (i == path_length - 1) {
-                    ASSERT(0, "could not find stop node");
+                    ASSERTF(0, "could not find stop node for path starting at %s and ending at %s", track[src].name, track[dest].name);
                 }
             }
 

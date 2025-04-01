@@ -370,7 +370,12 @@ void command_task()
         }
 
         else if (strcmp(command_type, "race") == 0) {
-            train_start_race();
+            char racing_trains[8];
+            for (int i = 1; i < argc; ++i) {
+                racing_trains[i - 1] = a2i(args[i], 10);
+            }
+            racing_trains[argc - 1] = 0;
+            train_start_race(racing_trains);
             result.type = COMMAND_SUCCESS;
         }
 
