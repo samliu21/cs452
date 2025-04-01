@@ -16,7 +16,7 @@
 #include "uart_server.h"
 // #include <stdlib.h>
 
-#define RESERVATION_LOOKAHEAD_DISTANCE 750
+#define RESERVATION_LOOKAHEAD_DISTANCE 1050
 #define SENSOR_PREDICTION_WINDOW 300
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
@@ -696,8 +696,8 @@ void train_task()
             int node_index = buf[1];
             reply_empty(caller_tid);
 
-            // int closest_train = 0;
-            // int closest_dist = 1e9;
+            int closest_train = 0;
+            int closest_dist = 1e9;
             for (int i = 0; i < trainlist.size; ++i) {
                 train_t* train = &trainlist.trains[i];
 
@@ -727,14 +727,14 @@ void train_task()
                         break;
                     }
                 }
-                if (train->id == 55) {
-                    // log("ofs: %d\r\n", ofs);
-                    log("sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->path.nodes[train->cur_node]].name, train->cur_offset);
-                }
-                // if (distance_to_sensor < closest_dist) {
-                //     closest_dist = distance_to_sensor;
-                //     closest_train = train->id;
+                // if (train->id == 55) {
+                // log("ofs: %d\r\n", ofs);
+                // log("sensor: %s, distance: %d, cur node: %s, cur offset: %d\r\n", track[node_index].name, distance_to_sensor, track[train->path.nodes[train->cur_node]].name, train->cur_offset);
                 // }
+                if (distance_to_sensor < closest_dist) {
+                    closest_dist = distance_to_sensor;
+                    closest_train = train->id;
+                }
                 if (distance_to_sensor > -SENSOR_PREDICTION_WINDOW && distance_to_sensor < SENSOR_PREDICTION_WINDOW) {
                     log("attributing sensor %s to train %d. distance delta: %dmm\r\n", track[node_index].name, train->id, distance_to_sensor);
                     track_node* old_node = &track[train->path.nodes[train->cur_node]];
@@ -766,9 +766,9 @@ void train_task()
                 }
             }
 
-            // if (closest_train) {
-            //     log("sensor %s not attributed. closest train: %d, distance %dmm\r\n", track[node_index].name, closest_train, closest_dist);
-            // }
+            if (closest_train) {
+                log("sensor %s not attributed. closest train: %d, distance %dmm\r\n", track[node_index].name, closest_train, closest_dist);
+            }
 
         sensor_reading_end:
             break;
@@ -869,7 +869,6 @@ void train_task()
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
                     resolve_cur_seg(track, t);
-                    log("train %d has entered node %s\r\n", t->id, track[t->path.nodes[t->cur_node]].name);
                 }
 
                 int cur_node_index = t->path.path_length - 1;

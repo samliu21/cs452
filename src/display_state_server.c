@@ -156,11 +156,9 @@ void print_track_diagram(char* switches)
 void print_scoreboard(char* scores)
 {
     for (int i = 0; i < 6; ++i) {
-        if (i == 4)
-            continue;
-        printf(CONSOLE, "\033[s\033[%d;1H%s\033[u\r\n", 35 + i, scoreboard_template[i]);
+        printf(CONSOLE, "\033[s\033[%d;1H%s\033[u", 35 + i, scoreboard_template[i]);
     }
-    printf(CONSOLE, "\033[s\033[39;1H\033[2K| score |   %d  |   %d  |   %d  |\033[u\r\n", scores[0], scores[1], scores[2]);
+    // printf(CONSOLE, "\033[s\033[39;1H\033[2K| score |   %d  |   %d  |   %d  |\033[u\r\n", scores[0], scores[1], scores[2]);
 }
 
 void display_state_task()
