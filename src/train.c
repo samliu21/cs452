@@ -591,22 +591,22 @@ void race_task()
         }
     }
 
-    log("Race destination is: %s\r\n", track[new_dest].name);
-    log("Race begins in 3...\r\n");
+    warn("Race destination is: %s\r\n", track[new_dest].name);
+    warn("Race begins in 3...\r\n");
     delay(100);
-    log("Race begins in 2...\r\n");
+    warn("Race begins in 2...\r\n");
     delay(100);
-    log("Race begins in 1...\r\n");
+    warn("Race begins in 1...\r\n");
     delay(100);
-    log("Begin!\r\n");
+    warn("Begin!\r\n");
     int winner = train_race_to(new_dest);
     if (winner == player_train) {
-        log("You have won the race!\r\n");
+        warn("You have won the race!\r\n");
         player_wins++;
     } else {
-        log("Train %d has won the race...\r\n", winner);
+        warn("Train %d has won the race...\r\n", winner);
     }
-    log("Returning to starting positions.\r\n");
+    warn("Returning to starting positions.\r\n");
     train_return_to_start();
 
     train_set_should_disable_user_input(0);
@@ -750,7 +750,6 @@ void train_task()
 
                     ASSERT(train->path.nodes[train->cur_node] == node_index, "train isn't at sensor node");
                     train->cur_offset = train->reverse_direction ? train_data.reverse_stopping_distance_offset[train->id] : 25;
-                    log("train %d set from node %s to %s, offset %d\r\n", train->id, old_node->name, new_node->name, train->cur_offset);
                     // release reservations behind sensor
                     int segments_to_release[16];
                     int num_segments_to_release = segments_in_path_up_to(segments_to_release, track, &train->path, 0, min(train->cur_node, train->path.path_length - 1));
@@ -796,7 +795,9 @@ void train_task()
             if (player_train == (int)t->id) {
                 int reverse_node = get_node_index(track, track[t->path.nodes[t->cur_node]].reverse);
                 t->path = track_path_new();
-                t->cur_node = get_next_segments(track, &t->path, reverse_node, RESERVATION_LOOKAHEAD_DISTANCE);
+                track_path_add(&t->path, reverse_node, 1e9);
+                t->cur_node = 0;
+                t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
                 t->cur_offset = train_data.train_length[t->id] - t->cur_offset;
                 while (t->cur_offset >= t->path.distances[t->cur_node]) {
                     t->cur_offset -= t->path.distances[t->cur_node++];
@@ -873,21 +874,15 @@ void train_task()
 
                 int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id) {
-                    if (test % 25 == 0) {
+                    if (test % 5 == 0) {
                         track_node* cur_node = &track[t->path.nodes[t->cur_node]];
-                        // int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
-                        // t->cur_node = min(t->cur_node, 3);
-                        // int extra_lookahead = 0;
-                        // for (int i = src; i < t->cur_node; ++i) {
-                        //     extra_lookahead += t->path.distances[i];
-                        // }
                         t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
 
-                        track_path_debug(&t->path, track);
-                        log("cur node: %d\r\n", t->cur_node);
+                        // track_path_debug(&t->path, track);
+                        // log("cur node: %d\r\n", t->cur_node);
 
                         track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
-                        // ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
+                        ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                         if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
                             int dist_from_exit = -t->cur_offset;
                             for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {
@@ -1143,7 +1138,6 @@ void train_task()
             // rerouting just one train
             if (t2 == NO_TRAIN) {
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
-                log("trying to single reroute: %d, path length: %d\r\n", train_one->id, path.path_length);
 
                 if (path.path_length > 0) {
                     route_train_handler(track, train_one, &train_data, &path);

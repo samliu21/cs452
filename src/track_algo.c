@@ -220,26 +220,17 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
     char switches[256];
     state_get_switches(switches);
 
-    track_node* node;
-    int weight = 0;
-
     track_path_t new_path = track_path_new();
     new_path.dest = path->dest;
-    int new_cur_node;
-    if (path->path_length == 0) {
-        // for a new path, start from cur_node
-        node = &track[path->nodes[cur_node]];
-        new_cur_node = 0;
-    } else {
-        // to add to an existing path, start from path->nodes[cur_node]
-        node = &track[path->nodes[cur_node]];
-        int nodes_before = (cur_node - 3 >= 0) ? cur_node - 3 : 0;
-        new_cur_node = min(cur_node, 3);
-        for (int i = nodes_before; i < cur_node; ++i) {
-            track_path_add(&new_path, path->nodes[i], path->distances[i]);
-        }
+
+    track_node* node = &track[path->nodes[cur_node]];
+    int nodes_before = (cur_node - 3 >= 0) ? cur_node - 3 : 0;
+    int new_cur_node = min(cur_node, 3);
+    for (int i = nodes_before; i < cur_node; ++i) {
+        track_path_add(&new_path, path->nodes[i], path->distances[i]);
     }
 
+    int weight = 0;
     while (weight <= max_distance && node->type != NODE_EXIT) {
         track_edge edge;
         switch (node->type) {
@@ -257,6 +248,7 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
 
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, node->type);
+            edge = node->edge[DIR_AHEAD]; // to avoid compiler warning
         }
 
         weight += edge.dist;
