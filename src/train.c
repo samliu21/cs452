@@ -578,12 +578,11 @@ void race_task()
     int forbidden_dests[NUM_FORBIDDEN_DESTS_RACE];
     init_forbidden_dests_race(forbidden_dests);
     int player_train = train_get_player();
-    int player_wins = 0;
 
     int new_dest;
     int new_dest_is_valid = 0;
     while (!new_dest_is_valid) {
-        new_dest = myrand() % TRACK_MAX;
+        new_dest = myrand() % 80; // must be a sensor
         new_dest_is_valid = 1;
         for (int i = 0; i < NUM_FORBIDDEN_DESTS_RACE; ++i) {
             if (forbidden_dests[i] == new_dest) {
@@ -603,7 +602,6 @@ void race_task()
     int winner = train_race_to(new_dest);
     if (winner == player_train) {
         warn("You have won the race!\r\n");
-        player_wins++;
     } else {
         warn("Train %d has won the race...\r\n", winner);
     }
@@ -664,6 +662,7 @@ void train_task()
     race_state_t race_state = NO_RACE;
     int returned_trains = 0;
     uint64_t racing_trains[8];
+    int num_racing_trains = 0;
 
     uint64_t caller_tid;
     char buf[64];
@@ -1086,9 +1085,10 @@ void train_task()
                                 reply(race_task_tid, &winner, 1);
                             } else if (race_state == RETURNING) {
                                 ASSERTF(race_task_tid, "no race task tid");
-                                if (++returned_trains == trainlist.size) {
+                                if (++returned_trains == num_racing_trains) {
                                     reply_empty(race_task_tid);
                                     race_state = NO_RACE;
+                                    race_task_tid = 0;
                                 }
                             }
                         }
@@ -1319,11 +1319,13 @@ void train_task()
         }
         case START_RACE: {
             ASSERTF(!race_task_tid, "race already started");
+            returned_trains = 0;
             for (int i = 0; i < 8; ++i) {
                 racing_trains[i] = 0;
             }
             for (int i = 1; i < 8 && buf[i]; ++i) {
                 racing_trains[i - 1] = buf[i];
+                num_racing_trains = i;
             }
             race_task_tid = create(1, &race_task);
             should_disable_user_input = 1;

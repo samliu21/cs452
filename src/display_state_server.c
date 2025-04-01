@@ -153,12 +153,11 @@ void print_track_diagram(char* switches)
     update_track_diagram(switches);
 }
 
-void print_scoreboard(char* scores)
+void print_scoreboard()
 {
     for (int i = 0; i < 6; ++i) {
         printf(CONSOLE, "\033[s\033[%d;1H%s\033[u", 35 + i, scoreboard_template[i]);
     }
-    // printf(CONSOLE, "\033[s\033[39;1H\033[2K| score |   %d  |   %d  |   %d  |\033[u\r\n", scores[0], scores[1], scores[2]);
 }
 
 void display_state_task()
@@ -215,7 +214,7 @@ void display_state_task()
 
     char old_scores[256];
     memset(old_scores, 0, 256);
-    old_scores[0] = 255;
+    print_scoreboard();
 
     char c;
     uint64_t notifier_tid;
@@ -359,12 +358,24 @@ void display_state_task()
 
         char scores[256];
         get_train_scores(scores);
-        if (c == FORCE || memcmp(scores, old_scores, 256)) {
+        if (c == FORCE) {
             for (int i = 33; i < 35; ++i) {
                 printf(CONSOLE, "\033[s\033[%d;1H\033[2K\033[u", i);
             }
 
-            print_scoreboard(scores);
+            print_scoreboard();
+        }
+        if (c == FORCE || scores[55] != old_scores[55]) {
+            printf(CONSOLE, "\033[s\033[39;13H%d\033[u", scores[55]);
+            old_scores[55] = scores[55];
+        }
+        if (c == FORCE || scores[58] != old_scores[58]) {
+            printf(CONSOLE, "\033[s\033[39;20H%d\033[u", scores[58]);
+            old_scores[58] = scores[58];
+        }
+        if (c == FORCE || scores[77] != old_scores[77]) {
+            printf(CONSOLE, "\033[s\033[39;27H%d\033[u", scores[77]);
+            old_scores[77] = scores[77];
         }
     }
 }
