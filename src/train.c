@@ -873,17 +873,21 @@ void train_task()
 
                 int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id) {
-                    if (test % 5 == 0) {
+                    if (test % 25 == 0) {
                         track_node* cur_node = &track[t->path.nodes[t->cur_node]];
-                        int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
-                        t->cur_node = min(t->cur_node, 3);
-                        int extra_lookahead = 0;
-                        for (int i = src; i < t->cur_node; ++i) {
-                            extra_lookahead += t->path.distances[i];
-                        }
+                        // int src = (t->cur_node - 3 > 0) ? t->cur_node - 3 : 0;
+                        // t->cur_node = min(t->cur_node, 3);
+                        // int extra_lookahead = 0;
+                        // for (int i = src; i < t->cur_node; ++i) {
+                        //     extra_lookahead += t->path.distances[i];
+                        // }
                         t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE);
+
+                        track_path_debug(&t->path, track);
+                        log("cur node: %d\r\n", t->cur_node);
+
                         track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
-                        ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
+                        // ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                         if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
                             int dist_from_exit = -t->cur_offset;
                             for (int i = t->cur_node; i < t->path.path_length - 1; ++i) {

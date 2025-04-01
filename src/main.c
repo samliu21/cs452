@@ -31,6 +31,21 @@ int kmain()
     uart_config_and_enable(CONSOLE);
     uart_config_and_enable(MARKLIN);
 
+    // track_path_t path = track_path_new();
+    // track_node track[TRACK_MAX];
+    // init_tracka(track);
+    // int x = get_next_segments(track, &path, 130, 750);
+    // uart_printf(CONSOLE, "x: %d\r\n", x);
+    // for (int i = 0; i < path.path_length; ++i) {
+    //     uart_printf(CONSOLE, "path[%d]: %s\r\n", i, track[path.nodes[i]].name);
+    // }
+    // x = get_next_segments(track, &path, 1, 750);
+    // uart_printf(CONSOLE, "x: %d\r\n", x);
+    // for (int i = 0; i < path.path_length; ++i) {
+    //     uart_printf(CONSOLE, "path[%d]: %s\r\n", i, track[path.nodes[i]].name);
+    // }
+    // for (;;) { }
+
     // run tests and initialize exception vector
     init_interrupts();
     init_vbar();

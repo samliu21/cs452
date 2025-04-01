@@ -219,7 +219,7 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
 {
     char switches[256];
     state_get_switches(switches);
-    
+
     track_node* node;
     int weight = 0;
 
@@ -228,7 +228,7 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
     int new_cur_node;
     if (path->path_length == 0) {
         // for a new path, start from cur_node
-        node = &track[cur_node];
+        node = &track[path->nodes[cur_node]];
         new_cur_node = 0;
     } else {
         // to add to an existing path, start from path->nodes[cur_node]
@@ -239,30 +239,33 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
             track_path_add(&new_path, path->nodes[i], path->distances[i]);
         }
     }
-    
+
     while (weight <= max_distance && node->type != NODE_EXIT) {
         track_edge edge;
         switch (node->type) {
         case NODE_BRANCH: {
-            track_edge edge = switches[node->num] == S ? node->edge[DIR_STRAIGHT] : node->edge[DIR_CURVED];
+            edge = switches[node->num] == S ? node->edge[DIR_STRAIGHT] : node->edge[DIR_CURVED];
             break;
         }
 
         case NODE_SENSOR:
         case NODE_MERGE:
         case NODE_ENTER: {
-            track_edge edge = node->edge[DIR_AHEAD];
+            edge = node->edge[DIR_AHEAD];
             break;
         }
 
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, node->type);
         }
-        node = edge.dest;
+
+        weight += edge.dist;
         track_path_add(&new_path, get_node_index(track, node), edge.dist);
+        node = edge.dest;
     }
 
     new_path.distances[new_path.path_length - 1] = 1e9;
+    *path = new_path;
 
     return new_cur_node;
 }
