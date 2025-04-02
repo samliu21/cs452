@@ -1022,22 +1022,25 @@ void train_task()
                     }
                 }
 
-                if (t->path.dest == t->path.nodes[t->path.path_length - 1] || (int)t->id == player_train) {
-                    int arrived_at_destination;
-                    if ((int)t->id == player_train) {
-                        arrived_at_destination = t->path.nodes[t->cur_node] == t->path.dest || t->path.nodes[t->cur_node] == get_node_index(track, track[t->path.dest].reverse);
-                    } else {
-                        arrived_at_destination = t->cur_node == t->path.path_length - 1;
+                if (race_state == RACING && train_is_racing((uint64_t*)racing_trains, t->id)) {
+                    if (t->path.nodes[t->cur_node] == t->path.dest || t->path.nodes[t->cur_node] == get_node_index(track, track[t->path.dest].reverse)) {
+                        ASSERTF(race_task_tid, "no race task tid");
+                        char winner = t->id;
+                        train_scores[t->id]++;
+                        reply(race_task_tid, &winner, 1);
+                    }
+                }
 
-                        for (int i = 0; i < 2; ++i) {
-                            if (t->path.path_length >= 2 + i && t->cur_node == t->path.path_length - 2 - i) {
-                                int dist_from_dest = -t->cur_offset;
-                                for (int j = 0; j <= i; ++j) {
-                                    dist_from_dest += t->path.distances[t->path.path_length - 2 - j];
-                                }
-                                if (dist_from_dest <= DESTINATION_REACHED_WINDOW) {
-                                    arrived_at_destination = 1;
-                                }
+                if (t->path.dest == t->path.nodes[t->path.path_length - 1]) {
+                    int arrived_at_destination = t->cur_node == t->path.path_length - 1;
+                    for (int i = 0; i < 2; ++i) {
+                        if (t->path.path_length >= 2 + i && t->cur_node == t->path.path_length - 2 - i) {
+                            int dist_from_dest = -t->cur_offset;
+                            for (int j = 0; j <= i; ++j) {
+                                dist_from_dest += t->path.distances[t->path.path_length - 2 - j];
+                            }
+                            if (dist_from_dest <= DESTINATION_REACHED_WINDOW) {
+                                arrived_at_destination = 1;
                             }
                         }
                     }
@@ -1082,28 +1085,21 @@ void train_task()
                             args[3] = at_start ? 1 : 8;
                             send(reroute_task_id, args, 4, NULL, 0);
                             warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
-                        } else if (train_is_racing((uint64_t*)racing_trains, t->id)) {
-                            if (race_state == RACING) {
-                                ASSERTF(race_task_tid, "no race task tid");
-                                char winner = t->id;
-                                train_scores[t->id]++;
-                                reply(race_task_tid, &winner, 1);
-                            } else if (race_state == RETURNING) {
-                                ASSERTF(race_task_tid, "no race task tid");
-                                if ((int)t->id == player_train) {
-                                    int reverse_after_stop_task_tid = create(1, &train_reverse_after_stop_task);
-                                    char train = t->id;
-                                    ret = send(reverse_after_stop_task_tid, &train, 1, NULL, 0);
-                                    ASSERT(ret >= 0, "send failed");
-                                    t->path.dest = -1;
-                                }
-                                log("train %d has returned to starting position\r\n", t->id);
-                                if (++returned_trains == num_racing_trains) {
-                                    reply_empty(race_task_tid);
-                                    race_state = NO_RACE;
-                                    race_task_tid = 0;
-                                }
+                       
+                        } else if (race_state == RETURNING && train_is_racing((uint64_t*)racing_trains, t->id)) {
+                            if ((int)t->id == player_train) {
+                                int reverse_after_stop_task_tid = create(1, &train_reverse_after_stop_task);
+                                char train = t->id;
+                                ret = send(reverse_after_stop_task_tid, &train, 1, NULL, 0);
+                                ASSERT(ret >= 0, "send failed");
                             }
+                            log("train %d has returned to starting position\r\n", t->id);
+                            if (++returned_trains == num_racing_trains) {
+                                reply_empty(race_task_tid);
+                                race_state = NO_RACE;
+                                race_task_tid = 0;
+                            }
+                            t->path.dest = -1;
                         }
                     }
                 }
