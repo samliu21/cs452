@@ -8,6 +8,7 @@ void marklin_reverse(uint64_t train);
 void marklin_set_switch(uint64_t sw, char d);
 
 void train_reverse_task();
+void train_reverse_after_stop_task();
 void deactivate_solenoid_task();
 
 #endif

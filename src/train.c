@@ -1029,7 +1029,6 @@ void train_task()
                         arrived_at_destination = t->path.nodes[t->cur_node] == t->path.dest || t->path.nodes[t->cur_node] == get_node_index(track, track[t->path.dest].reverse);
                     } else {
                         arrived_at_destination = t->cur_node == t->path.path_length - 1;
-                        t->cur_node = t->path.path_length - 1;
 
                         for (int i = 0; i < 2; ++i) {
                             if (t->path.path_length >= 2 + i && t->cur_node == t->path.path_length - 2 - i) {
@@ -1092,6 +1091,11 @@ void train_task()
                                 reply(race_task_tid, &winner, 1);
                             } else if (race_state == RETURNING) {
                                 ASSERTF(race_task_tid, "no race task tid");
+                                if ((int)t->id == player_train) {
+                                    int reverse_after_stop_task_tid = create(1, &train_reverse_after_stop_task);
+                                    char train = t->id;
+                                    send(reverse_after_stop_task_tid, &train, 1, NULL, 0);
+                                }
                                 if (++returned_trains == num_racing_trains) {
                                     reply_empty(race_task_tid);
                                     race_state = NO_RACE;
@@ -1153,6 +1157,9 @@ void train_task()
 
             // rerouting just one train
             if (t2 == NO_TRAIN) {
+                if (train_one->path.dest == train_one->path.nodes[train_one->cur_node]) {
+                    goto reroute_trains_end;
+                }
                 track_path_t path = get_shortest_path(track, train_one, train_one->path.dest, train_one->path.dest_offset, conflict_seg);
                 log("train %d rerouting to %s, stop node: %s, stop offset: %d\r\n", train_one->id, track[train_one->path.dest].name, track[path.stop_node].name, path.stop_distance_offset);
 

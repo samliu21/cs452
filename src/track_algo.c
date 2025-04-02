@@ -83,7 +83,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
 }
 
 track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg)
-{
+{   
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
     int nodes_pos = 0;

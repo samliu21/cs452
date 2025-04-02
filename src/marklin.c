@@ -60,6 +60,24 @@ void train_reverse_task()
     exit();
 }
 
+void train_reverse_after_stop_task()
+{
+    // get train tid
+    uint64_t caller_tid;
+    char train;
+    receive(&caller_tid, &train, 1);
+    reply_empty(caller_tid);
+
+    // delay
+    int64_t ret = delay(350);
+    ASSERT(ret >= 0, "delay failed");
+
+    train_set_reverse(train);
+    marklin_reverse(train);
+
+    exit();
+}
+
 void deactivate_solenoid_task()
 {
     int64_t ret = delay(1000);
