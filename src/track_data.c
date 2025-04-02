@@ -101,7 +101,8 @@ void init_forbidden_dests_race(int* forbidden_dests)
     forbidden_dests[i++] = 123;
 }
 
-void init_switch_left_straighta(char* switch_left_straight) {
+void init_switch_left_straighta(char* switch_left_straight)
+{
     switch_left_straight[1] = 0;
     switch_left_straight[2] = 0;
     switch_left_straight[3] = 1;

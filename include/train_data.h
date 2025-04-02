@@ -13,8 +13,8 @@ typedef struct train_data_t {
     int64_t train_length[256];
     int64_t acc_stop[256][16];
     int64_t acc_start[256][16];
-	int64_t start_node[256];
-	int64_t start_seg[256];
+    int64_t start_node[256];
+    int64_t start_seg[256];
 } train_data_t;
 
 train_data_t init_train_data_a();

@@ -1085,7 +1085,7 @@ void train_task()
                             args[3] = at_start ? 1 : 8;
                             send(reroute_task_id, args, 4, NULL, 0);
                             warn("randomly rerouted train %d to node %s\r\n", t->id, track[new_dest].name);
-                       
+
                         } else if (race_state == RETURNING && train_is_racing((uint64_t*)racing_trains, t->id)) {
                             if ((int)t->id == player_train) {
                                 int reverse_after_stop_task_tid = create(1, &train_reverse_after_stop_task);
