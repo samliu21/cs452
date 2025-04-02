@@ -1178,7 +1178,9 @@ void train_task()
                     ASSERT(ret >= 0, "create reroute task send failed");
 
                     clear_reservations(train_one);
-                    state_reserve_segment(train_one->cur_seg, train_one->id);
+                    if (!state_is_reserved(train_one->cur_seg)) {
+                        state_reserve_segment(train_one->cur_seg, train_one->id);
+                    }
                 }
 
                 goto reroute_trains_end;
@@ -1212,46 +1214,54 @@ void train_task()
                 path_2 = case_2_path_2;
             }
 
-            if (path_1.path_length == 0) {
-                log("train %d couldn't reroute, retrying in 8s\r\n", train_one->id);
-                int64_t reroute_task_id = create(1, &reroute_task);
-                ASSERT(reroute_task_id >= 0, "create failed");
-                char args[4];
-                args[0] = train_one->id;
-                args[1] = NO_TRAIN;
-                args[2] = NO_FORBIDDEN_SEGMENT;
-                args[3] = 8;
+            if ((int)train_one->id != player_train || race_state == RETURNING) {
+                if (path_1.path_length == 0) {
+                    log("train %d couldn't reroute, retrying in 8s\r\n", train_one->id);
+                    int64_t reroute_task_id = create(1, &reroute_task);
+                    ASSERT(reroute_task_id >= 0, "create failed");
+                    char args[4];
+                    args[0] = train_one->id;
+                    args[1] = NO_TRAIN;
+                    args[2] = NO_FORBIDDEN_SEGMENT;
+                    args[3] = 8;
 
-                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                ASSERT(ret >= 0, "create reroute task send failed");
+                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                    ASSERT(ret >= 0, "create reroute task send failed");
 
-                clear_reservations(train_one);
-                state_reserve_segment(train_one->cur_seg, train_one->id);
-            } else {
-                route_train_handler(track, train_one, &train_data, &path_1);
-                marklin_set_speed(train_one->id, train_one->old_speed);
-                set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+                    clear_reservations(train_one);
+                    if (!state_is_reserved(train_one->cur_seg)) {
+                        state_reserve_segment(train_one->cur_seg, train_one->id);
+                    }
+                } else {
+                    route_train_handler(track, train_one, &train_data, &path_1);
+                    marklin_set_speed(train_one->id, train_one->old_speed);
+                    set_train_speed_handler(&train_data, train_one, train_one->old_speed);
+                }
             }
 
-            if (path_2.path_length == 0) {
-                log("train %d couldn't reroute, retrying in 8s\r\n", train_two->id);
-                int64_t reroute_task_id = create(1, &reroute_task);
-                ASSERT(reroute_task_id >= 0, "create failed");
-                char args[4];
-                args[0] = train_two->id;
-                args[1] = NO_TRAIN;
-                args[2] = NO_FORBIDDEN_SEGMENT;
-                args[3] = 8;
+            if ((int)train_two->id != player_train || race_state == RETURNING) {
+                if (path_2.path_length == 0) {
+                    log("train %d couldn't reroute, retrying in 8s\r\n", train_two->id);
+                    int64_t reroute_task_id = create(1, &reroute_task);
+                    ASSERT(reroute_task_id >= 0, "create failed");
+                    char args[4];
+                    args[0] = train_two->id;
+                    args[1] = NO_TRAIN;
+                    args[2] = NO_FORBIDDEN_SEGMENT;
+                    args[3] = 8;
 
-                int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
-                ASSERT(ret >= 0, "create reroute task send failed");
+                    int64_t ret = send(reroute_task_id, args, 4, NULL, 0);
+                    ASSERT(ret >= 0, "create reroute task send failed");
 
-                clear_reservations(train_two);
-                state_reserve_segment(train_two->cur_seg, train_two->id);
-            } else {
-                route_train_handler(track, train_two, &train_data, &path_2);
-                marklin_set_speed(train_two->id, train_two->old_speed);
-                set_train_speed_handler(&train_data, train_two, train_two->old_speed);
+                    clear_reservations(train_two);
+                    if (!state_is_reserved(train_two->cur_seg)) {
+                        state_reserve_segment(train_two->cur_seg, train_two->id);
+                    }
+                } else {
+                    route_train_handler(track, train_two, &train_data, &path_2);
+                    marklin_set_speed(train_two->id, train_two->old_speed);
+                    set_train_speed_handler(&train_data, train_two, train_two->old_speed);
+                }
             }
 
         reroute_trains_end:
