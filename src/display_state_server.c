@@ -370,11 +370,11 @@ void display_state_task()
             old_scores[55] = scores[55];
         }
         if (c == FORCE || scores[58] != old_scores[58]) {
-            printf(CONSOLE, "\033[s\033[39;20H%d\033[u", scores[58]);
+            printf(CONSOLE, "\033[s\033[39;27H%d\033[u", scores[58]);
             old_scores[58] = scores[58];
         }
         if (c == FORCE || scores[77] != old_scores[77]) {
-            printf(CONSOLE, "\033[s\033[39;27H%d\033[u", scores[77]);
+            printf(CONSOLE, "\033[s\033[39;20H%d\033[u", scores[77]);
             old_scores[77] = scores[77];
         }
     }

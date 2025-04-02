@@ -21,7 +21,6 @@
 #define DESTINATION_REACHED_WINDOW 300
 #define NO_TRAIN 255
 #define PLAYER_SWITCH_SAFETY_MARGIN 50
-#define NUM_RACES 3
 
 trainlist_t trainlist_create(train_t* trains)
 {
@@ -883,11 +882,11 @@ void train_task()
 
                 int cur_node_index = t->path.path_length - 1;
                 if (player_train == (int)t->id && race_state != RETURNING) {
-                    if (test % 5 == 0) {
-                        track_node* cur_node = &track[t->path.nodes[t->cur_node]];
+                    if (test % 10 == 0) {
+                        // track_node* cur_node = &track[t->path.nodes[t->cur_node]];
                         t->cur_node = get_next_segments(track, &t->path, t->cur_node, RESERVATION_LOOKAHEAD_DISTANCE + t->cur_offset);
 
-                        track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
+                        // track_node* new_cur_node = &track[t->path.nodes[t->cur_node]];
                         // ASSERTF(cur_node == new_cur_node, "get_next_segments changed the cur_node from %s to %s", cur_node->name, new_cur_node->name);
                         if (t->speed > 0 && track[t->path.nodes[t->path.path_length - 1]].type == NODE_EXIT) {
                             int dist_from_exit = -t->cur_offset;
@@ -1094,8 +1093,11 @@ void train_task()
                                 if ((int)t->id == player_train) {
                                     int reverse_after_stop_task_tid = create(1, &train_reverse_after_stop_task);
                                     char train = t->id;
-                                    send(reverse_after_stop_task_tid, &train, 1, NULL, 0);
+                                    ret = send(reverse_after_stop_task_tid, &train, 1, NULL, 0);
+                                    ASSERT(ret >= 0, "send failed");
+                                    t->path.dest = -1;
                                 }
+                                log("train %d has returned to starting position\r\n", t->id);
                                 if (++returned_trains == num_racing_trains) {
                                     reply_empty(race_task_tid);
                                     race_state = NO_RACE;
@@ -1360,7 +1362,7 @@ void train_task()
                     args[0] = train->id;
                     args[1] = NO_TRAIN;
                     args[2] = NO_FORBIDDEN_SEGMENT;
-                    args[3] = 4;
+                    args[3] = 1;
                     send(reroute_task_id, args, 4, NULL, 0);
                 }
             }

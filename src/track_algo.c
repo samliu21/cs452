@@ -83,7 +83,7 @@ int get_short_stop_distance(train_data_t* train_data, train_t* train, int total_
 }
 
 track_path_t get_shortest_path(track_node* track, train_t* train, int dest, int node_offset, int forbidden_seg)
-{   
+{
     priority_queue_pi_t pq = pq_pi_new();
     pi_t nodes[256];
     int nodes_pos = 0;
@@ -231,7 +231,7 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
     }
 
     int weight = 0;
-    while (weight <= max_distance && node->type != NODE_EXIT) {
+    while (weight <= max_distance) {
         track_edge edge;
         switch (node->type) {
         case NODE_BRANCH: {
@@ -246,6 +246,11 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
             break;
         }
 
+        case NODE_EXIT: {
+            track_path_add(&new_path, get_node_index(track, node), 1e9);
+            goto end_of_loop;
+        }
+
         default:
             ASSERTF(0, "invalid node: %d, type: %d", node, node->type);
             edge = node->edge[DIR_AHEAD]; // to avoid compiler warning
@@ -256,6 +261,7 @@ int get_next_segments(track_node* track, track_path_t* path, int cur_node, int m
         node = edge.dest;
     }
 
+end_of_loop:
     new_path.distances[new_path.path_length - 1] = 1e9;
     *path = new_path;
 

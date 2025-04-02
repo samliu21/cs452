@@ -141,7 +141,7 @@ void sensor_task()
             }
         }
         display_lazy();
-        res = delay(2);
+        res = delay(5);
         ASSERTF(res >= 0, "delay failed, %d", res);
     }
 }
