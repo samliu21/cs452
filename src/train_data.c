@@ -96,6 +96,9 @@ train_data_t init_train_data_a()
     // mm/s^2
     data.acc_start[58][10] = data.speed[58][10] * 1000 / data.starting_time[58][10];
 
+    // data.start_node[58] = 130;
+    // data.start_seg[58] = 7;
+
     data.start_node[58] = 128;
     data.start_seg[58] = 9;
 
