@@ -1,11 +1,13 @@
 # CS452
 
 ## Logistics
-Sam Liu (s742liu, 20938864), Kevin Guo (k54guo, 20903138)
+Sam Liu, Kevin Guo
 
-Commit: `6f5ac3b0b0fa620f1a94dd1db51550941a57ffb9`
+Final Commit: `6f5ac3b0b0fa620f1a94dd1db51550941a57ffb9`
 
-<a href="https://git.uwaterloo.ca/cs452-sl-kg/cs452">GitLab</a>
+## Overview
+
+This is the repository for a microkernel designed to run on a <a href="https://www.raspberrypi.com/documentation/computers/processors.html#bcm2711">BCM2711</a> Raspberry Pi, which uses a single-core <a href="https://developer.arm.com/Processors/Cortex-A72">ARMv8 processor</a>. The kernel was then used to support a real-time train control application, which routes and coordinates several model trains to avoid collisions. Since the kernel uses only one thread, we use preemption with a quantum of $10\mu s$. All code in this repository was written from scratch. 
 
 ## K1
 
@@ -19,27 +21,37 @@ When we enter a task from the kernel, we call the function `enter_task`, which t
 - Save the kernel and user task objects onto the kernel stack.
 - Save the kernel's registers in the kernel’s task object.
 - Load the user task's registers, ELR, SP, and SPSR  into the registers.
-- Call `eret` to jump to the address indicated by the user tasks's ELR. This should either be the entry point of the task if we’re entering it for the first time, or the task's last executed instruction otherwise.
+- Call `eret` to jump to the address indicated by the user task's ELR. This should either be the entry point of the task if we’re entering it for the first time, or the task's last executed instruction otherwise.
 
-When we switch from a task back to the kernel, we call `svc` with the appropriate syscall number. The `svc` call puts us in kernel mode. Using the previously saved pointers to the kernel and user task objects, we save the user task’s registers and restore the kernel’s registers. Finally we read ESR into `R0`, and pass this syscall number to the syscall handler.
+When we switch from a task back to the kernel, we call `svc` with the appropriate syscall number. The `svc` call puts us in kernel mode. Using the previously saved pointers to the kernel and user task objects, we save the user task’s registers and restore the kernel’s registers. Finally we read and pass `ESR` to the syscall handler.
 
 ### Syscall
-When a task makes a syscall, the PC jumps back to the kernel’s main loop. The kernel grabs the syscall number from the `ESR` register, and handles the command appropriately (e.g. `create` will allocate a new task and add it to the scheduler). For syscalls like `create` and `my_tid` that have a return value, the kernel places this value in `R0`. It then schedules the next task and executes it.
+When a task makes a syscall, the PC jumps back to the kernel’s main loop. The kernel grabs the syscall number from the `ESR` register, and handles the command appropriately (e.g. `create` will allocate a new task and add it to the scheduler). For syscalls like `create` and `my_tid` that have a return value, the kernel places this value in `R0`. It then schedules the next task and jumps into it.
 
 ### Parameters
-- Max number of tasks: `64`
-- Stack size: `1MB`
+- Max number of tasks: 64
+- Stack size: 1MB
 
 ## K2
+
 ### Messaging
+To avoid shared memory, we use message passing for interprocess communication (this also removes the need for locking and other concurrency measures). Below is the message passing API:
+
+- `send(int receiver-tid, char *msg, int msglen, char *reply, int replylen)`
+- `receive(int *tid, char *msg, int msglen)`
+- `reply(int tid, const char *reply, int rplen)`
+
 To keep track of tasks waiting to send, receive, or waiting for a reply, we use a simple queue with intrusive linking. This way, each task descriptor can store its own queue of senders waiting to message it.
 
 For tasks waiting to receive or waiting for a reply, we just keep one queue for each state, allocated on the kernel stack.
 
 ### Name Server
-The name server uses a map from strings to integers, implemented as a pair of arrays. Setting and getting an element from the map requires the entire array, but since there will not be many tasks, we believe this cost is acceptable.
+The name server exposes a function that returns the `tid` of a task associated with a name. This `tid` is used in message passing.
+
+The name server map is implemented as a pair of arrays. To get or set an element, we need to iterate through the key array and grab the corresponding value. This takes $\mathcal O(n)$ time, but since there are at most 64 tasks, this cost is acceptable. 
 
 ## K3
+
 ### Clock Notifier
 The clock notifier repeatedly calls `await_event(TICK_EVENT)`. When the syscall handler receives a `TICK_EVENT` interrupt, it notifies the clock notifier, and updates the value of `C1` to the next tick. The clock notifier then informs the clock server of the tick.
 
@@ -52,6 +64,7 @@ The kernel keeps track of how long each task has been running for. Right before 
 The kernel is responsible for printing the idle measurements every 50ms. We confirmed that the time it takes to print is far less than a tick, so it’s a reasonable demand for the kernel to do occasionally. Typically, idle time stays around 99%.
 
 ## K4
+
 ### UART Notifier
 There are two notifiers, one for both the terminal and the Marklin system. The UART notifiers repeatedly call `await_event` for events `EVENT_UART_TERMINAL` and `EVENT_UART_MARKLIN` respectively. These events occur when a UART interrupt comes in (e.g. write available, read available, etc.). Upon re-awakening, the notifiers call `send` to the UART server to communicate the event.
 
@@ -82,7 +95,6 @@ All tasks are set to priority one. We did not find any need to use other priorit
 ### Routing
 
 The train is routed using Dijkstra’s algorithm. The system can forbid certain segments of the track from being used. In addition to being able to change direction at branches, we also allow the train to reverse after merges and at exits, as well as once at the beginning of its path. Once the path is calculated, the track nodes and the distances between them are stored in a `track_path` data structure, which is used by the train task.
-
 
 ### Stopping
 
@@ -116,7 +128,6 @@ We used a reservation system to prevent collisions. The track is split up into s
 Each train reserves segments as it moves, looking ahead a set distance along its path and reserving all segments in that window. After a train reaches a sensor, it releases all segments before the sensor. If a train tries to reserve a segment that is already being reserved by another train, a collision is detected.
 
 To resolve this, both trains are stopped. Then, we calculate two possible cases: one where train one is rerouted (i.e. routed again but forbidden the conflicted segment) and train two is allowed to continue, and another where train two is rerouted and train one is allowed to continue. These two cases are compared, and we choose the one which requires the least total distance travelled by the two trains. Then the trains are restarted according to their new routes.
-
 
 ### Execution
 
