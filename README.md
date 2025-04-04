@@ -23,7 +23,7 @@ When we enter a task from the kernel, we call the function `enter_task`, which t
 - Load the user task's registers, ELR, SP, and SPSR  into the registers.
 - Call `eret` to jump to the address indicated by the user task's ELR. This should either be the entry point of the task if we’re entering it for the first time, or the task's last executed instruction otherwise.
 
-When we switch from a task back to the kernel, we call `svc` with the appropriate syscall number. The `svc` call puts us in kernel mode. Using the previously saved pointers to the kernel and user task objects, we save the user task’s registers and restore the kernel’s registers. Finally we read and pass `ESR` to the syscall handler.
+When we switch from a task back to the kernel, we call `svc` with the appropriate syscall number. The `svc` call puts us in kernel mode. Using the previously saved pointers to the kernel and user task objects, we save the user task’s registers and restore the kernel’s registers. Finally we pass `ESR` to the syscall handler.
 
 ### Syscall
 When a task makes a syscall, the PC jumps back to the kernel’s main loop. The kernel grabs the syscall number from the `ESR` register, and handles the command appropriately (e.g. `create` will allocate a new task and add it to the scheduler). For syscalls like `create` and `my_tid` that have a return value, the kernel places this value in `R0`. It then schedules the next task and jumps into it.
@@ -53,35 +53,37 @@ The name server map is implemented as a pair of arrays. To get or set an element
 ## K3
 
 ### Clock Notifier
-The clock notifier repeatedly calls `await_event(TICK_EVENT)`. When the syscall handler receives a `TICK_EVENT` interrupt, it notifies the clock notifier, and updates the value of `C1` to the next tick. The clock notifier then informs the clock server of the tick.
+We use the Raspberry Pi's clock mechanisms to generate an interrupt every $10\mu s$. The clock notifier repeatedly waits for this interrupt (by calling `await_event`). When this interrupt comes in, the clock notifier the informs the clock server of the tick.
 
 ### Clock Server
-The clock server maintains a `map<uint, uint>` that maps the ID of a waiting task to the time that it should be re-awakened. For example, if the `CURRENT_TICK` is `10`, and a task with tid `3` calls `delay(5)`, then the pair `<3, 15>` is placed in the map. For every tick that comes in, we iterate through the map and unblock the tasks that match the current tick. The commands `time`, `delay`, and `delay_until` are wrappers of `send`.
+The clock server maintains a map from the ID of a waiting task to the time that it should be re-awakened. For example, if the current tick number is 10, and a task with tid `3` calls `delay(5)`, then the pair `<3, 15>` is stored in the map. When a new tick comes in from the notifier, we iterate through the map and unblock the tasks that match the current tick.
 
 ### Idle Measurements
-The kernel keeps track of how long each task has been running for. Right before entering a task, it starts the timer, and ends the timer as soon as control is returned to the kernel. The kernel then starts its own timer, and ends the timer as soon as it enters the scheduled task.
-
-The kernel is responsible for printing the idle measurements every 50ms. We confirmed that the time it takes to print is far less than a tick, so it’s a reasonable demand for the kernel to do occasionally. Typically, idle time stays around 99%.
+The kernel keeps track of how long each task has been running for. Right before entering a task, it starts the timer, and ends the timer as soon as control is returned to the kernel. The kernel then starts its own timer, and ends the timer when it re-enters the scheduled task. This allows us to keep track of the kernel usage and user usage, and by extension, the idle time. Typically, idle time stays above 98%.
 
 ## K4
 
 ### UART Notifier
-There are two notifiers, one for both the terminal and the Marklin system. The UART notifiers repeatedly call `await_event` for events `EVENT_UART_TERMINAL` and `EVENT_UART_MARKLIN` respectively. These events occur when a UART interrupt comes in (e.g. write available, read available, etc.). Upon re-awakening, the notifiers call `send` to the UART server to communicate the event.
+We use the <a href="https://en.wikipedia.org/wiki/Universal_asynchronous_receiver-transmitter">UART</a> protocol for I/O.
+
+The hardware was configured to generate an interrupt when I/O state changed in a certain way (e.g. read is available, write is available, etc.). We have two notifiers, one for both the terminal and the Marklin system, that wait upon these interrupts. When an interrupt comes in, the notifier forwards it to the UART server, and indicates to the hardware that the interrupt has been handled.
 
 ### UART Server
-Similarly, there are two UART servers. Let’s first discuss the read flow. Initially, interrupts are masked. When a task calls `getc`, the UART server checks to see if a character is available to be read. If a character is available, the UART server grabs the character and returns immediately—interrupts are still disabled. If a character is not available, read interrupts are enabled, and when a UART interrupt comes in indicating that a character is available, we read the character, return it, and re-disable interrupts. Writing is quite similar to this process.
-
-The main difference comes with the Marklin system, which also needs to track the CTS flag, which our UART server has an internal representation of. Initially, our CTS flag is set to one. Say a write request comes in and a character is put on the wire. Our CTS flag is set to zero immediately to avoid the problem caused by the CTS quirk mentioned in class. The UART server does not put any more characters on the wire until our CTS flag is set back to one. When the CTS interrupt comes in, we then set our CTS flag back to one, at which point further writes are allowed.
+Similarly, there are two UART servers. Let’s discuss the read flow. Initially, interrupts are masked. When a task calls `getc`, the UART server checks to see if a character is available on the wire. If a character is available, the UART server grabs the character and returns immediately. If a character is not available, read interrupts are enabled, and when a UART interrupt comes in to the notifier indicating read availability, the server reads that character, and disables interrupts again.
 
 ### Handling Commands
-The `terminal_task` is responsible for repeatedly calling `getc` to take in user input. When a user types `Enter`, the terminal task grabs the command, and makes a `send` request to the `command_task`, which is responsible for actually processing the command. The `marklin_task` is responsible for actually sending commands to the Marklin system, such as setting the speed of a train.
+The `terminal_task` requests user input in a loop. When the user types `Enter`, the terminal task forwards the command to the `command_task`, which actually processes the command. The `marklin_task` exposes an API to send commands to the Marklin system, such as setting the speed of a train.
 
-Let’s more closely examine the `rv` command. Say `rv 55` comes in. First, we send a message to the `marklin_task` to set the speed of train 55 to zero. We then call `create` to spawn a task called `train_reverse_task`, which (1) calls `delay` to wait 3.5 seconds, (2) sends a command to reverse the train, and (3) sends a command to set the train speed back to its original speed. To get the original train speed, we make a request to `state_server`, which we discuss next. The `tr` and `sw` commands are straightforward (i.e. tell `marklin_task` to execute the command, then tell `state_server` to update the state).
+To get a better idea of the control flow, let’s more closely examine the reverse command command. Say the user types `rv 55`. First, we tell the `marklin_task` to set the speed of train 55 to zero. We then call `create` to spawn a task called `train_reverse_task`, which does the following things:
+
+- Calls `delay` to wait 3.5 seconds.
+- Tells the `marklin_task` to reverse the train.
+- Sends a command to set the train speed back to its original speed.
 
 ### State Server
-The state server maintains an internal representation of the trains, switches, and sensors. Thus, every command (e.g. `tr`, `rv`, `sw`) sends a message to the state server to inform the change in state. The `display_state_task`, which is another task that is responsible for actually printing the current state of the program in the first four lines of the terminal, makes queries to the state server to get the information it needs.
+The state server maintains an internal representation of the trains, switches, and sensors. Thus, every user command must also inform the state server of any state change.
 
-## TC
+## Train Control
 
 ### Task Design
 We have several keys tasks that communicate with each other:
