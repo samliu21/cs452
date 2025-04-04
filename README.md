@@ -3,7 +3,7 @@
 ## Logistics
 Sam Liu (s742liu, 20938864), Kevin Guo (k54guo, 20903138)
 
-Commit: `ccfd3eb474372855a144f7bf9b8bbe9502827f41`
+Commit: `6f5ac3b0b0fa620f1a94dd1db51550941a57ffb9`
 
 <a href="https://git.uwaterloo.ca/cs452-sl-kg/cs452">GitLab</a>
 
