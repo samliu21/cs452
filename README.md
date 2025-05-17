@@ -7,9 +7,9 @@ Final Commit: `6f5ac3b0b0fa620f1a94dd1db51550941a57ffb9`
 
 ## Overview
 
-This is the repository for a microkernel designed to run on a <a href="https://www.raspberrypi.com/documentation/computers/processors.html#bcm2711">BCM2711</a> Raspberry Pi, which uses a single-core <a href="https://developer.arm.com/Processors/Cortex-A72">ARMv8 processor</a>. The kernel was then used to support a real-time train control application, which routes and coordinates several model trains to avoid collisions. 
+This is the repository for a microkernel designed to run on a <a href="https://www.raspberrypi.com/documentation/computers/processors.html#bcm2711">BCM2711</a> Raspberry Pi, which uses a single-core <a href="https://developer.arm.com/Processors/Cortex-A72">ARMv8 processor</a>. The kernel was then used to support a real-time train control application, which routes and coordinates several model trains to avoid collisions.
 
-Since the kernel uses only one thread, we use preemption with a quantum of $10\mu s$. All code in this repository was written from scratch. 
+Since the kernel uses only one thread, we use preemption with a quantum of $10\mu s$. All code in this repository was written from scratch. To get a sense of what the kernel looks like, check out the <a href="https://github.com/samliu21/cs452/blob/master/src/main.c">main kernel loop</a>.
 
 ## K1
 
